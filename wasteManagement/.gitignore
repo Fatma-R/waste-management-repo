@@ -1,0 +1,27 @@
+# ===== Java / Maven =====
+target/
+*.class
+*.log
+
+# Keep Maven Wrapper so mvnw works on any machine
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper-downloader.jar
+
+# ===== IDEs =====
+# IntelliJ
+.idea/
+*.iws
+*.iml
+*.ipr
+# VS Code
+.vscode/
+
+# ===== Node / Angular (if present) =====
+node_modules/
+dist/
+.angular/
+coverage/
+
+# ===== OS junk =====
+.DS_Store
+Thumbs.db
