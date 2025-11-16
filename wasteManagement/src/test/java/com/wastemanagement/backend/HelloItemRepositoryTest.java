@@ -5,10 +5,15 @@ import com.wastemanagement.backend.repository.HelloItemRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.test.context.ActiveProfiles;
+
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataMongoTest
+@ActiveProfiles("test") // <-- makes Spring use application-test.properties
 class HelloItemRepositoryTest {
 
     @Autowired
@@ -16,19 +21,21 @@ class HelloItemRepositoryTest {
 
     @Test
     void saveAndLoadHelloItem() {
-        // clean collection
-        repository.deleteAll();
+        // Create a unique test message
+        String testMessage = "Hello Mongo " + UUID.randomUUID();
 
-        // save
-        HelloItem saved = repository.save(new HelloItem("Hello Mongo"));
+        // Save only this test item
+        HelloItem saved = repository.save(new HelloItem(testMessage));
 
-        // reload
-        var all = repository.findAll();
+        // Reload the item by its ID
+        Optional<HelloItem> found = repository.findById(saved.getId());
+        assertThat(found).isPresent();
 
-        assertThat(all).hasSize(1);
-        HelloItem item = all.get(0);
-
+        HelloItem item = found.get();
         assertThat(item.getId()).isNotNull();
-        assertThat(item.getMessage()).isEqualTo("Hello Mongo");
+        assertThat(item.getMessage()).isEqualTo(testMessage);
+
+        // Clean up only this test item
+        repository.deleteById(saved.getId());
     }
 }
