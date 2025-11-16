@@ -1,144 +1,277 @@
-# waste-management-repo
-Waste Management – Spring Boot + MongoDB + Angular
-A full-stack waste management application built with:
+# 🌱 Waste Management – Spring Boot + MongoDB + Angular
 
-Backend: Spring Boot (Java 21) + MongoDB
-Frontend: Angular (standalone components)
-Database: MongoDB (local instance)
+A clean full-stack demo application for a waste-management system.
 
+- **Backend:** Spring Boot (Java 21) + MongoDB  
+- **Frontend:** Angular (standalone components)  
+- **Database:** MongoDB (local development)
 
-Project Structure
-waste-management-repo/
-├── .github/
-│   └── workflows/          # GitHub Actions CI (runs backend tests)
-├── wasteManagement/         # Spring Boot backend
-│   ├── pom.xml
-│   └── src/
-└── frontend/                # Angular frontend
-    ├── angular.json
-    └── src/
-
-Prerequisites
-Install the following tools locally:
-
-Java 21 (JDK)
-Maven 3.9+
-Node.js 18+ and npm
-Angular CLI (optional but recommended):
-
-bash  npm install -g @angular/cli
-
-MongoDB running on localhost:27017
-
-Database: waste_management_db
-No authentication required for local development
-Optional: Use MongoDB Compass to inspect data
-
-
-
-
-Backend Setup (Spring Boot + MongoDB)
-1. Configuration
-# Waste Management — Full Stack
-
-An example full-stack waste management application.
-
-- Backend: Spring Boot (Java 21) + MongoDB
-- Frontend: Angular (standalone components)
-- Database: MongoDB (local)
+This project is built for learning, prototyping, and demonstrating a full client–server architecture with CI integration.
 
 ---
 
-## Table of contents
+## 📑 Table of Contents
 
 - [Overview](#overview)
-- [Quick start (Windows / PowerShell)](#quick-start-windows--powershell)
-- [Project structure](#project-structure)
-- [Running the app](#running-the-app)
-- [Useful paths](#useful-paths)
+- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Backend Setup](#backend-setup)
+- [Frontend Setup](#frontend-setup)
+- [Running the App](#running-the-app)
+- [Useful Paths](#useful-paths)
 - [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
+- [CI / GitHub Actions](#ci--github-actions)
 
 ---
 
-## Overview
+## 📘 Overview
 
-This repo contains a Spring Boot backend and an Angular frontend for a waste management demo app. It's aimed at local development and CI testing.
+The repository contains:
 
-The frontend expects the backend API to be available at http://localhost:8080 during development.
+- A Spring Boot backend exposing REST endpoints.
+- An Angular frontend consuming those endpoints.
+- A MongoDB instance running locally.
+- A CI workflow using GitHub Actions to run backend tests.
 
-## Quick start (Windows / PowerShell)
+The application runs entirely on your machine and does **not** require Docker.
 
-1. Ensure prerequisites are installed:
+---
 
-- Java 21 (JDK)
-- Maven 3.9+
-- Node.js 18+ and npm
-- MongoDB (running on localhost:27017)
+## 📂 Project Structure
 
-2. Start the backend (from repo root):
+```
+waste-management-repo/
+├── .github/
+│   └── workflows/            # GitHub Actions CI (runs backend tests)
+├── wasteManagement/          # Spring Boot backend
+│   ├── pom.xml
+│   └── src/
+└── frontend/                 # Angular frontend
+    ├── angular.json
+    └── src/
+```
 
-```powershell
-cd .\wasteManagement
+---
+
+## 🧰 Prerequisites
+
+Install these tools:
+
+### Backend requirements  
+- **Java 21 (JDK)**  
+- **Maven 3.9+**  
+
+### Frontend requirements  
+- **Node.js 18+**  
+- **npm**  
+- (Optional but recommended) Angular CLI  
+  ```
+  npm install -g @angular/cli
+  ```
+
+### Database  
+- **MongoDB running at:** `mongodb://localhost:27017`  
+- **Database name:** `waste_management_db`  
+- No authentication required for local development  
+- Recommended: **MongoDB Compass** for inspection
+
+---
+
+# 🔧 Backend Setup
+
+Backend located in:
+
+```
+wasteManagement/
+```
+
+### 1️⃣ MongoDB Configuration
+
+File:  
+```
+wasteManagement/src/main/resources/application.properties
+```
+
+```properties
+spring.data.mongodb.uri=mongodb://localhost:27017/waste_management_db
+```
+
+### 2️⃣ Example Controller
+
+```java
+@RestController
+@RequestMapping("/api/hello")
+@CrossOrigin(origins = "http://localhost:4200")
+public class HelloController {
+
+    @GetMapping
+    public String hello() {
+        return "Hello World";
+    }
+}
+```
+
+### 3️⃣ Run Backend Tests
+
+```bash
+cd wasteManagement
+mvn test
+```
+
+### 4️⃣ Start the Backend
+
+```bash
+cd wasteManagement
 mvn spring-boot:run
 ```
 
-3. In a second terminal, start the frontend:
-
-```powershell
-cd .\frontend
-npm install   # only needed the first time or after changes to package.json
-npm start
-# or: npx ng serve --open
-```
-
-Open the frontend at http://localhost:4200 and the API at http://localhost:8080/api/hello
-
-Notes:
-- Start the backend first so the frontend can fetch API data during development.
-- The dev server runs on port 4200 by default.
-
-## Project structure (high level)
+Backend available at:
 
 ```
-waste-management-repo/
-├── .github/               # CI workflows
-├── wasteManagement/       # Spring Boot backend
-└── frontend/              # Angular frontend
-        └── src/               # Angular sources (components, services, routes)
+http://localhost:8080/api/hello
 ```
-
-Useful frontend files:
-
-- `src/app/app.ts` — application bootstrap
-- `src/app/app.routes.ts` — route definitions
-- `src/app/core/services/hello.ts` — example service
-- `src/app/features/hello/hello-page/` — hello page (component template, styles)
-
-## Running the app
-
-- Backend API (after mvn spring-boot:run):
-
-    - http://localhost:8080/api/hello
-
-- Frontend:
-
-    - http://localhost:4200
-    - Example route: http://localhost:4200/hello
-
-## Troubleshooting
-
-- MongoDB connection errors: make sure `mongod` is running and accessible at `localhost:27017`.
-- Port conflicts: ensure ports 8080 and 4200 are free or change them in the app configuration.
-- If the frontend is blank at http://localhost:4200:
-    1. Check the frontend terminal for compile/runtime errors.
-    2. Ensure the backend is running (the hello endpoint should return `Hello World`).
-    3. Open browser DevTools console for runtime JS errors.
-
-## Contributing
-
-1. Fork the repo and create a feature branch.
-2. Run and test locally (backend + frontend).
-3. Open a PR with a clear description and any relevant testing notes.
 
 ---
+
+# 🎨 Frontend Setup
+
+Frontend located in:
+
+```
+frontend/
+```
+
+### 1️⃣ Install dependencies
+
+```bash
+cd frontend
+npm install
+```
+
+### 2️⃣ Run the frontend
+
+```bash
+npm start
+```
+or:
+```bash
+ng serve
+```
+
+Frontend dev server:
+
+```
+http://localhost:4200
+```
+
+### 3️⃣ Example Frontend Integration
+
+Routes defined in:  
+`src/app/app.routes.ts`
+
+Service example:  
+`src/app/core/services/hello.service.ts`
+
+Hello page:  
+`src/app/features/hello/hello-page.component.ts`
+
+Open:
+
+```
+http://localhost:4200/hello
+```
+
+It should call the backend `/api/hello`.
+
+---
+
+# 🚀 Running the App (Full Workflow)
+
+Open two terminals:
+
+### **Terminal 1 – Backend**
+```bash
+cd wasteManagement
+mvn spring-boot:run
+```
+
+Backend runs on:
+```
+http://localhost:8080/api/hello
+```
+
+### **Terminal 2 – Frontend**
+```bash
+cd frontend
+npm start
+```
+
+Frontend runs on:
+```
+http://localhost:4200
+```
+
+---
+
+# 📌 Useful Paths
+
+### Backend
+- `src/main/java/.../controller/` → REST controllers  
+- `src/main/java/.../model/` → MongoDB documents  
+- `src/main/resources/application.properties` → DB config  
+
+### Frontend
+- `src/app/app.routes.ts` → Routes  
+- `src/app/core/services/` → API services  
+- `src/app/features/hello/` → Hello example page  
+
+---
+
+# 🛠️ Troubleshooting
+
+### ❗ Backend won't start
+- Ensure MongoDB is running locally:
+  ```
+  mongod
+  ```
+- Verify the configured DB name exists or let Spring create it.
+
+### ❗ Frontend shows blank page
+- Check browser console errors
+- Restart backend → then restart Angular
+- Make sure CORS origin matches (`http://localhost:4200`)
+
+### ❗ Port already in use
+- Change Spring Boot port:
+  ```
+  server.port=8081
+  ```
+- Change Angular port:
+  ```
+  ng serve --port=4201
+  ```
+
+---
+
+# 🔄 CI / GitHub Actions
+
+Workflow file:
+
+```
+.github/workflows/ci.yml
+```
+
+On each push or PR:
+
+1. Set up Java 21  
+2. Start a MongoDB service (Docker)  
+3. Run:
+
+```bash
+mvn test
+```
+
+If tests fail → CI turns red.
+
+---
+
