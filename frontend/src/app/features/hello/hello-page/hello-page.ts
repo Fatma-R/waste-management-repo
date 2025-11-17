@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HelloService } from '../../../core/services/hello';
+import { Hello } from '../../../core/services/hello';
 
 
 @Component({
@@ -27,7 +27,7 @@ export class HelloPage implements OnInit {
   error = '';
   loading = false;
 
-  constructor(private helloService: HelloService) {}
+  constructor(private hello: Hello) {}
 
   ngOnInit(): void {
     this.load();
@@ -38,7 +38,7 @@ export class HelloPage implements OnInit {
     this.error = '';
     this.message = '';
 
-    this.helloService.getHello().subscribe({
+    this.hello.getHello().subscribe({
       next: msg => {
         this.message = msg;
         this.loading = false;

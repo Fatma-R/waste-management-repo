@@ -1,0 +1,33 @@
+<div class="auth-container">
+  <div class="form-block">
+    <h2>Create an Account</h2>
+
+    <div class="form-group">
+      <label for="fullName">Full Name</label>
+      <input id="fullName" type="text" [(ngModel)]="fullName" placeholder="John Doe" />
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input id="email" type="email" [(ngModel)]="email" placeholder="you@example.com" />
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input id="password" type="password" [(ngModel)]="password" placeholder="Create a password" />
+    </div>
+
+    <div class="form-group">
+      <label for="confirm-password">Confirm Password</label>
+      <input id="confirm-password" type="password" [(ngModel)]="confirmPassword" placeholder="Re-enter your password" />
+    </div>
+
+    <br>
+
+    <button type="button" class="btn submit" (click)="onSubmit()">Sign Up</button>
+
+    <p class="auth-note">
+      Already have an account? <a routerLink="/login">Sign in</a>
+    </p>
+  </div>
+</div>

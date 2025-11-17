@@ -10,8 +10,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 public class AuthController {
 
     @Autowired
@@ -28,7 +30,7 @@ public class AuthController {
 
     // Login endpoint
     @PostMapping("/signin")
-    public String authenticateUser(@RequestBody User user) {
+    public Map<String, String> authenticateUser(@RequestBody User user) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         user.getEmail(),   // Use email as username
@@ -37,8 +39,12 @@ public class AuthController {
         );
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        return jwtUtils.generateToken(userDetails.getUsername());
+        String jwt = jwtUtils.generateToken(userDetails.getUsername());
+
+        // Return as JSON
+        return Map.of("token", jwt);
     }
+
 
     // Registration endpoint
     @PostMapping("/signup")

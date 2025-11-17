@@ -1,5 +1,7 @@
 package com.wastemanagement.backend;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wastemanagement.backend.model.User;
 import com.wastemanagement.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,18 +33,20 @@ class AuthControllerIntegrationTest {
     @Autowired
     private PasswordEncoder encoder;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     private final String testEmail = "safe_testuser@email.com";
     private final String testPassword = "testpass";
 
     @BeforeEach
     void setup() {
-        // Delete only this test user if it exists
+        // Remove test user if exists
         userRepository.findByEmail(testEmail).ifPresent(userRepository::delete);
     }
 
     @Test
     void testSignUpSignInAndProtectedEndpoint() throws Exception {
-
         // 1️⃣ Ensure test user is not already in the DB
         Optional<User> existing = userRepository.findByEmail(testEmail);
         assertTrue(existing.isEmpty());
@@ -55,7 +59,7 @@ class AuthControllerIntegrationTest {
                 }
                 """.formatted(testEmail, testPassword);
 
-        mockMvc.perform(post("/api/auth/signup")
+        mockMvc.perform(post("/api/v1/auth/signup")
                         .contentType("application/json")
                         .content(signupJson))
                 .andExpect(status().isOk())
@@ -69,7 +73,7 @@ class AuthControllerIntegrationTest {
                 }
                 """.formatted(testEmail, testPassword);
 
-        String token = mockMvc.perform(post("/api/auth/signin")
+        String response = mockMvc.perform(post("/api/v1/auth/signin")
                         .contentType("application/json")
                         .content(signinJson))
                 .andExpect(status().isOk())
@@ -77,7 +81,11 @@ class AuthControllerIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
-        assertTrue(token.startsWith("ey")); // basic check that it's a JWT
+        // Parse JSON to extract the token
+        JsonNode jsonNode = objectMapper.readTree(response);
+        String token = jsonNode.get("token").asText();
+
+        assertTrue(token.startsWith("ey")); // basic JWT check
 
         // 4️⃣ Access public endpoint (no token needed)
         mockMvc.perform(get("/api/test/all"))
@@ -92,6 +100,6 @@ class AuthControllerIntegrationTest {
         mockMvc.perform(get("/api/test/user")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(content().string("User Content (JWT protected)."));  // ✅
+                .andExpect(content().string("User Content (JWT protected)."));
     }
 }

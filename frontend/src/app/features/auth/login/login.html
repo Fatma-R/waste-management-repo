@@ -1,0 +1,35 @@
+<div class="auth-container">
+  <div class="form-block">
+    <h2>Sign In</h2>
+
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input
+        id="email"
+        type="email"
+        [(ngModel)]="email"
+        placeholder="you@example.com"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input
+        id="password"
+        type="password"
+        [(ngModel)]="password"
+        placeholder="••••••••"
+      />
+    </div>
+
+    <br />
+
+    <button type="button" class="btn submit" (click)="onSubmit()">
+      Sign In
+    </button>
+
+    <p class="auth-note">
+      Don't have an account? <a routerLink="/signup">Sign up</a>
+    </p>
+  </div>
+</div>
