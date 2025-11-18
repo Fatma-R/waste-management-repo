@@ -21,12 +21,20 @@ export class Login {
 
   onSubmit(): void {
     this.authService.login(this.email, this.password).subscribe({
-      next: () => {
-        this.router.navigate(['/home']);
+      next: (response) => {
+        console.log('Login successful:', response);
+        
+        // Route based on role
+        if (this.authService.isAdmin()) {
+          this.router.navigate(['/admin/dashboard']);
+        } else {
+          this.router.navigate(['/home']);
+        }
       },
       error: (err) => {
         console.error('Login failed:', err);
-        alert('Invalid email or password');
+        const errorMsg = err.error?.error || 'Invalid email or password';
+        alert(errorMsg);
       }
     });
   }

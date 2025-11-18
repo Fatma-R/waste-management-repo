@@ -17,7 +17,10 @@ export class Signup {
   password: string = '';
   confirmPassword: string = '';
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
   onSubmit(): void {
     if (this.password !== this.confirmPassword) {
@@ -25,15 +28,19 @@ export class Signup {
       return;
     }
 
-    this.authService.signup(this.email, this.password).subscribe({
+    this.authService.signup({
+      email: this.email,
+      password: this.password,
+      fullName: this.fullName
+    }).subscribe({
       next: (res: any) => {
-        const message = typeof res === 'string' ? res : res.message;
+        const message = res.message || 'Signup successful!';
         alert(message);
         this.router.navigate(['/login']);
       },
       error: (err) => {
         console.error('Signup error:', err);
-        const message = err.error?.message || err.error?.text || 'Signup failed. Please try again.';
+        const message = err.error?.error || 'Signup failed. Please try again.';
         alert(message);
       }
     });

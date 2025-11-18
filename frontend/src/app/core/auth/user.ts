@@ -3,6 +3,21 @@ export interface User {
   fullName: string;
   email: string;
   password?: string;
-  createdAt?: string;      // ISO date string returned by backend
-  updatedAt?: string;      // ISO date string returned by backend
+  roles?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface JwtResponse {
+  token: string;
+  email: string;
+  roles: string[];
+  message: string;
+}
+
+export interface SignupRequest {
+  email: string;
+  password: string;
+  fullName?: string;
+  roles?: string[];
 }
