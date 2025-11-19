@@ -1,7 +1,7 @@
 package com.wastemanagement.backend.config;
 
-import com.wastemanagement.backend.model.ERole;
-import com.wastemanagement.backend.model.Role;
+import com.wastemanagement.backend.model.employee.ERole;
+import com.wastemanagement.backend.model.employee.Role;
 import com.wastemanagement.backend.repository.RoleRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;

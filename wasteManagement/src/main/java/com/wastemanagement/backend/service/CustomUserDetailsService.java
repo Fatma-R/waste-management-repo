@@ -1,6 +1,6 @@
 package com.wastemanagement.backend.service;
 
-import com.wastemanagement.backend.model.User;
+import com.wastemanagement.backend.model.employee.User;
 import com.wastemanagement.backend.repository.UserRepository;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
