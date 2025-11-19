@@ -1,0 +1,17 @@
+<div class="fill-indicator" [class]="'fill-indicator-' + size">
+  <div class="fill-bar">
+    <div 
+      class="fill-progress"
+      [class]="'fill-' + fillColor"
+      [style.width.%]="fillLevel"
+      role="progressbar"
+      [attr.aria-valuenow]="fillLevel"
+      [attr.aria-valuemin]="0"
+      [attr.aria-valuemax]="100"
+      [attr.aria-label]="'Fill level: ' + fillLevel + '%'">
+    </div>
+  </div>
+  <span class="fill-text" *ngIf="showLabel">
+    {{ fillLevel }}% - {{ fillLabel }}
+  </span>
+</div>

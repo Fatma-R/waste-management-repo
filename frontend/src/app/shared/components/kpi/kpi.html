@@ -1,0 +1,15 @@
+<div class="kpi-card" [attr.data-color]="color">
+  <div class="kpi-header">
+    <span class="kpi-icon" *ngIf="icon" [attr.aria-hidden]="true">{{ icon }}</span>
+    <span class="kpi-label">{{ label }}</span>
+  </div>
+  <div class="kpi-value">
+    <span class="kpi-number">{{ value }}</span>
+    <span class="kpi-unit" *ngIf="unit">{{ unit }}</span>
+  </div>
+  <div class="kpi-trend" *ngIf="trend">
+    <span [class]="'trend-' + trend">
+      {{ trend === 'up' ? '↑' : '↓' }}
+    </span>
+  </div>
+</div>

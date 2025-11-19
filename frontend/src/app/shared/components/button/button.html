@@ -1,0 +1,7 @@
+<button 
+  [type]="type"
+  [disabled]="disabled"
+  [class]="'btn btn-' + variant + ' btn-' + size"
+  [attr.aria-label]="ariaLabel">
+  <ng-content></ng-content>
+</button>
