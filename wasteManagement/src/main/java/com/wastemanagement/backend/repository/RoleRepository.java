@@ -1,7 +1,7 @@
 package com.wastemanagement.backend.repository;
 
-import com.wastemanagement.backend.model.ERole;
-import com.wastemanagement.backend.model.Role;
+import com.wastemanagement.backend.model.employee.ERole;
+import com.wastemanagement.backend.model.employee.Role;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 

@@ -2,9 +2,9 @@ package com.wastemanagement.backend;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wastemanagement.backend.model.ERole;
-import com.wastemanagement.backend.model.Role;
-import com.wastemanagement.backend.model.User;
+import com.wastemanagement.backend.model.employee.ERole;
+import com.wastemanagement.backend.model.employee.Role;
+import com.wastemanagement.backend.model.employee.User;
 import com.wastemanagement.backend.repository.RoleRepository;
 import com.wastemanagement.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
