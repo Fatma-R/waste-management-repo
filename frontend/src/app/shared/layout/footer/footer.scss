@@ -1,0 +1,93 @@
+@import "@fontsource/poppins/500.css";
+@import "@fontsource/open-sans/400.css";
+
+.app-footer {
+  background: linear-gradient(135deg, #fdfdfc, #f8fafc);
+  border-top: 1px solid rgba(148, 163, 184, 0.3);
+  font-family: "Poppins", "Open Sans", system-ui, -apple-system, sans-serif;
+  color: #475569;
+  padding: 2rem 1.5rem;
+
+  .app-footer__container {
+    max-width: 1120px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    text-align: center;
+  }
+
+  .app-footer__brand {
+    .app-footer__logo-text {
+      font-weight: 600;
+      font-size: 1.25rem;
+      color: #111827;
+    }
+    .app-footer__tagline {
+      font-weight: 400;
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+  }
+
+  .app-footer__links {
+    display: flex;
+    gap: 1.5rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    a {
+      color: #36554a;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: color 0.15s ease, transform 0.15s ease;
+
+      &:hover {
+        color: #7fa893;
+        transform: translateY(-1px);
+      }
+    }
+  }
+
+  .app-footer__socials {
+    display: flex;
+    gap: 1rem;
+
+    a img {
+      width: 22px;
+      height: 22px;
+      filter: brightness(0.5);
+      transition: filter 0.15s ease, transform 0.15s ease;
+
+      &:hover {
+        filter: brightness(1);
+        transform: scale(1.1);
+      }
+    }
+  }
+
+  .app-footer__copyright {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 0.5rem;
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .app-footer__container {
+    gap: 1rem;
+  }
+
+  .app-footer__links {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .app-footer__socials {
+    justify-content: center;
+  }
+}

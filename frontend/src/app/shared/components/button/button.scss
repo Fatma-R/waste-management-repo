@@ -1,0 +1,119 @@
+@use '../../styles/variables' as *;
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  border-radius: $radius-md;
+  transition: all 0.18s ease;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  text-decoration: none;
+  padding: 0; /* size classes handle padding */
+  min-height: 40px;
+  line-height: 1;
+
+  /* ensure anchor inside inherits color and fills button */
+  a, ::ng-deep a {
+    color: inherit;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  &:focus-visible {
+    outline: 3px solid rgba(95,167,119,0.18);
+    outline-offset: 2px;
+  }
+}
+
+/* sizes */
+.btn-sm { padding: 0.45rem 0.9rem; font-size: 0.875rem; }
+.btn-md { padding: 0.75rem 1.25rem; font-size: 1rem; }
+.btn-lg { padding: 1rem 1.6rem; font-size: 1.0625rem; }
+
+/* PRIMARY (unchanged) */
+.btn-primary {
+  background: var(--color-green);
+  color: #fff;
+  border: 2px solid transparent;
+  box-shadow: $shadow-md;
+
+  &:hover:not(:disabled) {
+    background: var(--color-green-dark);
+    transform: translateY(-2px);
+    box-shadow: $shadow-lg;
+  }
+
+  &:active:not(:disabled) { transform: translateY(0); }
+}
+
+/* OUTLINE — keep the expected behavior: transparent => green bg on hover with white text */
+.btn-outline {
+  background: transparent;
+  color: var(--color-green);
+  border: 2px solid var(--color-green);
+  box-shadow: 0 2px 6px rgba(95,167,119,0.06);
+
+  /* Hover: fill with green, text becomes white (explicit) */
+  &:hover:not(:disabled) {
+    background: var(--color-green);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+/* GHOST: subtle */
+.btn-ghost {
+  background: transparent;
+  color: var(--color-grey-dark);
+  border: 2px solid transparent;
+
+  &:hover:not(:disabled) {
+    background: var(--color-sand-light);
+    transform: translateY(-1px);
+  }
+}
+
+/* WHITE variant — white background, green text, never white text */
+.btn-white {
+  background: #ffffff;
+  color: var(--color-green-dark);
+  border: 2px solid rgba(74, 138, 95, 0.12);
+  box-shadow: 0 6px 14px rgba(54,85,74,0.06);
+
+  &:hover:not(:disabled) {
+    /* keep text green (not white). give a subtle tint and deepen border */
+    background: #fbfdfb; /* tiny off-white tint */
+    border-color: var(--color-green);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(54,85,74,0.08);
+    color: var(--color-green);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+/* small accessibility fix: ensure focus style for all */
+.btn:focus { box-shadow: 0 0 0 4px rgba(95,167,119,0.10); }

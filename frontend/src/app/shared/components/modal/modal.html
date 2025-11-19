@@ -1,0 +1,22 @@
+<div 
+  class="modal-backdrop" 
+  *ngIf="isOpen"
+  (click)="onBackdropClick($event)"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-labelledby]="'modal-title'">
+  <div [class]="'modal-content modal-' + size">
+    <div class="modal-header">
+      <h2 id="modal-title" class="modal-title">{{ title }}</h2>
+      <button 
+        class="modal-close"
+        (click)="onClose()"
+        aria-label="Close modal">
+        ✕
+      </button>
+    </div>
+    <div class="modal-body">
+      <ng-content></ng-content>
+    </div>
+  </div>
+</div>

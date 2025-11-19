@@ -1,0 +1,50 @@
+@use '../../styles/variables' as *;
+
+.fill-indicator {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fill-bar {
+  width: 100%;
+  background: var(--color-sand-light);
+  border-radius: $radius-sm;
+  overflow: hidden;
+}
+
+.fill-indicator-sm .fill-bar {
+  height: 8px;
+}
+
+.fill-indicator-md .fill-bar {
+  height: 12px;
+}
+
+.fill-indicator-lg .fill-bar {
+  height: 16px;
+}
+
+.fill-progress {
+  height: 100%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+  border-radius: $radius-sm;
+}
+
+.fill-green {
+  background: var(--color-green);
+}
+
+.fill-amber {
+  background: var(--color-amber);
+}
+
+.fill-red {
+  background: var(--color-red);
+}
+
+.fill-text {
+  font-size: 0.875rem;
+  color: var(--color-grey);
+  font-weight: 500;
+}

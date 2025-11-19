@@ -1,0 +1,122 @@
+<main>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-text">
+          <h1 class="hero-title">
+            Smart Waste Management for Modern Cities
+          </h1>
+          <p class="hero-description">
+            Revolutionize your waste collection with real-time monitoring, 
+            AI-powered route optimization, and comprehensive analytics. 
+            Reduce costs, improve efficiency, and build a cleaner future.
+          </p>
+          <div class="hero-actions">
+            <app-button variant="primary" size="lg">
+              <a routerLink="/signup" class="btn-link">Get Started</a>
+            </app-button>
+            <app-button variant="outline" size="lg">
+              <a routerLink="/login" class="btn-link-outline">Login</a>
+            </app-button>
+          </div>
+        </div>
+        <div class="hero-image">
+          <img 
+            src="assets/images/rounded-hero-map.png" 
+            alt="Stylized city map showing waste bins and optimized collection routes"
+            class="hero-illustration">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Powerful Features for Efficient Waste Management</h2>
+        <p class="section-description">
+          Everything you need to transform your waste collection operations
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <app-card 
+          *ngFor="let feature of features"
+          [hoverable]="true"
+          padding="lg"
+          class="feature-card">
+          <div class="feature-icon" aria-hidden="true">{{ feature.icon }}</div>
+          <h3 class="feature-title">{{ feature.title }}</h3>
+          <p class="feature-description">{{ feature.description }}</p>
+        </app-card>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section class="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">How It Works</h2>
+        <p class="section-description">
+          Three simple steps to smarter waste management
+        </p>
+      </div>
+
+      <div class="steps-container">
+        <div 
+          *ngFor="let step of howItWorksSteps; let i = index"
+          class="step">
+          <div class="step-number" aria-hidden="true">{{ i + 1 }}</div>
+          <div class="step-icon" aria-hidden="true">{{ step.icon }}</div>
+          <h3 class="step-title">{{ step.title }}</h3>
+          <p class="step-description">{{ step.description }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="stats">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-number">50%</div>
+          <div class="stat-label">Less Fuel Consumption</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">40%</div>
+          <div class="stat-label">Time Saved</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">30%</div>
+          <div class="stat-label">Cost Reduction</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">100%</div>
+          <div class="stat-label">Transparency</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta">
+    <div class="container">
+      <div class="cta-content">
+        <h2 class="cta-title">Ready to Transform Your Waste Management?</h2>
+        <p class="cta-description">
+          Join municipalities and organizations already benefiting from smart waste solutions.
+        </p>
+        <div class="cta-actions">
+          <app-button variant="white" size="lg">
+            <a routerLink="/signup" class="btn-link-outline">Get Started Today</a>
+          </app-button>
+
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
