@@ -1,11 +1,11 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Button } from '../button/button';
+import { ButtonComponent } from '../button/button';
 
 @Component({
   selector: 'app-modal',
   standalone: true,
-  imports: [CommonModule, Button],
+  imports: [CommonModule, ButtonComponent],
   templateUrl: './modal.html',
   styleUrls: ['./modal.scss']
 })

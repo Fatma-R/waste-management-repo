@@ -8,7 +8,7 @@ import { CommonModule } from '@angular/common';
   templateUrl: './fill-indicator.html',
   styleUrls: ['./fill-indicator.scss']
 })
-export class FillIndicatorComponent {
+export class FillIndicator {
   @Input() fillLevel = 0;
   @Input() size: 'sm' | 'md' | 'lg' = 'md';
   @Input() showLabel = true;

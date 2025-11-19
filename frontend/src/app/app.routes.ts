@@ -8,6 +8,8 @@ import { RoleGuard } from './core/auth/role-guard';
 import { AuthLayout } from './core/layouts/auth-layout/auth-layout';
 import { MainLayout } from './core/layouts/main-layout/main-layout';
 import { Landing } from './features/landing/landing';
+import { DashboardComponent } from './features/dashboard/dashboard';
+import { AdminDashboardComponent } from './features/admin-dashboard/admin-dashboard';
 
 export const routes: Routes = [
 
@@ -45,7 +47,7 @@ export const routes: Routes = [
         data: { roles: ['ROLE_ADMIN'] },
         children: [
           // Add your admin routes here…
-          // { path: 'dashboard', component: AdminDashboardComponent }
+        { path: 'dashboard', component: AdminDashboardComponent }
         ]
       },
 
@@ -56,6 +58,7 @@ export const routes: Routes = [
         data: { roles: ['ROLE_USER', 'ROLE_ADMIN'] },
         children: [
           { path: 'home', component: HelloPage },
+          { path: 'dashboard', component: DashboardComponent },
           // Add more user pages here…
         ]
       },

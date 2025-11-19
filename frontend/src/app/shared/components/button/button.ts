@@ -8,7 +8,7 @@ import { CommonModule } from '@angular/common';
   templateUrl: './button.html',
   styleUrls: ['./button.scss']
 })
-export class Button {
+export class ButtonComponent {
   @Input() variant: 'primary' | 'outline' | 'ghost' | 'white' = 'primary';
   @Input() size: 'sm' | 'md' | 'lg' = 'md';
   @Input() disabled = false;

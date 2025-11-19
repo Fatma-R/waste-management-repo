@@ -1,0 +1,297 @@
+@use '../../shared/styles/variables' as *;
+
+.dashboard {
+  min-height: calc(100vh - 200px);
+  padding: $spacing-lg 0;
+  background: var(--color-off-white);
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $spacing-lg;
+  gap: $spacing-md;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+.dashboard-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-grey-dark);
+  margin-bottom: $spacing-xs;
+}
+
+.dashboard-subtitle {
+  color: var(--color-grey);
+  font-size: 1rem;
+}
+
+.dashboard-actions {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+// KPI Section
+.kpi-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+}
+
+// Dashboard Grid
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-lg;
+  
+  @media (max-width: 968px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.map-preview-card {
+  grid-column: span 1;
+}
+
+.notifications-card {
+  grid-column: span 1;
+}
+
+.quick-actions-card,
+.stats-card {
+  grid-column: span 1;
+}
+
+// Card Common Styles
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-grey-dark);
+  margin: 0;
+}
+
+.card-link {
+  font-size: 0.875rem;
+  color: var(--color-green);
+  font-weight: 500;
+  text-decoration: none;
+  
+  &:hover {
+    color: var(--color-green-dark);
+    text-decoration: underline;
+  }
+}
+
+// Map Preview
+.map-preview {
+  background: var(--color-sand-light);
+  border-radius: $radius-md;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+}
+
+.map-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: $spacing-md;
+  padding: $spacing-lg;
+  text-align: center;
+}
+
+.placeholder-icon {
+  font-size: 3rem;
+  margin: 0;
+}
+
+.placeholder-text {
+  color: var(--color-grey);
+  margin: 0;
+}
+
+// Notifications
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.notification-item {
+  display: flex;
+  gap: $spacing-sm;
+  padding: $spacing-sm;
+  border-radius: $radius-sm;
+  transition: background-color 0.2s ease;
+  
+  &.notification-unread {
+    background: var(--color-sand-light);
+  }
+  
+  &:hover {
+    background: var(--color-sand-light);
+  }
+}
+
+.notification-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.notification-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.notification-message {
+  font-size: 0.938rem;
+  color: var(--color-grey-dark);
+  margin: 0;
+}
+
+.notification-time {
+  font-size: 0.75rem;
+  color: var(--color-grey-light);
+}
+
+.no-notifications {
+  text-align: center;
+  padding: $spacing-lg;
+  color: var(--color-grey);
+}
+
+// Quick Actions
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-sm;
+}
+
+.action-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-md;
+  background: var(--color-sand-light);
+  border: 2px solid transparent;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+  
+  &:hover {
+    background: white;
+    border-color: var(--color-green);
+    transform: translateY(-2px);
+  }
+  
+  &:focus-visible {
+    outline: 2px solid var(--color-green);
+    outline-offset: 2px;
+  }
+}
+
+.action-icon {
+  font-size: 2rem;
+}
+
+.action-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-grey-dark);
+  text-align: center;
+}
+
+// Stats Summary
+.stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: $spacing-sm;
+  border-bottom: 1px solid var(--color-sand);
+  
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.stat-label {
+  font-size: 0.938rem;
+  color: var(--color-grey);
+}
+
+.stat-value {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-grey-dark);
+  font-family: 'Poppins', sans-serif;
+}
+
+.stat-positive {
+  color: var(--color-green);
+}
+
+// Modal Content
+.modal-content-body {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.modal-description {
+  color: var(--color-grey);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+}
+
+.btn-link {
+  color: white;
+  text-decoration: none;
+  display: block;
+}
+
+.btn-link-outline {
+  color: var(--color-green);
+  text-decoration: none;
+  display: block;
+}

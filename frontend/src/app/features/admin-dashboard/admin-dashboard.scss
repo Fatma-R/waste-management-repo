@@ -1,0 +1,359 @@
+@use '../../shared/styles/variables' as *;
+
+.admin-page {
+  min-height: calc(100vh - 200px);
+  padding: $spacing-lg 0;
+  background: var(--color-off-white);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $spacing-lg;
+  gap: $spacing-md;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-grey-dark);
+  margin-bottom: $spacing-xs;
+}
+
+.page-subtitle {
+  color: var(--color-grey);
+  font-size: 1rem;
+}
+
+.admin-badge {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  background: linear-gradient(135deg, var(--color-amber) 0%, var(--color-green) 100%);
+  color: white;
+  border-radius: $radius-lg;
+  font-weight: 600;
+  box-shadow: $shadow-md;
+}
+
+.badge-icon {
+  font-size: 1.25rem;
+}
+
+.badge-text {
+  font-size: 0.938rem;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+// KPI Section
+.kpi-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+}
+
+// Admin Grid
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-lg;
+  
+  @media (max-width: 968px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.management-card {
+  grid-column: span 1;
+}
+
+.activity-card {
+  grid-column: span 1;
+  
+  @media (max-width: 968px) {
+    grid-column: span 1;
+  }
+}
+
+.controls-card {
+  grid-column: span 2;
+  
+  @media (max-width: 968px) {
+    grid-column: span 1;
+  }
+}
+
+// Card Common Styles
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-grey-dark);
+  margin: 0;
+}
+
+.card-link {
+  font-size: 0.875rem;
+  color: var(--color-green);
+  font-weight: 500;
+  text-decoration: none;
+  
+  &:hover {
+    color: var(--color-green-dark);
+    text-decoration: underline;
+  }
+}
+
+// Management Lists
+.management-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.management-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-sm;
+  background: var(--color-sand-light);
+  border-radius: $radius-sm;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background: white;
+  }
+}
+
+.item-info {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.item-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.item-name {
+  font-size: 0.938rem;
+  font-weight: 600;
+  color: var(--color-grey-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-meta {
+  font-size: 0.75rem;
+  color: var(--color-grey);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-shrink: 0;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: $radius-sm;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(239, 68, 68, 0.1);
+  }
+  
+  &:focus-visible {
+    outline: 2px solid var(--color-green);
+    outline-offset: 2px;
+  }
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: $radius-sm;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  white-space: nowrap;
+  
+  &.status-active {
+    background: rgba(95, 167, 119, 0.1);
+    color: var(--color-green-dark);
+  }
+  
+  &.status-inactive, &.status-offline {
+    background: rgba(107, 114, 128, 0.1);
+    color: var(--color-grey-dark);
+  }
+  
+  &.status-maintenance, &.status-on-route {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--color-amber);
+  }
+}
+
+// Activity Logs
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: flex;
+  gap: $spacing-sm;
+  padding: $spacing-sm;
+  border-left: 3px solid var(--color-green);
+  background: var(--color-sand-light);
+  border-radius: $radius-sm;
+}
+
+.activity-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.activity-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.activity-user {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-grey-dark);
+}
+
+.activity-time {
+  font-size: 0.75rem;
+  color: var(--color-grey-light);
+}
+
+.activity-action {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-grey-dark);
+  margin: 0;
+}
+
+.activity-details {
+  font-size: 0.813rem;
+  color: var(--color-grey);
+  margin: 0;
+}
+
+// System Controls
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: $spacing-md;
+}
+
+.control-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-lg;
+  background: var(--color-sand-light);
+  border: 2px solid transparent;
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: white;
+    border-color: var(--color-green);
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+  
+  &:focus-visible {
+    outline: 2px solid var(--color-green);
+    outline-offset: 2px;
+  }
+}
+
+.control-icon {
+  font-size: 2rem;
+}
+
+.control-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-grey-dark);
+  text-align: center;
+}
+
+// Confirmation Modal
+.confirm-modal {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.modal-description {
+  color: var(--color-grey);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+}

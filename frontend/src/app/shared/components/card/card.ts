@@ -8,7 +8,7 @@ import { CommonModule } from '@angular/common';
   templateUrl: './card.html',
   styleUrls: ['./card.scss']
 })
-export class Card {
+export class CardComponent {
   @Input() padding: 'sm' | 'md' | 'lg' = 'md';
   @Input() hoverable = false;
 }

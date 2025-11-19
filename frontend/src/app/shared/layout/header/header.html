@@ -18,8 +18,13 @@
 
     <!-- Actions -->
     <div class="app-nav__actions">
-      <a routerLink="/login" class="btn-outline">Login</a>
-      <a routerLink="/signup" class="btn-primary">Sign Up</a>
+      <ng-container *ngIf="!(authService.loggedIn$ | async); else loggedIn">
+        <a routerLink="/login" class="btn-outline">Login</a>
+        <a routerLink="/signup" class="btn-primary">Sign Up</a>
+      </ng-container>
+      <ng-template #loggedIn>
+        <button class="btn-outline" (click)="logout()">Logout</button>
+      </ng-template>
     </div>
   </nav>
 </header>
