@@ -29,7 +29,8 @@ export class AuthService {
         this._loggedIn.next(true);
       })
     );
-}
+  }
+
 
   signup(signupData: SignupRequest): Observable<any> {
     return this.http.post<{ message: string }>(`${this.apiUrl}/signup`, signupData);

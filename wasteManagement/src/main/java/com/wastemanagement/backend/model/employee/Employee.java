@@ -16,4 +16,9 @@ public class Employee extends User {
         super(fullName, email, password);
         this.skill = skill;
     }
+
+    public Employee(String fullName, String email, Skill skill) {
+        super(fullName, email, null);
+        this.skill = skill;
+    }
 }
