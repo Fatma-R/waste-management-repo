@@ -1,4 +1,4 @@
-package com.wastemanagement.backend.dto.employee;
+package com.wastemanagement.backend.dto.user;
 
 import lombok.Data;
 import java.util.Set;

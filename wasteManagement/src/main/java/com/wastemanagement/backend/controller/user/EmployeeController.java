@@ -1,10 +1,10 @@
-package com.wastemanagement.backend.controller.employee;
+package com.wastemanagement.backend.controller.user;
 
-import com.wastemanagement.backend.dto.employee.EmployeeRequestDTO;
-import com.wastemanagement.backend.dto.employee.EmployeeResponseDTO;
-import com.wastemanagement.backend.mapper.EmployeeMapper;
-import com.wastemanagement.backend.model.employee.Employee;
-import com.wastemanagement.backend.service.employee.EmployeeService;
+import com.wastemanagement.backend.dto.user.EmployeeRequestDTO;
+import com.wastemanagement.backend.dto.user.EmployeeResponseDTO;
+import com.wastemanagement.backend.mapper.employee.EmployeeMapper;
+import com.wastemanagement.backend.model.user.Employee;
+import com.wastemanagement.backend.service.user.EmployeeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 

@@ -1,8 +1,7 @@
-package com.wastemanagement.backend.service.employee;
+package com.wastemanagement.backend.service.user;
 
-import com.wastemanagement.backend.dto.employee.EmployeeDTO;
-import com.wastemanagement.backend.dto.employee.EmployeeRequestDTO;
-import com.wastemanagement.backend.model.employee.Employee;
+import com.wastemanagement.backend.dto.user.EmployeeRequestDTO;
+import com.wastemanagement.backend.model.user.Employee;
 
 import java.util.List;
 

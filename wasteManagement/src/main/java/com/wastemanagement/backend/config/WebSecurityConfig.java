@@ -113,6 +113,12 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/v1/employees/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/employees/**").hasRole("ADMIN")
 
+                        // Admin CRUD -> Admin ONLY
+                        .requestMatchers(HttpMethod.POST, "/api/v1/admins/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/admins/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/admins/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/admins/**").hasRole("ADMIN")
+
                         // Employee READ -> Admin ONLY (employees cannot view other employees)
                         .requestMatchers(HttpMethod.GET, "/api/v1/employees/**").hasRole("ADMIN")
 

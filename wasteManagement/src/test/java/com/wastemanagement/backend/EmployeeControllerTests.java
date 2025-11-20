@@ -1,20 +1,21 @@
 package com.wastemanagement.backend;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wastemanagement.backend.controller.employee.EmployeeController;
-import com.wastemanagement.backend.dto.employee.EmployeeRequestDTO;
-import com.wastemanagement.backend.mapper.EmployeeMapper;
-import com.wastemanagement.backend.model.employee.Employee;
-import com.wastemanagement.backend.model.employee.Skill;
+import com.wastemanagement.backend.controller.user.EmployeeController;
+import com.wastemanagement.backend.dto.user.EmployeeRequestDTO;
+import com.wastemanagement.backend.mapper.employee.EmployeeMapper;
+import com.wastemanagement.backend.model.user.Employee;
+import com.wastemanagement.backend.model.user.Skill;
 import com.wastemanagement.backend.security.JwtUtil;
 import com.wastemanagement.backend.service.CustomUserDetailsService;
-import com.wastemanagement.backend.service.employee.EmployeeService;
+import com.wastemanagement.backend.service.user.EmployeeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
@@ -34,6 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration.class
         }
 )
+@ActiveProfiles("test")
 class EmployeeControllerTests {
 
     @Autowired

@@ -1,4 +1,4 @@
-package com.wastemanagement.backend.model.employee;
+package com.wastemanagement.backend.model.user;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

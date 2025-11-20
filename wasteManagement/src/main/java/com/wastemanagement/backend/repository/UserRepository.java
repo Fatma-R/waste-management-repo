@@ -1,6 +1,6 @@
 package com.wastemanagement.backend.repository;
 
-import com.wastemanagement.backend.model.employee.User;
+import com.wastemanagement.backend.model.user.User;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,9 +1,9 @@
-package com.wastemanagement.backend.mapper;
+package com.wastemanagement.backend.mapper.employee;
 
-import com.wastemanagement.backend.dto.employee.EmployeeRequestDTO;
-import com.wastemanagement.backend.dto.employee.EmployeeResponseDTO;
-import com.wastemanagement.backend.model.employee.Employee;
-import com.wastemanagement.backend.model.employee.Skill;
+import com.wastemanagement.backend.dto.user.EmployeeRequestDTO;
+import com.wastemanagement.backend.dto.user.EmployeeResponseDTO;
+import com.wastemanagement.backend.model.user.Employee;
+import com.wastemanagement.backend.model.user.Skill;
 
 public class EmployeeMapper {
 

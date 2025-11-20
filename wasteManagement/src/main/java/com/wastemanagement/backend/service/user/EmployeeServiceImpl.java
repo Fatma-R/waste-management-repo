@@ -1,10 +1,9 @@
-package com.wastemanagement.backend.service.employee;
+package com.wastemanagement.backend.service.user;
 
-import com.wastemanagement.backend.dto.employee.EmployeeDTO;
-import com.wastemanagement.backend.dto.employee.EmployeeRequestDTO;
-import com.wastemanagement.backend.model.employee.Employee;
-import com.wastemanagement.backend.model.employee.Skill;
-import com.wastemanagement.backend.repository.EmployeeRepository;
+import com.wastemanagement.backend.dto.user.EmployeeRequestDTO;
+import com.wastemanagement.backend.model.user.Employee;
+import com.wastemanagement.backend.model.user.Skill;
+import com.wastemanagement.backend.repository.user.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
