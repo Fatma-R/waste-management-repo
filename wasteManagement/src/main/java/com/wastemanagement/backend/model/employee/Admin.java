@@ -7,8 +7,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+
 @Document(collection = "admins")
 public class Admin extends User {
     // extra admin fields can be added here
