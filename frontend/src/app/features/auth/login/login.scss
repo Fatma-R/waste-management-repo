@@ -41,6 +41,41 @@ $text-muted: #6b7280;
 $border-soft: #e5e7eb;
 $white: #ffffff;
 
+.auth-back-home {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  z-index: 20;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  color: $accent-sage-deep;
+
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(127, 168, 147, 0.28);
+  box-shadow: 0 4px 10px rgba(15,23,42,0.06);
+
+  transition: all 0.18s ease;
+}
+
+.auth-back-home img {
+  height: 26px;
+  width: auto;
+  display: block;
+}
+
+.auth-back-home:hover {
+  background: white;
+  border-color: $accent-sage;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(15,23,42,0.10);
+}
+
+
 .auth-container {
   display: flex;
   flex-direction: column;

@@ -1,8 +1,8 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { Button } from '../../shared/components/button/button';
-import { Card } from '../../shared/components/card/card';
+import { ButtonComponent } from '../../shared/components/button/button';
+import { CardComponent } from '../../shared/components/card/card';
 
 interface FeatureCard {
   icon: string;
@@ -22,8 +22,8 @@ interface HowItWorksStep {
   imports: [
     CommonModule,
     RouterModule,
-    Button,
-    Card
+    ButtonComponent,
+    CardComponent
   ],
   templateUrl: './landing.html',
   styleUrls: ['./landing.scss']

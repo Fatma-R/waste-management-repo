@@ -28,7 +28,7 @@ export class Login {
         if (this.authService.isAdmin()) {
           this.router.navigate(['/admin/dashboard']);
         } else {
-          this.router.navigate(['/home']);
+          this.router.navigate(['/user/dashboard']);
         }
       },
       error: (err) => {

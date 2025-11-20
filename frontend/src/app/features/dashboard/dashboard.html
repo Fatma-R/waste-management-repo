@@ -1,0 +1,171 @@
+<main class="dashboard">
+  <div class="container">
+    <div class="dashboard-header">
+      <div>
+        <h1 class="dashboard-title">Dashboard</h1>
+        <p class="dashboard-subtitle">Monitor your waste management operations</p>
+      </div>
+      <div class="dashboard-actions">
+        <app-button variant="primary" (click)="openAddBinModal()">
+          + Add Bin
+        </app-button>
+      </div>
+    </div>
+
+    <div *ngIf="isLoading" class="loading-container">
+      <app-loading-spinner message="Loading dashboard data..."></app-loading-spinner>
+    </div>
+
+    <div *ngIf="!isLoading">
+      <!-- KPI Section -->
+      <section class="kpi-section">
+        <app-kpi
+          label="Total Bins"
+          [value]="stats.totalBins"
+          icon="🗑️"
+          color="sage">
+        </app-kpi>
+        
+        <app-kpi
+          label="Bins Full"
+          [value]="stats.binsFull"
+          icon="⚠️"
+          color="red">
+        </app-kpi>
+        
+        <app-kpi
+          label="Active Routes"
+          [value]="stats.activeRoutes"
+          icon="🚛"
+          color="green">
+        </app-kpi>
+        
+        <app-kpi
+          label="CO₂ Saved"
+          [value]="stats.co2Saved"
+          unit="kg"
+          icon="🌱"
+          color="green">
+          <!-- you can add trend="up" -->
+        </app-kpi>
+      </section>
+
+      <!-- Main Content Grid -->
+      <div class="dashboard-grid">
+        <!-- Map Preview Card -->
+        <app-card padding="lg" class="map-preview-card">
+          <div class="card-header">
+            <h2 class="card-title">Map Overview</h2>
+            <a routerLink="/map" class="card-link">View Full Map →</a>
+          </div>
+          <div class="map-preview">
+            <div class="map-placeholder">
+              <p class="placeholder-icon">🗺️</p>
+              <p class="placeholder-text">Interactive map with real-time bin locations</p>
+              <app-button variant="outline" size="sm">
+                <a routerLink="/map" class="btn-link-outline">Open Map</a>
+              </app-button>
+            </div>
+          </div>
+        </app-card>
+
+        <!-- Notifications Card -->
+        <app-card padding="lg" class="notifications-card">
+          <div class="card-header">
+            <h2 class="card-title">Recent Alerts</h2>
+          </div>
+          <div class="notifications-list">
+            <div 
+              *ngFor="let notification of notifications$ | async"
+              class="notification-item"
+              [class.notification-unread]="!notification.read">
+              <span class="notification-icon" aria-hidden="true">
+                {{ getNotificationIcon(notification.type) }}
+              </span>
+              <div class="notification-content">
+                <p class="notification-message">{{ notification.message }}</p>
+                <span class="notification-time">{{ formatTimestamp(notification.timestamp) }}</span>
+              </div>
+            </div>
+            <div *ngIf="(notifications$ | async)?.length === 0" class="no-notifications">
+              <p>No recent notifications</p>
+            </div>
+          </div>
+        </app-card>
+
+        <!-- Quick Actions Card -->
+        <app-card padding="lg" class="quick-actions-card">
+          <div class="card-header">
+            <h2 class="card-title">Quick Actions</h2>
+          </div>
+          <div class="quick-actions">
+            <button class="action-button" (click)="openAddBinModal()">
+              <span class="action-icon" aria-hidden="true">➕</span>
+              <span class="action-label">Add New Bin</span>
+            </button>
+            <a routerLink="/employees" class="action-button">
+              <span class="action-icon" aria-hidden="true">👤</span>
+              <span class="action-label">Assign Employee</span>
+            </a>
+            <a routerLink="/map" class="action-button">
+              <span class="action-icon" aria-hidden="true">📊</span>
+              <span class="action-label">View Reports</span>
+            </a>
+            <a routerLink="/employees" class="action-button">
+              <span class="action-icon" aria-hidden="true">🔄</span>
+              <span class="action-label">Optimize Routes</span>
+            </a>
+          </div>
+        </app-card>
+
+        <!-- Stats Summary Card -->
+        <app-card padding="lg" class="stats-card">
+          <div class="card-header">
+            <h2 class="card-title">Performance Summary</h2>
+          </div>
+          <div class="stats-list">
+            <div class="stat-row">
+              <span class="stat-label">Collection Efficiency</span>
+              <span class="stat-value stat-positive">+15%</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Fuel Savings</span>
+              <span class="stat-value stat-positive">-28%</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Response Time</span>
+              <span class="stat-value">2.4 hrs</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Bins Serviced Today</span>
+              <span class="stat-value">18</span>
+            </div>
+          </div>
+        </app-card>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Add Bin Modal -->
+<app-modal 
+  [isOpen]="isAddBinModalOpen"
+  title="Add New Bin"
+  size="md"
+  (close)="closeAddBinModal()">
+  <div class="modal-content-body">
+    <p class="modal-description">
+      Add bin functionality will be integrated with the map feature. 
+      For now, navigate to the map to add bins interactively.
+    </p>
+    <div class="modal-actions">
+      <app-button variant="outline" (click)="closeAddBinModal()">
+        Cancel
+      </app-button>
+      <app-button variant="primary">
+        <a routerLink="/map" class="btn-link" (click)="closeAddBinModal()">Go to Map</a>
+      </app-button>
+    </div>
+  </div>
+</app-modal>
+
