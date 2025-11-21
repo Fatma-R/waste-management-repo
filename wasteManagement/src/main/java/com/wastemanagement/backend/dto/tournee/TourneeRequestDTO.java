@@ -16,5 +16,5 @@ public class TourneeRequestDTO {
     private double plannedCO2;
     private Date startedAt;
     private Date finishedAt;
-    private List<RouteStep> steps;
+    private List<RouteStepRequestDTO> steps;
 }

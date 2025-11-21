@@ -2,7 +2,13 @@ package com.wastemanagement.backend.mapper.tournee;
 
 import com.wastemanagement.backend.dto.tournee.TourneeRequestDTO;
 import com.wastemanagement.backend.dto.tournee.TourneeResponseDTO;
+import com.wastemanagement.backend.dto.tournee.RouteStepRequestDTO;
+import com.wastemanagement.backend.dto.tournee.RouteStepResponseDTO;
 import com.wastemanagement.backend.model.tournee.Tournee;
+import com.wastemanagement.backend.model.tournee.RouteStep;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class TourneeMapper {
 
@@ -16,7 +22,15 @@ public class TourneeMapper {
         tournee.setPlannedCO2(dto.getPlannedCO2());
         tournee.setStartedAt(dto.getStartedAt());
         tournee.setFinishedAt(dto.getFinishedAt());
-        tournee.setSteps(dto.getSteps());
+
+        // Map steps
+        if (dto.getSteps() != null) {
+            List<RouteStep> steps = dto.getSteps()
+                    .stream()
+                    .map(RouteStepMapper::toEntity)
+                    .collect(Collectors.toList());
+            tournee.setSteps(steps);
+        }
 
         return tournee;
     }
@@ -29,13 +43,19 @@ public class TourneeMapper {
         if (dto.getStatus() != null) existing.setStatus(dto.getStatus());
         if (dto.getStartedAt() != null) existing.setStartedAt(dto.getStartedAt());
         if (dto.getFinishedAt() != null) existing.setFinishedAt(dto.getFinishedAt());
-        if (dto.getSteps() != null) existing.setSteps(dto.getSteps());
+
+        if (dto.getSteps() != null) {
+            List<RouteStep> steps = dto.getSteps()
+                    .stream()
+                    .map(RouteStepMapper::toEntity)
+                    .collect(Collectors.toList());
+            existing.setSteps(steps);
+        }
 
         // Always update primitives
         existing.setPlannedKm(dto.getPlannedKm());
         existing.setPlannedCO2(dto.getPlannedCO2());
     }
-
 
     public static TourneeResponseDTO toResponse(Tournee tournee) {
         if (tournee == null) return null;
@@ -48,7 +68,15 @@ public class TourneeMapper {
         dto.setPlannedCO2(tournee.getPlannedCO2());
         dto.setStartedAt(tournee.getStartedAt());
         dto.setFinishedAt(tournee.getFinishedAt());
-        dto.setSteps(tournee.getSteps());
+
+        // Map steps to response DTOs
+        if (tournee.getSteps() != null) {
+            List<RouteStepResponseDTO> steps = tournee.getSteps()
+                    .stream()
+                    .map(RouteStepMapper::toResponse)
+                    .collect(Collectors.toList());
+            dto.setSteps(steps);
+        }
 
         return dto;
     }

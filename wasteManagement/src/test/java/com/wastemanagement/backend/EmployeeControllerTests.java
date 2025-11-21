@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(
         controllers = EmployeeController.class,
-        // Completely exclude ALL Spring Security auto-configuration
+        // Completely exclude ALL Spring Security autoconfiguration
         excludeAutoConfiguration = {
                 org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
                 org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration.class,
@@ -169,6 +169,6 @@ class EmployeeControllerTests {
     }
 
     // Security-related tests intentionally left out here.
-    // If later you want to test AuthTokenFilter + JwtUtil + @PreAuthorize,
+    // If tests are needed: AuthTokenFilter + JwtUtil + @PreAuthorize,
     // we’ll create a separate @SpringBootTest with full security enabled.
 }
