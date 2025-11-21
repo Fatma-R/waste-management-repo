@@ -19,11 +19,16 @@ public class BinMapper {
     }
 
     public static void merge(Bin existing, BinRequestDTO dto) {
-        existing.setCollectionPointId(dto.getCollectionPointId());
+        if (existing == null || dto == null) return;
+
+        // Update non-primitives only if non-null
+        if (dto.getCollectionPointId() != null) existing.setCollectionPointId(dto.getCollectionPointId());
+        if (dto.getType() != null) existing.setType(dto.getType());
+        if (dto.getReadingIds() != null) existing.setReadingIds(dto.getReadingIds());
+        if (dto.getAlertIds() != null) existing.setAlertIds(dto.getAlertIds());
+
+        // Always update primitives
         existing.setActive(dto.isActive());
-        existing.setType(dto.getType());
-        existing.setReadingIds(dto.getReadingIds());
-        existing.setAlertIds(dto.getAlertIds());
     }
 
     public static BinResponseDTO toResponseDTO(Bin bin) {

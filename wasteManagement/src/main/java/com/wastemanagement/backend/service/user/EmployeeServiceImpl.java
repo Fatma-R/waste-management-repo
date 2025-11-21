@@ -1,6 +1,7 @@
 package com.wastemanagement.backend.service.user;
 
 import com.wastemanagement.backend.dto.user.EmployeeRequestDTO;
+import com.wastemanagement.backend.mapper.employee.EmployeeMapper;
 import com.wastemanagement.backend.model.user.Employee;
 import com.wastemanagement.backend.model.user.Skill;
 import com.wastemanagement.backend.repository.user.EmployeeRepository;
@@ -20,7 +21,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee emp = new Employee(
                 dto.getFullName(),
                 dto.getEmail(),
-                Skill.valueOf(dto.getSkill()) // if you use enum
+                dto.getSkill()
         );
         return employeeRepo.save(emp);
     }
@@ -39,11 +40,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public Employee updateEmployee(String id, EmployeeRequestDTO dto) {
         Employee emp = getEmployeeById(id);
-
-        emp.setFullName(dto.getFullName());
-        emp.setEmail(dto.getEmail());
-        emp.setSkill(Skill.valueOf(dto.getSkill()));
-
+        EmployeeMapper.updateEntity(emp, dto);
         return employeeRepo.save(emp);
     }
 

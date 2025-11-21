@@ -3,7 +3,6 @@ package com.wastemanagement.backend.service.user;
 import com.wastemanagement.backend.dto.user.AdminRequestDTO;
 import com.wastemanagement.backend.mapper.employee.AdminMapper;
 import com.wastemanagement.backend.model.user.Admin;
-import com.wastemanagement.backend.model.user.Employee;
 import com.wastemanagement.backend.repository.user.AdminRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

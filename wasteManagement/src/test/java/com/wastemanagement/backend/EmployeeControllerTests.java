@@ -62,7 +62,7 @@ class EmployeeControllerTests {
         requestDTO = new EmployeeRequestDTO();
         requestDTO.setFullName("John Doe");
         requestDTO.setEmail("john@example.com");
-        requestDTO.setSkill("DRIVER");
+        requestDTO.setSkill(Skill.DRIVER);
 
         employee = new Employee();
         employee.setId("1");
@@ -93,7 +93,7 @@ class EmployeeControllerTests {
         var responseDTO = EmployeeMapper.toResponse(employee);
         assert responseDTO.getId().equals("1");
         assert responseDTO.getFullName().equals("John Doe");
-        assert responseDTO.getSkill().equals("DRIVER");
+        assert responseDTO.getSkill() == Skill.DRIVER;
     }
 
     @Test
