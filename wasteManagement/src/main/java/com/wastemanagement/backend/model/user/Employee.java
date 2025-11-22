@@ -1,4 +1,4 @@
-package com.wastemanagement.backend.model.employee;
+package com.wastemanagement.backend.model.user;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,8 +12,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Employee extends User {
     private Skill skill;
 
-    public Employee(String fullName, String email, String password, Skill skill) {
-        super(fullName, email, password);
+    public Employee(String fullName, String email, Skill skill) {
+        super(fullName, email, null);
         this.skill = skill;
     }
 }
