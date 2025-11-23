@@ -2,7 +2,6 @@ package com.wastemanagement.backend;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wastemanagement.backend.controller.tournee.TourneeController;
-import com.wastemanagement.backend.controller.user.EmployeeController;
 import com.wastemanagement.backend.dto.tournee.RouteStepRequestDTO;
 import com.wastemanagement.backend.dto.tournee.RouteStepResponseDTO;
 import com.wastemanagement.backend.dto.tournee.TourneeRequestDTO;
@@ -39,7 +38,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(
         controllers = TourneeController.class,
-        // Completely exclude ALL Spring Security autoconfiguration
         excludeAutoConfiguration = {
                 org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
                 org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration.class,
@@ -58,29 +56,28 @@ class TourneeControllerTests {
     @MockBean
     private JwtUtil jwtUtils;
 
-    // 👉 Needed because AuthTokenFilter autowires this too
     @MockBean
     private CustomUserDetailsService customUserDetailsService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private TourneeRequestDTO tourneeRequestDTO;
-    private Tournee tournee;
+    private Tournee tourneeEntity;
+    private TourneeResponseDTO tourneeResponseDTO;
 
     @BeforeEach
     void setup() {
-        // Sample RouteStep
+        // RouteStep request
         RouteStepRequestDTO stepRequestDTO = new RouteStepRequestDTO();
         stepRequestDTO.setOrder(1);
-        stepRequestDTO.setStatus(StepStatus.PENDING); // or appropriate enum
+        stepRequestDTO.setStatus(StepStatus.PENDING);
         stepRequestDTO.setPredictedFillPct(50);
-        stepRequestDTO.setNotes("Step note");
         stepRequestDTO.setNotes("Step note");
         stepRequestDTO.setCollectionPointId("CP1");
 
-        RouteStep step = RouteStepMapper.toEntity(stepRequestDTO);
+        RouteStep stepEntity = RouteStepMapper.toEntity(stepRequestDTO);
 
-        // Tournee DTO
+        // Tournee DTO (request)
         tourneeRequestDTO = new TourneeRequestDTO();
         tourneeRequestDTO.setTourneeType(TrashType.PLASTIC);
         tourneeRequestDTO.setStatus(TourneeStatus.PLANNED);
@@ -90,15 +87,18 @@ class TourneeControllerTests {
         tourneeRequestDTO.setFinishedAt(new Date());
         tourneeRequestDTO.setSteps(Collections.singletonList(stepRequestDTO));
 
-        // Tournee Entity
-        tournee = TourneeMapper.toEntity(tourneeRequestDTO);
-        tournee.setId("1");
-        tournee.setSteps(Collections.singletonList(step));
+        // Tournee entité pour tester le mapper
+        tourneeEntity = TourneeMapper.toEntity(tourneeRequestDTO);
+        tourneeEntity.setId("1");
+        tourneeEntity.setSteps(Collections.singletonList(stepEntity));
+
+        // TourneeResponseDTO simulant la réponse du service
+        tourneeResponseDTO = TourneeMapper.toResponse(tourneeEntity);
     }
 
     @Test
     void testCreateTourneeController() throws Exception {
-        when(tourneeService.createTournee(any())).thenReturn(tournee);
+        when(tourneeService.createTournee(any())).thenReturn(tourneeResponseDTO);
 
         mockMvc.perform(post("/api/v1/tournees")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -115,7 +115,7 @@ class TourneeControllerTests {
 
     @Test
     void testGetTourneeByIdController() throws Exception {
-        when(tourneeService.getTourneeById("1")).thenReturn(tournee);
+        when(tourneeService.getTourneeById("1")).thenReturn(tourneeResponseDTO);
 
         mockMvc.perform(get("/api/v1/tournees/1")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -127,13 +127,15 @@ class TourneeControllerTests {
 
     @Test
     void testGetAllTourneesController() throws Exception {
-        Tournee t2 = new Tournee();
+        TourneeResponseDTO t2 = new TourneeResponseDTO();
         t2.setId("2");
         t2.setTourneeType(TrashType.PLASTIC);
         t2.setStatus(TourneeStatus.PLANNED);
         t2.setSteps(Collections.emptyList());
 
-        when(tourneeService.getAllTournees()).thenReturn(Arrays.asList(tournee, t2));
+        List<TourneeResponseDTO> list = Arrays.asList(tourneeResponseDTO, t2);
+
+        when(tourneeService.getAllTournees()).thenReturn(list);
 
         mockMvc.perform(get("/api/v1/tournees")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -144,11 +146,11 @@ class TourneeControllerTests {
 
     @Test
     void testUpdateTourneeController() throws Exception {
-        Tournee updated = new Tournee();
+        TourneeResponseDTO updated = new TourneeResponseDTO();
         updated.setId("1");
         updated.setTourneeType(TrashType.ORGANIC);
         updated.setStatus(TourneeStatus.IN_PROGRESS);
-        updated.setSteps(Collections.singletonList(tournee.getSteps().get(0)));
+        updated.setSteps(tourneeResponseDTO.getSteps());
 
         tourneeRequestDTO.setStatus(TourneeStatus.IN_PROGRESS);
 

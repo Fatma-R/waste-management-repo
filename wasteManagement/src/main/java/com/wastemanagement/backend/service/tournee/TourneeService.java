@@ -1,19 +1,19 @@
 package com.wastemanagement.backend.service.tournee;
 
 import com.wastemanagement.backend.dto.tournee.TourneeRequestDTO;
-import com.wastemanagement.backend.model.tournee.Tournee;
+import com.wastemanagement.backend.dto.tournee.TourneeResponseDTO;
 
 import java.util.List;
 
 public interface TourneeService {
 
-    Tournee createTournee(TourneeRequestDTO dto);
+    TourneeResponseDTO createTournee(TourneeRequestDTO dto);
 
-    Tournee updateTournee(String id, TourneeRequestDTO dto);
+    TourneeResponseDTO updateTournee(String id, TourneeRequestDTO dto);
 
-    Tournee getTourneeById(String id);
+    TourneeResponseDTO getTourneeById(String id);
 
-    List<Tournee> getAllTournees();
+    List<TourneeResponseDTO> getAllTournees();
 
     void deleteTournee(String id);
 }

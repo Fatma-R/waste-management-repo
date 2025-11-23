@@ -1,19 +1,26 @@
 package com.wastemanagement.backend.service.user;
 
 import com.wastemanagement.backend.dto.user.AdminRequestDTO;
-import com.wastemanagement.backend.model.user.Admin;
+import com.wastemanagement.backend.dto.user.AdminResponseDTO;
+import com.wastemanagement.backend.model.user.User;
 
 import java.util.List;
 
 public interface AdminService {
 
-    Admin createAdmin(AdminRequestDTO dto);
+    // plus vraiment utilisé. on force le passage par AuthController
+    AdminResponseDTO createAdmin(AdminRequestDTO dto);
 
-    Admin getAdminById(String id);
+    AdminResponseDTO createFromUser(User user);
 
-    List<Admin> getAllAdmins();
+    AdminResponseDTO getAdminById(String id);
 
-    Admin updateAdmin(String id, AdminRequestDTO dto);
+    List<AdminResponseDTO> getAllAdmins();
 
+    AdminResponseDTO updateAdmin(String id, AdminRequestDTO dto);
+
+    // plus vraiment utilisé. on utilise plutot deleteAdminAndUserByAdminId dans AuthController
     void deleteAdmin(String id);
+
+    void deleteAdminAndUserByAdminId(String adminId);
 }

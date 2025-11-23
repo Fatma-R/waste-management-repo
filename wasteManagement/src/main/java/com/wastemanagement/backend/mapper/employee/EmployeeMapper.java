@@ -3,6 +3,7 @@ package com.wastemanagement.backend.mapper.employee;
 import com.wastemanagement.backend.dto.user.EmployeeRequestDTO;
 import com.wastemanagement.backend.dto.user.EmployeeResponseDTO;
 import com.wastemanagement.backend.model.user.Employee;
+import com.wastemanagement.backend.model.user.User;
 
 public class EmployeeMapper {
 
@@ -10,8 +11,12 @@ public class EmployeeMapper {
         if (dto == null) return null;
 
         Employee emp = new Employee();
-        emp.setFullName(dto.getFullName());
-        emp.setEmail(dto.getEmail());
+
+        User user = new User();
+        user.setFullName(dto.getFullName());
+        user.setEmail(dto.getEmail());
+        emp.setUser(user);
+
         emp.setSkill(dto.getSkill());
         return emp;
     }
@@ -21,18 +26,28 @@ public class EmployeeMapper {
 
         EmployeeResponseDTO dto = new EmployeeResponseDTO();
         dto.setId(emp.getId());
-        dto.setFullName(emp.getFullName());
-        dto.setEmail(emp.getEmail());
+
+        if (emp.getUser() != null) {
+            dto.setFullName(emp.getUser().getFullName());
+            dto.setEmail(emp.getUser().getEmail());
+        }
+
         dto.setSkill(emp.getSkill());
         return dto;
     }
 
     public static void updateEntity(Employee emp, EmployeeRequestDTO dto) {
+        if (emp == null || dto == null) return;
+
+        if (emp.getUser() == null) {
+            emp.setUser(new User());
+        }
+
         if (dto.getFullName() != null) {
-            emp.setFullName(dto.getFullName());
+            emp.getUser().setFullName(dto.getFullName());
         }
         if (dto.getEmail() != null) {
-            emp.setEmail(dto.getEmail());
+            emp.getUser().setEmail(dto.getEmail());
         }
         if (dto.getSkill() != null) {
             emp.setSkill(dto.getSkill());

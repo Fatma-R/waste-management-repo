@@ -1,19 +1,19 @@
 package com.wastemanagement.backend.service.tournee;
 
 import com.wastemanagement.backend.dto.tournee.RouteStepRequestDTO;
-import com.wastemanagement.backend.model.tournee.RouteStep;
+import com.wastemanagement.backend.dto.tournee.RouteStepResponseDTO;
 
 import java.util.List;
 
 public interface RouteStepService {
 
-    RouteStep createRouteStep(RouteStepRequestDTO dto);
+    RouteStepResponseDTO createRouteStep(RouteStepRequestDTO dto);
 
-    RouteStep getRouteStepById(String id);
+    RouteStepResponseDTO getRouteStepById(String id);
 
-    List<RouteStep> getAllRouteSteps();
+    List<RouteStepResponseDTO> getAllRouteSteps();
 
-    RouteStep updateRouteStep(String id, RouteStepRequestDTO dto);
+    RouteStepResponseDTO updateRouteStep(String id, RouteStepRequestDTO dto);
 
     void deleteRouteStep(String id);
 }

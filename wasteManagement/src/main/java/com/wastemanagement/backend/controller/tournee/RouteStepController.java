@@ -2,14 +2,11 @@ package com.wastemanagement.backend.controller.tournee;
 
 import com.wastemanagement.backend.dto.tournee.RouteStepRequestDTO;
 import com.wastemanagement.backend.dto.tournee.RouteStepResponseDTO;
-import com.wastemanagement.backend.mapper.tournee.RouteStepMapper;
-import com.wastemanagement.backend.model.tournee.RouteStep;
 import com.wastemanagement.backend.service.tournee.RouteStepService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/route-steps")
@@ -20,28 +17,23 @@ public class RouteStepController {
 
     @PostMapping
     public RouteStepResponseDTO create(@RequestBody RouteStepRequestDTO dto) {
-        RouteStep step = routeStepService.createRouteStep(dto);
-        return RouteStepMapper.toResponse(step);
+        return routeStepService.createRouteStep(dto);
     }
 
     @GetMapping("/{id}")
     public RouteStepResponseDTO getById(@PathVariable String id) {
-        RouteStep step = routeStepService.getRouteStepById(id);
-        return RouteStepMapper.toResponse(step);
+        return routeStepService.getRouteStepById(id);
     }
 
     @GetMapping
     public List<RouteStepResponseDTO> getAll() {
-        return routeStepService.getAllRouteSteps()
-                .stream()
-                .map(RouteStepMapper::toResponse)
-                .collect(Collectors.toList());
+        return routeStepService.getAllRouteSteps();
     }
 
     @PutMapping("/{id}")
-    public RouteStepResponseDTO update(@PathVariable String id, @RequestBody RouteStepRequestDTO dto) {
-        RouteStep step = routeStepService.updateRouteStep(id, dto);
-        return RouteStepMapper.toResponse(step);
+    public RouteStepResponseDTO update(@PathVariable String id,
+                                       @RequestBody RouteStepRequestDTO dto) {
+        return routeStepService.updateRouteStep(id, dto);
     }
 
     @DeleteMapping("/{id}")

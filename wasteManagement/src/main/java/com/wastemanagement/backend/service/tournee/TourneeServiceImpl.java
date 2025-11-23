@@ -1,16 +1,15 @@
 package com.wastemanagement.backend.service.tournee;
 
 import com.wastemanagement.backend.dto.tournee.TourneeRequestDTO;
-import com.wastemanagement.backend.mapper.employee.AdminMapper;
+import com.wastemanagement.backend.dto.tournee.TourneeResponseDTO;
 import com.wastemanagement.backend.mapper.tournee.TourneeMapper;
 import com.wastemanagement.backend.model.tournee.Tournee;
-import com.wastemanagement.backend.model.user.Admin;
 import com.wastemanagement.backend.repository.tournee.TourneeRepository;
-import com.wastemanagement.backend.service.tournee.TourneeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -19,28 +18,34 @@ public class TourneeServiceImpl implements TourneeService {
     private final TourneeRepository tourneeRepository;
 
     @Override
-    public Tournee createTournee(TourneeRequestDTO dto) {
+    public TourneeResponseDTO createTournee(TourneeRequestDTO dto) {
         Tournee tournee = TourneeMapper.toEntity(dto);
-        return tourneeRepository.save(tournee);
+        Tournee saved = tourneeRepository.save(tournee);
+        return TourneeMapper.toResponse(saved);
     }
 
     @Override
-    public Tournee updateTournee(String id, TourneeRequestDTO dto) {
+    public TourneeResponseDTO updateTournee(String id, TourneeRequestDTO dto) {
         Tournee existing = tourneeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Tournee not found"));
         TourneeMapper.updateEntity(existing, dto);
-        return tourneeRepository.save(existing);
+        Tournee saved = tourneeRepository.save(existing);
+        return TourneeMapper.toResponse(saved);
     }
 
     @Override
-    public Tournee getTourneeById(String id) {
-        return tourneeRepository.findById(id)
+    public TourneeResponseDTO getTourneeById(String id) {
+        Tournee tournee = tourneeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Tournee not found"));
+        return TourneeMapper.toResponse(tournee);
     }
 
     @Override
-    public List<Tournee> getAllTournees() {
-        return (List<Tournee>) tourneeRepository.findAll();
+    public List<TourneeResponseDTO> getAllTournees() {
+        return ((List<Tournee>) tourneeRepository.findAll())
+                .stream()
+                .map(TourneeMapper::toResponse)
+                .collect(Collectors.toList());
     }
 
     @Override

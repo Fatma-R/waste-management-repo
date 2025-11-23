@@ -3,9 +3,11 @@ package com.wastemanagement.backend;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wastemanagement.backend.controller.user.EmployeeController;
 import com.wastemanagement.backend.dto.user.EmployeeRequestDTO;
+import com.wastemanagement.backend.dto.user.EmployeeResponseDTO;
 import com.wastemanagement.backend.mapper.employee.EmployeeMapper;
 import com.wastemanagement.backend.model.user.Employee;
 import com.wastemanagement.backend.model.user.Skill;
+import com.wastemanagement.backend.model.user.User;
 import com.wastemanagement.backend.security.JwtUtil;
 import com.wastemanagement.backend.service.CustomUserDetailsService;
 import com.wastemanagement.backend.service.user.EmployeeService;
@@ -19,6 +21,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -28,7 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(
         controllers = EmployeeController.class,
-        // Completely exclude ALL Spring Security autoconfiguration
         excludeAutoConfiguration = {
                 org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
                 org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration.class,
@@ -44,11 +46,9 @@ class EmployeeControllerTests {
     @MockBean
     private EmployeeService employeeService;
 
-    // 👉 Needed so AuthTokenFilter can be created without failing
     @MockBean
     private JwtUtil jwtUtils;
 
-    // 👉 Needed because AuthTokenFilter autowires this too
     @MockBean
     private CustomUserDetailsService customUserDetailsService;
 
@@ -56,119 +56,114 @@ class EmployeeControllerTests {
 
     private EmployeeRequestDTO requestDTO;
     private Employee employee;
+    private EmployeeResponseDTO employeeResponseDTO;
 
     @BeforeEach
     void setup() {
         requestDTO = new EmployeeRequestDTO();
         requestDTO.setFullName("John Doe");
-        requestDTO.setEmail("john@example.com");
+        requestDTO.setEmail("john.doe@example.com");
         requestDTO.setSkill(Skill.DRIVER);
+
+        User user = new User();
+        user.setFullName(requestDTO.getFullName());
+        user.setEmail(requestDTO.getEmail());
 
         employee = new Employee();
         employee.setId("1");
-        employee.setFullName("John Doe");
-        employee.setEmail("john@example.com");
+        employee.setUser(user);
         employee.setSkill(Skill.DRIVER);
-    }
 
-    @Test
-    void testServiceCreateEmployee() {
-        when(employeeService.createEmployee(requestDTO)).thenReturn(employee);
-
-        Employee result = employeeService.createEmployee(requestDTO);
-
-        assert result != null;
-        assert result.getFullName().equals("John Doe");
-        assert result.getSkill() == Skill.DRIVER;
-
-        verify(employeeService).createEmployee(requestDTO);
+        employeeResponseDTO = new EmployeeResponseDTO();
+        employeeResponseDTO.setId("1");
+        employeeResponseDTO.setFullName("John Doe");
+        employeeResponseDTO.setEmail("john.doe@example.com");
+        employeeResponseDTO.setSkill(Skill.DRIVER);
     }
 
     @Test
     void testMapperToEntityAndResponse() {
         Employee mapped = EmployeeMapper.toEntity(requestDTO);
-        assert mapped.getFullName().equals("John Doe");
+        assert mapped.getUser() != null;
+        assert mapped.getUser().getFullName().equals("John Doe");
+        assert mapped.getUser().getEmail().equals("john.doe@example.com");
         assert mapped.getSkill() == Skill.DRIVER;
 
         var responseDTO = EmployeeMapper.toResponse(employee);
         assert responseDTO.getId().equals("1");
         assert responseDTO.getFullName().equals("John Doe");
+        assert responseDTO.getEmail().equals("john.doe@example.com");
         assert responseDTO.getSkill() == Skill.DRIVER;
     }
 
     @Test
-    void testCreateEmployeeController() throws Exception {
-        when(employeeService.createEmployee(any())).thenReturn(employee);
-
-        mockMvc.perform(post("/api/v1/employees")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDTO)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("1"))
-                .andExpect(jsonPath("$.fullName").value("John Doe"))
-                .andExpect(jsonPath("$.skill").value("DRIVER"));
-    }
-
-    @Test
     void testUpdateEmployeeController() throws Exception {
-        Employee updated = new Employee();
+        EmployeeResponseDTO updated = new EmployeeResponseDTO();
         updated.setId("1");
-        updated.setFullName("John Updated");
-        updated.setEmail("john@example.com");
-        updated.setSkill(Skill.DRIVER);
+        updated.setFullName("Updated Name");
+        updated.setEmail("john.doe@example.com");
+        updated.setSkill(Skill.AGENT);
 
         when(employeeService.updateEmployee(eq("1"), any())).thenReturn(updated);
-        requestDTO.setFullName("John Updated");
+
+        requestDTO.setFullName("Updated Name");
+        requestDTO.setSkill(Skill.AGENT);
 
         mockMvc.perform(put("/api/v1/employees/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.fullName").value("John Updated"));
+                .andExpect(jsonPath("$.id").value("1"))
+                .andExpect(jsonPath("$.fullName").value("Updated Name"))
+                .andExpect(jsonPath("$.email").value("john.doe@example.com"))
+                .andExpect(jsonPath("$.skill").value("AGENT"));
     }
 
     @Test
     void testGetEmployeeByIdController() throws Exception {
-        when(employeeService.getEmployeeById("1")).thenReturn(employee);
+        when(employeeService.getEmployeeById("1")).thenReturn(employeeResponseDTO);
 
         mockMvc.perform(get("/api/v1/employees/1")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("1"))
                 .andExpect(jsonPath("$.fullName").value("John Doe"))
+                .andExpect(jsonPath("$.email").value("john.doe@example.com"))
                 .andExpect(jsonPath("$.skill").value("DRIVER"));
     }
 
     @Test
     void testGetAllEmployeesController() throws Exception {
-        Employee employee2 = new Employee();
-        employee2.setId("2");
-        employee2.setFullName("Jane Smith");
-        employee2.setEmail("jane@example.com");
-        employee2.setSkill(Skill.DRIVER);
+        EmployeeResponseDTO emp2 = new EmployeeResponseDTO();
+        emp2.setId("2");
+        emp2.setFullName("Jane Roe");
+        emp2.setEmail("jane.roe@example.com");
+        emp2.setSkill(Skill.AGENT);
 
-        when(employeeService.getAllEmployees()).thenReturn(Arrays.asList(employee, employee2));
+        List<EmployeeResponseDTO> list = Arrays.asList(employeeResponseDTO, emp2);
+
+        when(employeeService.getAllEmployees()).thenReturn(list);
 
         mockMvc.perform(get("/api/v1/employees")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value("1"))
                 .andExpect(jsonPath("$[0].fullName").value("John Doe"))
+                .andExpect(jsonPath("$[0].email").value("john.doe@example.com"))
+                .andExpect(jsonPath("$[0].skill").value("DRIVER"))
                 .andExpect(jsonPath("$[1].id").value("2"))
-                .andExpect(jsonPath("$[1].fullName").value("Jane Smith"));
+                .andExpect(jsonPath("$[1].fullName").value("Jane Roe"))
+                .andExpect(jsonPath("$[1].email").value("jane.roe@example.com"))
+                .andExpect(jsonPath("$[1].skill").value("AGENT"));
     }
 
     @Test
     void testDeleteEmployeeController() throws Exception {
-        doNothing().when(employeeService).deleteEmployee("1");
+        doNothing().when(employeeService).deleteEmployeeAndUserByEmployeeId("1");
 
         mockMvc.perform(delete("/api/v1/employees/1"))
                 .andExpect(status().isOk());
 
-        verify(employeeService).deleteEmployee("1");
+        verify(employeeService).deleteEmployeeAndUserByEmployeeId("1");
     }
-
-    // Security-related tests intentionally left out here.
-    // If tests are needed: AuthTokenFilter + JwtUtil + @PreAuthorize,
-    // we’ll create a separate @SpringBootTest with full security enabled.
 }

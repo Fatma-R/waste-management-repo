@@ -98,7 +98,8 @@ public class WebSecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/auth/signin").permitAll()
+                        .requestMatchers("/api/v1/auth/signup").hasRole("ADMIN")
                         .requestMatchers("/api/test/all").permitAll()
                         .requestMatchers("/api/hello").permitAll()
 
@@ -107,6 +108,8 @@ public class WebSecurityConfig {
 
                         // Health check
                         .requestMatchers("/actuator/health").permitAll()
+
+
 
                         // Employee CRUD -> Admin ONLY
                         .requestMatchers(HttpMethod.POST, "/api/v1/employees/**").hasRole("ADMIN")
@@ -123,13 +126,13 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/tournees/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/tournees/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/tournees/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/tournees/**").hasRole("ADMIN")
+                        //.requestMatchers(HttpMethod.GET, "/api/v1/tournees/**").hasRole("ADMIN")
 
                         // RouteStep CRUD -> Admin ONLY
                         .requestMatchers(HttpMethod.POST, "/api/v1/route-steps/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/route-steps/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/route-steps/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/route-steps/**").hasRole("ADMIN")
+                        //.requestMatchers(HttpMethod.GET, "/api/v1/route-steps/**").hasRole("ADMIN")
 
                         // Employee READ -> Admin ONLY (employees cannot view other employees)
                         .requestMatchers(HttpMethod.GET, "/api/v1/employees/**").hasRole("ADMIN")

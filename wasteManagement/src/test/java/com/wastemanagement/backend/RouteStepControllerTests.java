@@ -4,12 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wastemanagement.backend.controller.tournee.RouteStepController;
 import com.wastemanagement.backend.dto.tournee.RouteStepRequestDTO;
 import com.wastemanagement.backend.dto.tournee.RouteStepResponseDTO;
-import com.wastemanagement.backend.mapper.tournee.RouteStepMapper;
-import com.wastemanagement.backend.model.tournee.RouteStep;
 import com.wastemanagement.backend.model.tournee.StepStatus;
+import com.wastemanagement.backend.security.JwtUtil;
 import com.wastemanagement.backend.service.CustomUserDetailsService;
 import com.wastemanagement.backend.service.tournee.RouteStepService;
-import com.wastemanagement.backend.security.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,8 +18,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -55,7 +51,7 @@ class RouteStepControllerTests {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private RouteStepRequestDTO stepRequestDTO;
-    private RouteStep step;
+    private RouteStepResponseDTO stepResponseDTO;
 
     @BeforeEach
     void setup() {
@@ -66,13 +62,18 @@ class RouteStepControllerTests {
         stepRequestDTO.setNotes("Step note");
         stepRequestDTO.setCollectionPointId("CP1");
 
-        step = RouteStepMapper.toEntity(stepRequestDTO);
-        step.setId("1");
+        stepResponseDTO = new RouteStepResponseDTO();
+        stepResponseDTO.setId("1");
+        stepResponseDTO.setOrder(1);
+        stepResponseDTO.setStatus(StepStatus.PENDING);
+        stepResponseDTO.setPredictedFillPct(50.0);
+        stepResponseDTO.setNotes("Step note");
+        stepResponseDTO.setCollectionPointId("CP1");
     }
 
     @Test
     void testCreateRouteStepController() throws Exception {
-        when(routeStepService.createRouteStep(any())).thenReturn(step);
+        when(routeStepService.createRouteStep(any())).thenReturn(stepResponseDTO);
 
         mockMvc.perform(post("/api/v1/route-steps")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -87,7 +88,7 @@ class RouteStepControllerTests {
 
     @Test
     void testGetRouteStepByIdController() throws Exception {
-        when(routeStepService.getRouteStepById("1")).thenReturn(step);
+        when(routeStepService.getRouteStepById("1")).thenReturn(stepResponseDTO);
 
         mockMvc.perform(get("/api/v1/route-steps/1")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -98,12 +99,12 @@ class RouteStepControllerTests {
 
     @Test
     void testGetAllRouteStepsController() throws Exception {
-        RouteStep step2 = new RouteStep();
+        RouteStepResponseDTO step2 = new RouteStepResponseDTO();
         step2.setId("2");
         step2.setOrder(2);
         step2.setCollectionPointId("CP2");
 
-        when(routeStepService.getAllRouteSteps()).thenReturn(Arrays.asList(step, step2));
+        when(routeStepService.getAllRouteSteps()).thenReturn(Arrays.asList(stepResponseDTO, step2));
 
         mockMvc.perform(get("/api/v1/route-steps")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -114,9 +115,13 @@ class RouteStepControllerTests {
 
     @Test
     void testUpdateRouteStepController() throws Exception {
-        RouteStep updated = RouteStepMapper.toEntity(stepRequestDTO);
+        RouteStepResponseDTO updated = new RouteStepResponseDTO();
         updated.setId("1");
         updated.setOrder(5);
+        updated.setStatus(StepStatus.PENDING);
+        updated.setPredictedFillPct(50.0);
+        updated.setNotes("Step note");
+        updated.setCollectionPointId("CP1");
 
         stepRequestDTO.setOrder(5);
 

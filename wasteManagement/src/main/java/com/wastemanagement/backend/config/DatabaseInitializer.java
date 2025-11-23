@@ -4,12 +4,17 @@ import com.wastemanagement.backend.model.user.Admin;
 import com.wastemanagement.backend.model.user.ERole;
 import com.wastemanagement.backend.model.user.Role;
 import com.wastemanagement.backend.repository.RoleRepository;
+import com.wastemanagement.backend.repository.UserRepository;
 import com.wastemanagement.backend.repository.user.AdminRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.wastemanagement.backend.model.user.User;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Configuration
 @RequiredArgsConstructor
@@ -17,6 +22,7 @@ public class DatabaseInitializer {
 
     private final RoleRepository roleRepository;
     private final AdminRepository adminRepository;
+    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Bean
@@ -35,10 +41,26 @@ public class DatabaseInitializer {
 
             // --- Initialize admin ---
             if (adminRepository.count() == 0) {
+                // create user
+                User user = new User();
+                user.setFullName("Super Admin");
+                user.setEmail("admin@example.com");
+                user.setPassword(passwordEncoder.encode("admin123"));
+
+                Set<Role> roles = new HashSet<>();
+                Role roleAdmin = roleRepository.findByName(ERole.ROLE_ADMIN)
+                        .orElseThrow(() -> new RuntimeException("ROLE_ADMIN not found"));
+                Role roleUser = roleRepository.findByName(ERole.ROLE_USER)
+                        .orElseThrow(() -> new RuntimeException("ROLE_USER not found"));
+                roles.add(roleAdmin);
+                roles.add(roleUser);
+                user.setRoles(roles);
+
+                user = userRepository.save(user);
+                // Create admin linked to user
                 Admin admin = new Admin();
-                admin.setFullName("Super Admin");
-                admin.setEmail("admin@example.com");
-                admin.setPassword(passwordEncoder.encode("admin123"));
+                admin.setUser(user);
+
                 adminRepository.save(admin);
                 System.out.println("Initial admin created: admin@example.com / admin123");
             }
