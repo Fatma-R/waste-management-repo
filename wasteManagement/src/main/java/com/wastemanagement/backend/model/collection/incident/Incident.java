@@ -16,7 +16,7 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "incidents")
-public abstract class Incident {
+public class Incident {
     @Id
     private String id;
     private IncidentType type;

@@ -96,17 +96,17 @@ public class IncidentControllerTests {
     void testCreateIncident() throws Exception {
 
         IncidentRequestDTO request = new IncidentRequestDTO();
-        request.setType(IncidentType.BIN_DAMAGED);
+        request.setType(IncidentType.BLOCKED_STREET);
         request.setSeverity(IncidentSeverity.HIGH);
         request.setStatus(IncidentStatus.OPEN);
-        request.setDescription("Bin broken near street 12");
+        request.setDescription("Blocked street 12");
         GeoJSONPointDTO location = new GeoJSONPointDTO();
         location.setCoordinates(new double[] { 10.1, 36.8 });
         request.setLocation(location);
 
         IncidentResponseDTO response = new IncidentResponseDTO();
         response.setId("abc123");
-        response.setType(IncidentType.BIN_DAMAGED);
+        response.setType(IncidentType.BLOCKED_STREET);
         response.setSeverity(IncidentSeverity.HIGH);
         response.setStatus(IncidentStatus.OPEN);
         response.setDescription("Bin broken near street 12");
@@ -132,7 +132,7 @@ public class IncidentControllerTests {
 
         IncidentResponseDTO response = new IncidentResponseDTO();
         response.setId("xyz999");
-        response.setType(IncidentType.VEHICLE_BREAKDOWN);
+        response.setType(IncidentType.TRAFFIC_ACCIDENT);
         response.setSeverity(IncidentSeverity.MEDIUM);
         response.setStatus(IncidentStatus.IN_PROGRESS);
         response.setDescription("Truck broken at highway");
@@ -142,7 +142,7 @@ public class IncidentControllerTests {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/incidents/xyz999"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("xyz999"))
-                .andExpect(jsonPath("$.type").value("VEHICLE_BREAKDOWN"))
+                .andExpect(jsonPath("$.type").value("TRAFFIC_ACCIDENT"))
                 .andExpect(jsonPath("$._links.self.href").exists());
     }
 

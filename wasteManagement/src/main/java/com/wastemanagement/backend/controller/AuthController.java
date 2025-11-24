@@ -106,7 +106,7 @@ public class AuthController {
                     .body(new ErrorResponse("Email is already in use"));
         }
 
-        // 🔐 1) Determine password
+        // 1) Determine password
         String rawPassword;
 
         if (signupRequest.getPassword() == null || signupRequest.getPassword().trim().isEmpty()) {

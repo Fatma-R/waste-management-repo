@@ -1,8 +1,12 @@
 package com.wastemanagement.backend.model.collection.incident;
 
 public enum IncidentType {
-    VEHICLE_BREAKDOWN,
     BLOCKED_STREET,
-    BIN_DAMAGED,
+    TRAFFIC_ACCIDENT,
+    POLICE_ACTIVITY,
+    ROAD_MAINTENANCE,
+    PUBLIC_EVENT,
+    NATURAL_OBSTRUCTION,
+    FIRE_BLOCKAGE,
     OTHER
 }

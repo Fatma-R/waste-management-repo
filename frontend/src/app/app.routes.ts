@@ -11,6 +11,7 @@ import { Landing } from './features/landing/landing';
 import { DashboardComponent } from './features/dashboard/dashboard';
 import { AdminDashboardComponent } from './features/admin-dashboard/admin-dashboard';
 import { EmployeesComponent } from './features/employees/employees';
+import { AdminsComponent } from './features/admins/admins';
 
 export const routes: Routes = [
 
@@ -53,7 +54,8 @@ export const routes: Routes = [
         data: { roles: ['ROLE_ADMIN'] },
         children: [
           { path: 'dashboard', component: AdminDashboardComponent },
-          { path: 'employees', component: EmployeesComponent }
+          { path: 'employees', component: EmployeesComponent },
+          { path: 'admins', component: AdminsComponent }
         ]
       },
 

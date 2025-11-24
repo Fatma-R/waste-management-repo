@@ -14,7 +14,7 @@ import { NotificationService } from '../../core/services/notification';
 
 import { Employee } from '../../shared/models/employee.model';
 import { Bin } from '../../shared/models/bin.model';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 
 interface ActivityLog {
   id: string;
@@ -130,7 +130,8 @@ export class AdminDashboardComponent implements OnInit {
   constructor(
     private employeeService: EmployeeService,
     private binService: BinService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -685,10 +686,6 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   onOpenSystemSettings(): void {
-    console.log('Open system settings');
-    this.notificationService.showToast(
-      'System settings (backend integration pending).',
-      'info'
-    );
+    this.router.navigate(['/admin/admins']);
   }
 }

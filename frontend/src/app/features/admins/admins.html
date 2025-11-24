@@ -1,0 +1,158 @@
+<main class="employees-page admins-page">
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Admin Management</h1>
+        <p class="page-subtitle">Manage platform administrators and access rights</p>
+      </div>
+      <div class="page-actions">
+        <app-button variant="primary" (click)="openAddAdminModal()">
+          + Add Admin
+        </app-button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="isLoading" class="loading-container">
+      <app-loading-spinner message="Loading admins..."></app-loading-spinner>
+    </div>
+
+    <!-- Content -->
+    <div *ngIf="!isLoading">
+      <!-- Info bar -->
+      <div class="filter-bar">
+        {{ admins.length }} admins
+      </div>
+
+      <!-- Admins List -->
+      <div class="employees-section">
+        <h2 class="section-title">Administrators</h2>
+
+        <div class="employees-grid">
+          <app-card
+            *ngFor="let admin of admins"
+            [hoverable]="true"
+            padding="md"
+            class="employee-card"
+            (click)="selectAdmin(admin)">
+            <div class="employee-header">
+              <span class="employee-icon" aria-hidden="true">
+                {{ getAdminIcon(admin) }}
+              </span>
+              <div class="employee-info">
+                <h3 class="employee-name">
+                  {{ admin.fullName || admin.email }}
+                  <span *ngIf="isCurrentAdmin(admin)" class="you-badge">You</span>
+                </h3>
+                <p class="employee-email">{{ admin.email }}</p>
+              </div>
+            </div>
+
+            <div class="employee-details">
+              <div class="detail-item" *ngIf="admin.createdAt">
+                <span class="detail-label">Created:</span>
+                <span class="detail-value">{{ formatDate(admin.createdAt) }}</span>
+              </div>
+            </div>
+          </app-card>
+
+          <div *ngIf="admins.length === 0" class="no-employees">
+            <p>No admins found</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Admin Details Modal -->
+<app-modal
+  [isOpen]="selectedAdmin !== null"
+  [title]="selectedAdmin?.fullName || selectedAdmin?.email || ''"
+  size="md"
+  (close)="deselectAdmin()">
+  <div class="employee-details-modal" *ngIf="selectedAdmin">
+    <div class="detail-section">
+      <div class="detail-icon">{{ getAdminIcon(selectedAdmin!) }}</div>
+      <h3 class="detail-heading">
+        {{ selectedAdmin.fullName || selectedAdmin.email }}
+        <span *ngIf="isCurrentAdmin(selectedAdmin)" class="you-badge">You</span>
+      </h3>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-row">
+        <span class="detail-label">Email:</span>
+        <span class="detail-value">{{ selectedAdmin.email }}</span>
+      </div>
+      <div class="detail-row" *ngIf="selectedAdmin.createdAt">
+        <span class="detail-label">Created:</span>
+        <span class="detail-value">{{ formatDate(selectedAdmin.createdAt) }}</span>
+      </div>
+      <div class="detail-row" *ngIf="selectedAdmin.updatedAt">
+        <span class="detail-label">Updated:</span>
+        <span class="detail-value">{{ formatDate(selectedAdmin.updatedAt) }}</span>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <app-button
+        variant="outline"
+        size="sm"
+        (click)="openEditAdminModal(selectedAdmin)">
+        Edit Admin
+      </app-button>
+      <app-button
+        variant="outline"
+        size="sm"
+        (click)="onDeleteAdmin(selectedAdmin.id)">
+        Delete Admin
+      </app-button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Create/Edit Admin Modal -->
+<app-modal
+  [isOpen]="isAdminFormModalOpen"
+  [title]="formMode === 'create' ? 'Add New Admin' : 'Edit Admin'"
+  size="md"
+  (close)="closeAdminFormModal()">
+  <form (ngSubmit)="onSubmitAdminForm()" class="add-employee-form">
+    <div class="form-group">
+      <label for="adm-name" class="form-label">Full Name</label>
+      <input
+        type="text"
+        id="adm-name"
+        [(ngModel)]="adminForm.fullName"
+        name="fullName"
+        class="form-input"
+        placeholder="Jane Admin"
+        required>
+    </div>
+
+    <div class="form-group">
+      <label for="adm-email" class="form-label">Email Address</label>
+      <input
+        type="email"
+        id="adm-email"
+        [(ngModel)]="adminForm.email"
+        name="email"
+        class="form-input"
+        placeholder="admin@example.com"
+        required>
+    </div>
+
+    <div class="modal-actions">
+      <app-button
+        type="button"
+        variant="outline"
+        (click)="closeAdminFormModal()">
+        Cancel
+      </app-button>
+      <app-button type="submit" variant="primary">
+        {{ formMode === 'create' ? 'Add Admin' : 'Save Changes' }}
+      </app-button>
+    </div>
+  </form>
+</app-modal>
