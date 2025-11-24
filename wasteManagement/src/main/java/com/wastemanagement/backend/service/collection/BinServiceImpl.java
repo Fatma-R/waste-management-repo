@@ -1,5 +1,8 @@
 package com.wastemanagement.backend.service.collection;
 
+import com.wastemanagement.backend.dto.collection.BinRequestDTO;
+import com.wastemanagement.backend.dto.collection.BinResponseDTO;
+import com.wastemanagement.backend.mapper.collection.BinMapper;
 import com.wastemanagement.backend.model.collection.Bin;
 import com.wastemanagement.backend.repository.collection.BinRepository;
 import org.springframework.stereotype.Service;
@@ -17,26 +20,33 @@ public class BinServiceImpl implements BinService {
     }
 
     @Override
-    public List<Bin> getAllBins() {
-        return binRepository.findAll();
+    public List<BinResponseDTO> getAllBins() {
+        return binRepository.findAll()
+                .stream()
+                .map(BinMapper::toResponseDTO)
+                .toList();
     }
 
     @Override
-    public Optional<Bin> getBinById(String id) {
-        return binRepository.findById(id);
+    public Optional<BinResponseDTO> getBinById(String id) {
+        return binRepository.findById(id)
+                .map(BinMapper::toResponseDTO);
     }
 
     @Override
-    public Bin createBin(Bin bin) {
-        return binRepository.save(bin);
+    public BinResponseDTO createBin(BinRequestDTO dto) {
+        Bin entity = BinMapper.toEntity(dto);
+        Bin saved = binRepository.save(entity);
+        return BinMapper.toResponseDTO(saved);
     }
 
     @Override
-    public Optional<Bin> updateBin(String id, Bin updatedBin) {
+    public Optional<BinResponseDTO> updateBin(String id, BinRequestDTO dto) {
         return binRepository.findById(id)
                 .map(existing -> {
-                    updatedBin.setId(id);
-                    return binRepository.save(updatedBin);
+                    BinMapper.merge(existing, dto);
+                    Bin updated = binRepository.save(existing);
+                    return BinMapper.toResponseDTO(updated);
                 });
     }
 

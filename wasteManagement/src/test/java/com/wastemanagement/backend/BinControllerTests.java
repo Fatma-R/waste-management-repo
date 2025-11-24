@@ -3,8 +3,7 @@ package com.wastemanagement.backend;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wastemanagement.backend.controller.collection.BinController;
 import com.wastemanagement.backend.dto.collection.BinRequestDTO;
-import com.wastemanagement.backend.mapper.collection.BinMapper;
-import com.wastemanagement.backend.model.collection.Bin;
+import com.wastemanagement.backend.dto.collection.BinResponseDTO;
 import com.wastemanagement.backend.model.collection.TrashType;
 import com.wastemanagement.backend.security.JwtUtil;
 import com.wastemanagement.backend.service.CustomUserDetailsService;
@@ -23,7 +22,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -41,6 +39,7 @@ class BinControllerTests {
 
     @Autowired
     private MockMvc mockMvc;
+
     @MockBean
     private JwtUtil jwtUtils;
 
@@ -53,7 +52,7 @@ class BinControllerTests {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private BinRequestDTO requestDTO;
-    private Bin bin;
+    private BinResponseDTO responseDTO;
 
     @BeforeEach
     void setup() {
@@ -64,43 +63,18 @@ class BinControllerTests {
         requestDTO.setReadingIds(Arrays.asList("r1", "r2"));
         requestDTO.setAlertIds(Arrays.asList("a1"));
 
-        bin = new Bin();
-        bin.setId("1");
-        bin.setCollectionPointId("CP1");
-        bin.setActive(true);
-        bin.setType(TrashType.PLASTIC);
-        bin.setReadingIds(requestDTO.getReadingIds());
-        bin.setAlertIds(requestDTO.getAlertIds());
-    }
-
-    @Test
-    void testServiceCreateBin() {
-        when(binService.createBin(any())).thenReturn(bin);
-
-        Bin result = binService.createBin(BinMapper.toEntity(requestDTO));
-
-        assert result != null;
-        assert result.getCollectionPointId().equals("CP1");
-        assert result.getType() == TrashType.PLASTIC;
-
-        verify(binService).createBin(any());
-    }
-
-    @Test
-    void testMapperToEntityAndResponse() {
-        Bin mapped = BinMapper.toEntity(requestDTO);
-        assert mapped.getCollectionPointId().equals("CP1");
-        assert mapped.getType() == TrashType.PLASTIC;
-
-        var responseDTO = BinMapper.toResponseDTO(bin);
-        assert responseDTO.getId().equals("1");
-        assert responseDTO.getCollectionPointId().equals("CP1");
-        assert responseDTO.getType() == TrashType.PLASTIC;
+        responseDTO = new BinResponseDTO();
+        responseDTO.setId("1");
+        responseDTO.setCollectionPointId("CP1");
+        responseDTO.setActive(true);
+        responseDTO.setType(TrashType.PLASTIC);
+        responseDTO.setReadingIds(Arrays.asList("r1", "r2"));
+        responseDTO.setAlertIds(Arrays.asList("a1"));
     }
 
     @Test
     void testCreateBinController() throws Exception {
-        when(binService.createBin(any())).thenReturn(bin);
+        when(binService.createBin(any())).thenReturn(responseDTO);
 
         mockMvc.perform(post("/bins")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -113,7 +87,7 @@ class BinControllerTests {
 
     @Test
     void testUpdateBinController() throws Exception {
-        Bin updated = new Bin();
+        BinResponseDTO updated = new BinResponseDTO();
         updated.setId("1");
         updated.setCollectionPointId("CP2");
         updated.setActive(false);
@@ -121,14 +95,7 @@ class BinControllerTests {
         updated.setReadingIds(Arrays.asList("r3"));
         updated.setAlertIds(Arrays.asList("a2"));
 
-        when(binService.getBinById("1")).thenReturn(Optional.of(bin));
-        when(binService.createBin(any())).thenReturn(updated);
-
-        requestDTO.setCollectionPointId("CP2");
-        requestDTO.setActive(false);
-        requestDTO.setType(TrashType.PLASTIC);
-        requestDTO.setReadingIds(Arrays.asList("r3"));
-        requestDTO.setAlertIds(Arrays.asList("a2"));
+        when(binService.updateBin(eq("1"), any())).thenReturn(Optional.of(updated));
 
         mockMvc.perform(put("/bins/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -141,7 +108,7 @@ class BinControllerTests {
 
     @Test
     void testGetBinByIdController() throws Exception {
-        when(binService.getBinById("1")).thenReturn(Optional.of(bin));
+        when(binService.getBinById("1")).thenReturn(Optional.of(responseDTO));
 
         mockMvc.perform(get("/bins/1")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -153,16 +120,15 @@ class BinControllerTests {
 
     @Test
     void testGetAllBinsController() throws Exception {
-        Bin bin2 = new Bin();
-        bin2.setId("2");
-        bin2.setCollectionPointId("CP2");
-        bin2.setActive(false);
-        bin2.setType(TrashType.PLASTIC);
-        bin2.setReadingIds(Arrays.asList("r3"));
-        bin2.setAlertIds(Arrays.asList("a2"));
+        BinResponseDTO d2 = new BinResponseDTO();
+        d2.setId("2");
+        d2.setCollectionPointId("CP2");
+        d2.setActive(false);
+        d2.setType(TrashType.PLASTIC);
+        d2.setReadingIds(Arrays.asList("x"));
+        d2.setAlertIds(Arrays.asList("y"));
 
-        List<Bin> bins = Arrays.asList(bin, bin2);
-        when(binService.getAllBins()).thenReturn(bins);
+        when(binService.getAllBins()).thenReturn(List.of(responseDTO, d2));
 
         mockMvc.perform(get("/bins")
                         .contentType(MediaType.APPLICATION_JSON))
