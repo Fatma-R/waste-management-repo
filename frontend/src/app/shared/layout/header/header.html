@@ -19,10 +19,10 @@
     <!-- Actions -->
     <div class="app-nav__actions">
       <ng-container *ngIf="!(authService.loggedIn$ | async); else loggedIn">
-        <a routerLink="/login" class="btn-outline">Login</a>
-        <a routerLink="/signup" class="btn-primary">Sign Up</a>
+        <a routerLink="/login" class="btn-primary">Login</a>
       </ng-container>
       <ng-template #loggedIn>
+        <h5>👤{{ authService.getUserEmail() }}</h5>
         <button class="btn-outline" (click)="logout()">Logout</button>
       </ng-template>
     </div>

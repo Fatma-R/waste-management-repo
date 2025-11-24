@@ -83,4 +83,13 @@ export class AuthService {
       return null;
     }
   }
+    getHomeRoute(): string {
+    if (!this.loggedIn) return '/landing';
+
+    if (this.isAdmin()) return '/admin/dashboard';
+    if (this.isUser()) return '/user/dashboard';
+
+    return '/landing';
+  }
+
 }

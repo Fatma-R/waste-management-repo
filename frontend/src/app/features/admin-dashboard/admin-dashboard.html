@@ -1,77 +1,105 @@
 <main class="admin-page">
   <div class="container">
+    <!-- Page Header -->
     <div class="page-header">
       <div>
-        <h1 class="page-title">Admin Dashboard</h1>
-        <p class="page-subtitle">System overview and administrative controls</p>
+        <h1 class="page-title">Operations Dashboard</h1>
+        <p class="page-subtitle">
+          Real-time overview of collections, incidents and resources
+        </p>
       </div>
+
       <div class="admin-badge">
+        <span class="badge-text">Admin</span>
         <span class="badge-icon" aria-hidden="true">👑</span>
-        <span class="badge-text">Administrator</span>
       </div>
     </div>
 
+    <!-- Loading -->
     <div *ngIf="isLoading" class="loading-container">
-      <app-loading-spinner message="Loading admin data..."></app-loading-spinner>
+      <app-loading-spinner message="Loading operational data..."></app-loading-spinner>
     </div>
 
+    <!-- Main Content -->
     <div *ngIf="!isLoading">
-      <!-- System Stats -->
+      <!-- KPI Row -->
       <section class="kpi-section">
         <app-kpi
-          label="Total Employees"
+          label="Employees"
           [value]="totalEmployees"
           icon="👥"
           color="sage">
         </app-kpi>
-        
+
         <app-kpi
-          label="Total Bins"
-          [value]="totalBins"
-          icon="🗑️"
+          label="Vehicles"
+          [value]="totalVehicles"
+          icon="🚚"
           color="green">
         </app-kpi>
-        
+
         <app-kpi
-          label="Active Routes"
-          [value]="activeRoutes"
-          icon="🚛"
+          label="Active Tournées"
+          [value]="activeTournees"
+          icon="🗺️"
           color="amber">
         </app-kpi>
-        
+
         <app-kpi
-          label="System Uptime"
-          [value]="systemUptime"
-          icon="⚡"
+          label="Open Incidents"
+          [value]="openIncidentsCount"
+          icon="⚠️"
+          color="red">
+        </app-kpi>
+
+        <app-kpi
+          label="Collection Points"
+          [value]="totalCollectionPoints"
+          icon="📍"
+          color="sage">
+        </app-kpi>
+
+        <app-kpi
+          label="Avg Fill Level"
+          [value]="avgNetworkFillPct + '%'"
+          icon="🗑️"
           color="green">
         </app-kpi>
       </section>
 
-      <!-- Main Content Grid -->
+      <!-- Grid -->
       <div class="admin-grid">
         <!-- Employee Management -->
         <app-card padding="lg" class="management-card">
           <div class="card-header">
             <h2 class="card-title">Employee Management</h2>
-            <a routerLink="/employees" class="card-link">View All →</a>
+            <a routerLink="/admin/employees" class="card-link">View All →</a>
           </div>
 
           <div class="management-list">
-            <div 
+            <div
               *ngFor="let employee of employees.slice(0, 5)"
               class="management-item">
               <div class="item-info">
                 <span class="item-icon" aria-hidden="true">👤</span>
                 <div class="item-details">
-                  <span class="item-name">{{ employee.name }}</span>
-                  <span class="item-meta">{{ employee.role }} - {{ employee.email }}</span>
+                  <span class="item-name">{{ employee.fullName }}</span>
+                  <span class="item-meta">
+                    {{ employee.email }} · {{ employee.skill }}
+                  </span>
                 </div>
               </div>
               <div class="item-actions">
-                <span [class]="getStatusBadgeClass(employee.status)">
-                  {{ employee.status }}
+                <span class="status-badge status-active">
+                  Active
                 </span>
-                <button 
+                <button
+                  class="action-btn"
+                  (click)="openAssignEmployeeModal(employee)"
+                  aria-label="Assign employee to tournee">
+                  📌
+                </button>
+                <button
                   class="action-btn action-delete"
                   (click)="openDeleteEmployeeModal(employee.id)"
                   aria-label="Delete employee">
@@ -82,34 +110,160 @@
           </div>
         </app-card>
 
-        <!-- Bin Management -->
+        <!-- Collection Points & Bins -->
         <app-card padding="lg" class="management-card">
           <div class="card-header">
-            <h2 class="card-title">Bin Management</h2>
-            <a routerLink="/map" class="card-link">View All →</a>
+            <h2 class="card-title">Collection Points & Bins</h2>
+            <a routerLink="/map" class="card-link">View Map →</a>
           </div>
 
           <div class="management-list">
-            <div 
-              *ngFor="let bin of bins.slice(0, 5)"
+            <div
+              *ngFor="let cp of collectionPoints.slice(0, 5)"
               class="management-item">
               <div class="item-info">
-                <span class="item-icon" aria-hidden="true">🗑️</span>
+                <span class="item-icon" aria-hidden="true">📍</span>
                 <div class="item-details">
-                  <span class="item-name">Bin #{{ bin.id }} - {{ bin.type }}</span>
-                  <span class="item-meta">{{ bin.zone }} - Fill: {{ bin.fillLevel }}%</span>
+                  <span class="item-name">
+                    {{ cp.adresse }}
+                  </span>
+                  <span class="item-meta">
+                    Bins: {{ cp.binsCount }}
+                    · Alerts: {{ cp.alertsCount }}
+                    · Avg fill: {{ cp.avgFillPct }}%
+                  </span>
                 </div>
               </div>
               <div class="item-actions">
-                <span [class]="getStatusBadgeClass(bin.status)">
-                  {{ bin.status }}
+                <span
+                  class="status-badge"
+                  [ngClass]="cp.active ? 'status-active' : 'status-inactive'">
+                  {{ cp.active ? 'Active' : 'Inactive' }}
                 </span>
-                <button 
-                  class="action-btn action-delete"
-                  (click)="openDeleteBinModal(bin.id)"
-                  aria-label="Delete bin">
-                  🗑️
+                <button
+                  class="action-btn"
+                  (click)="openCollectionPointDetails(cp)"
+                  aria-label="View collection point details">
+                  🔎
                 </button>
+              </div>
+            </div>
+          </div>
+        </app-card>
+
+        <!-- Today's Tournées -->
+        <app-card padding="lg" class="management-card">
+          <div class="card-header">
+            <h2 class="card-title">Today’s Tournées</h2>
+            <a routerLink="/tournees" class="card-link">Planning →</a>
+          </div>
+
+          <div class="management-list">
+            <div
+              *ngFor="let t of todayTournees.slice(0, 5)"
+              class="management-item">
+              <div class="item-info">
+                <span class="item-icon" aria-hidden="true">🗺️</span>
+                <div class="item-details">
+                  <span class="item-name">
+                    {{ t.label }}
+                  </span>
+                  <span class="item-meta">
+                    {{ t.tourneeType }} · {{ t.zoneLabel }}
+                    · Km: {{ t.plannedKm }}
+                    · CO₂: {{ t.plannedCO2 }} kg
+                    · Stops: {{ t.stepsCount }}
+                  </span>
+                </div>
+              </div>
+              <div class="item-actions">
+                <span
+                  class="status-badge"
+                  [ngClass]="getTourneeStatusClass(t.status)">
+                  {{ t.status }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </app-card>
+
+        <!-- Vehicles -->
+        <app-card padding="lg" class="management-card">
+          <div class="card-header">
+            <h2 class="card-title">Vehicles</h2>
+            <a routerLink="/vehicles" class="card-link">Manage →</a>
+          </div>
+
+          <div class="management-list">
+            <div
+              *ngFor="let v of vehicles.slice(0, 5)"
+              class="management-item">
+              <div class="item-info">
+                <span class="item-icon" aria-hidden="true">🚚</span>
+                <div class="item-details">
+                  <span class="item-name">
+                    {{ v.plateNumber }} · {{ v.type }}
+                  </span>
+                  <span class="item-meta">
+                    Capacity: {{ v.capacityVolumeL }} L
+                    · {{ v.zoneLabel }}
+                  </span>
+                </div>
+              </div>
+              <div class="item-actions">
+                <span
+                  class="status-badge"
+                  [ngClass]="getVehicleStatusClass(v.status)">
+                  {{ v.status }}
+                </span>
+                <button
+                  class="action-btn"
+                  (click)="openVehicleMaintenanceModal(v)"
+                  aria-label="Register maintenance">
+                  🛠️
+                </button>
+              </div>
+            </div>
+          </div>
+        </app-card>
+
+        <!-- Incidents -->
+        <app-card padding="lg" class="activity-card">
+          <div class="card-header">
+            <h2 class="card-title">Recent Incidents</h2>
+            <a routerLink="/incidents" class="card-link">View All →</a>
+          </div>
+
+          <div class="activity-list">
+            <div
+              *ngFor="let incident of recentIncidents.slice(0, 6)"
+              class="activity-item">
+              <span class="activity-icon" aria-hidden="true">
+                {{ getIncidentTypeIcon(incident.type) }}
+              </span>
+              <div class="activity-content">
+                <div class="activity-header">
+                  <span class="activity-user">
+                    {{ incident.contextLabel }}
+                  </span>
+                  <span class="activity-time">
+                    {{ formatTimestamp(incident.reportedAt) }}
+                  </span>
+                </div>
+                <p class="activity-action">
+                  {{ incident.description }}
+                </p>
+                <p class="activity-details">
+                  <span class="status-badge" [ngClass]="getIncidentSeverityClass(incident.severity)">
+                    {{ incident.severity }}
+                  </span>
+                  <span class="status-badge" [ngClass]="getIncidentStatusClass(incident.status)">
+                    {{ incident.status }}
+                  </span>
+                  <span *ngIf="incident.reportedBy">
+                    · Reported by: {{ incident.reportedBy }}
+                  </span>
+                </p>
               </div>
             </div>
           </div>
@@ -122,7 +276,7 @@
           </div>
 
           <div class="activity-list">
-            <div 
+            <div
               *ngFor="let log of activityLogs"
               class="activity-item">
               <span class="activity-icon" aria-hidden="true">
@@ -131,7 +285,9 @@
               <div class="activity-content">
                 <div class="activity-header">
                   <span class="activity-user">{{ log.user }}</span>
-                  <span class="activity-time">{{ formatTimestamp(log.timestamp) }}</span>
+                  <span class="activity-time">
+                    {{ formatTimestamp(log.timestamp) }}
+                  </span>
                 </div>
                 <p class="activity-action">{{ log.action }}</p>
                 <p class="activity-details">{{ log.details }}</p>
@@ -147,34 +303,34 @@
           </div>
 
           <div class="controls-grid">
-            <button class="control-button">
+            <button class="control-button" (click)="onRecalculateTournees()">
+              <span class="control-icon" aria-hidden="true">🧮</span>
+              <span class="control-label">Recalculate Tournées</span>
+            </button>
+
+            <button class="control-button" (click)="onRebalanceBins()">
+              <span class="control-icon" aria-hidden="true">⚖️</span>
+              <span class="control-label">Rebalance Collection Points</span>
+            </button>
+
+            <button class="control-button" (click)="onExportKpiReport()">
               <span class="control-icon" aria-hidden="true">📊</span>
-              <span class="control-label">Generate Reports</span>
+              <span class="control-label">Export KPI Report</span>
             </button>
-            
-            <button class="control-button">
-              <span class="control-icon" aria-hidden="true">🔄</span>
-              <span class="control-label">Sync Database</span>
+
+            <button class="control-button" (click)="onExportIncidentReport()">
+              <span class="control-icon" aria-hidden="true">📑</span>
+              <span class="control-label">Export Incidents</span>
             </button>
-            
-            <button class="control-button">
+
+            <button class="control-button" (click)="onSyncWithSensors()">
+              <span class="control-icon" aria-hidden="true">📡</span>
+              <span class="control-label">Sync with Sensors</span>
+            </button>
+
+            <button class="control-button" (click)="onOpenSystemSettings()">
               <span class="control-icon" aria-hidden="true">⚙️</span>
               <span class="control-label">System Settings</span>
-            </button>
-            
-            <button class="control-button">
-              <span class="control-icon" aria-hidden="true">📧</span>
-              <span class="control-label">Email Notifications</span>
-            </button>
-            
-            <button class="control-button">
-              <span class="control-icon" aria-hidden="true">🔐</span>
-              <span class="control-label">Access Control</span>
-            </button>
-            
-            <button class="control-button">
-              <span class="control-icon" aria-hidden="true">💾</span>
-              <span class="control-label">Backup System</span>
             </button>
           </div>
         </app-card>
@@ -184,7 +340,7 @@
 </main>
 
 <!-- Delete Employee Confirmation Modal -->
-<app-modal 
+<app-modal
   [isOpen]="isDeleteEmployeeModalOpen"
   title="Delete Employee"
   size="sm"
@@ -194,12 +350,12 @@
       Are you sure you want to delete this employee? This action cannot be undone.
     </p>
     <div class="modal-actions">
-      <app-button 
-        variant="outline" 
+      <app-button
+        variant="outline"
         (click)="closeDeleteEmployeeModal()">
         Cancel
       </app-button>
-      <app-button 
+      <app-button
         variant="primary"
         (click)="confirmDeleteEmployee()">
         Delete Employee
@@ -209,7 +365,7 @@
 </app-modal>
 
 <!-- Delete Bin Confirmation Modal -->
-<app-modal 
+<app-modal
   [isOpen]="isDeleteBinModalOpen"
   title="Delete Bin"
   size="sm"
@@ -219,12 +375,12 @@
       Are you sure you want to delete this bin? This action cannot be undone.
     </p>
     <div class="modal-actions">
-      <app-button 
-        variant="outline" 
+      <app-button
+        variant="outline"
         (click)="closeDeleteBinModal()">
         Cancel
       </app-button>
-      <app-button 
+      <app-button
         variant="primary"
         (click)="confirmDeleteBin()">
         Delete Bin

@@ -1,22 +1,27 @@
+export type EmployeeSkill = 'DRIVER' | 'AGENT';
+
 export interface Employee {
   id: string;
-  name: string;
+  fullName: string;
   email: string;
-  role: 'driver' | 'supervisor' | 'admin';
-  assignedZones: string[];
-  status: 'active' | 'offline' | 'on-route';
-  phoneNumber?: string;
-  createdAt?: Date;
+  skill: EmployeeSkill;
+  createdAt?: string;   // ISO string from backend (Instant)
+  updatedAt?: string;   // ISO string from backend (Instant)
+
+  // Future fields (UI-only for later evolutions)
+  // status?: 'active' | 'offline' | 'on-route';
+  // assignedZones?: string[];
+  // phoneNumber?: string;
 }
 
 export interface CreateEmployeeDto {
-  name: string;
+  fullName: string;
   email: string;
-  role: Employee['role'];
-  assignedZones?: string[];
-  phoneNumber?: string;
+  skill: EmployeeSkill;
 }
 
-export interface UpdateEmployeeDto extends Partial<CreateEmployeeDto> {
-  status?: Employee['status'];
+export interface UpdateEmployeeDto {
+  fullName: string;
+  email: string;
+  skill: EmployeeSkill;
 }

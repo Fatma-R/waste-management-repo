@@ -13,7 +13,7 @@ export class LoginGuard implements CanActivate {
 
   canActivate(): boolean {
     if (this.authService.loggedIn) {
-      this.router.navigate(['/home']);
+      this.router.navigate([this.authService.getHomeRoute()]);
       return false;
     }
     return true;

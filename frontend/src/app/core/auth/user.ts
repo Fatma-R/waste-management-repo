@@ -17,7 +17,9 @@ export interface JwtResponse {
 
 export interface SignupRequest {
   email: string;
-  password: string;
-  fullName?: string;
+  //passwords are generated randomly through the signup endpoint
+  //password: string;
+  fullName?: string;  
   roles?: string[];
+  skill?: string;
 }

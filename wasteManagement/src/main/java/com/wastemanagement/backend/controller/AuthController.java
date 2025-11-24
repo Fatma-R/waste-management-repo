@@ -95,15 +95,10 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@RequestBody SignupRequest signupRequest) {
-        // Validation basique
+
         if (signupRequest.getEmail() == null || signupRequest.getEmail().trim().isEmpty()) {
             return ResponseEntity.badRequest()
                     .body(new ErrorResponse("Email is required"));
-        }
-
-        if (signupRequest.getPassword() == null || signupRequest.getPassword().trim().isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .body(new ErrorResponse("Password is required"));
         }
 
         if (userRepository.existsByEmail(signupRequest.getEmail())) {
@@ -111,49 +106,55 @@ public class AuthController {
                     .body(new ErrorResponse("Email is already in use"));
         }
 
-        // 1️⃣ Créer le User
+        // 🔐 1) Determine password
+        String rawPassword;
+
+        if (signupRequest.getPassword() == null || signupRequest.getPassword().trim().isEmpty()) {
+            // Auto-generate backend password
+            rawPassword = generateRandomPassword();
+
+            // DEV OVERRIDE: comment when pushing to production
+            rawPassword = "123";  // ⚠️ DEV ONLY — static password to simplify tests
+
+            System.out.println("Generated password for " + signupRequest.getEmail() + ": " + rawPassword);
+        } else {
+            rawPassword = signupRequest.getPassword();
+        }
+
+        // 2️⃣ Create User
         User user = new User();
         user.setFullName(signupRequest.getFullName());
         user.setEmail(signupRequest.getEmail());
-        user.setPassword(encoder.encode(signupRequest.getPassword()));
+        user.setPassword(encoder.encode(rawPassword));
 
-        // 2️⃣ Affecter les rôles
+        // 3️⃣ Assign Roles
         Set<Role> roles = new HashSet<>();
         Set<String> requestedRoles = signupRequest.getRoles();
 
         if (requestedRoles == null || requestedRoles.isEmpty()) {
-            // par défaut: ROLE_USER
-            Role userRole = roleRepository.findByName(ERole.ROLE_USER)
-                    .orElseThrow(() -> new RuntimeException("Error: Role USER not found"));
-            roles.add(userRole);
+            roles.add(roleRepository.findByName(ERole.ROLE_USER)
+                    .orElseThrow(() -> new RuntimeException("ROLE_USER not found")));
         } else {
             for (String roleName : requestedRoles) {
                 switch (roleName.toLowerCase()) {
                     case "admin":
-                        Role adminRole = roleRepository.findByName(ERole.ROLE_ADMIN)
-                                .orElseThrow(() -> new RuntimeException("Error: Role ADMIN not found"));
-                        roles.add(adminRole);
-                        // on donne aussi ROLE_USER par défaut
-                        Role userRole = roleRepository.findByName(ERole.ROLE_USER)
-                                .orElseThrow(() -> new RuntimeException("Error: Role USER not found"));
-                        roles.add(userRole);
+                        roles.add(roleRepository.findByName(ERole.ROLE_ADMIN)
+                                .orElseThrow(() -> new RuntimeException("ROLE_ADMIN not found")));
+                        roles.add(roleRepository.findByName(ERole.ROLE_USER)
+                                .orElseThrow(() -> new RuntimeException("ROLE_USER not found")));
                         break;
-                    case "user":
                     default:
-                        Role rUser = roleRepository.findByName(ERole.ROLE_USER)
-                                .orElseThrow(() -> new RuntimeException("Error: Role USER not found"));
-                        roles.add(rUser);
-                        break;
+                        roles.add(roleRepository.findByName(ERole.ROLE_USER)
+                                .orElseThrow(() -> new RuntimeException("ROLE_USER not found")));
                 }
             }
         }
 
         user.setRoles(roles);
-        user = userRepository.save(user); // user persistant avec id
+        user = userRepository.save(user);
 
-        // 3️⃣ Créer le profil métier associé
+        // 4️⃣ Create the associated profile
         if (requestedRoles == null || requestedRoles.isEmpty()) {
-            // cas par défaut: simple USER -> créer un Employee
             employeeService.createFromUser(user, signupRequest.getSkill());
         } else {
             if (requestedRoles.stream().anyMatch(r -> r.equalsIgnoreCase("admin"))) {
@@ -164,7 +165,24 @@ public class AuthController {
             }
         }
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new MessageResponse("User registered successfully"));
+        // Returning password ONLY FOR TEST — will be removed later
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "User registered successfully");
+
+        // ⚠️ DEV ONLY — allows front-end to log in during development
+        response.put("generatedPassword", rawPassword);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+
+
+    private String generateRandomPassword() {
+        return UUID.randomUUID().toString()
+                .replace("-", "")
+                .substring(0, 10); // 10-char random password
+    }
+
+
+
 }

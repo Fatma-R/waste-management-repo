@@ -30,7 +30,7 @@ export class Signup {
 
     this.authService.signup({
       email: this.email,
-      password: this.password,
+      //password: this.password,
       fullName: this.fullName
     }).subscribe({
       next: (res: any) => {

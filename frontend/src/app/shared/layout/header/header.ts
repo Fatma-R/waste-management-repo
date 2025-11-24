@@ -14,8 +14,6 @@ export class Header {
   constructor(public authService: AuthService, private router: Router) {}
 
   logout() {
-    //method loggedIn call in a variable:
-    const loggedIn = this.authService.loggedIn;
     this.authService.logout();
     this.router.navigate(['/landing']); // redirect after logout
   }
