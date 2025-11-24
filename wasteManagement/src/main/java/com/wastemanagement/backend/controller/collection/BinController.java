@@ -23,34 +23,26 @@ public class BinController {
 
     @GetMapping
     public List<BinResponseDTO> getAllBins() {
-        return binService.getAllBins()
-                .stream()
-                .map(BinMapper::toResponseDTO)
-                .collect(Collectors.toList());
+        return binService.getAllBins();
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<BinResponseDTO> getBinById(@PathVariable String id) {
         return binService.getBinById(id)
-                .map(BinMapper::toResponseDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
     public BinResponseDTO createBin(@RequestBody BinRequestDTO dto) {
-        Bin saved = binService.createBin(BinMapper.toEntity(dto));
-        return BinMapper.toResponseDTO(saved);
+        return binService.createBin(dto);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<BinResponseDTO> updateBin(@PathVariable String id, @RequestBody BinRequestDTO dto) {
-        return binService.getBinById(id)
-                .map(existing -> {
-                    BinMapper.merge(existing, dto);
-                    Bin updated = binService.createBin(existing);
-                    return ResponseEntity.ok(BinMapper.toResponseDTO(updated));
-                })
+    public ResponseEntity<BinResponseDTO> updateBin(@PathVariable String id,
+                                                    @RequestBody BinRequestDTO dto) {
+        return binService.updateBin(id, dto)
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
