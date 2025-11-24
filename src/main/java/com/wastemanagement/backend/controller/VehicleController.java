@@ -3,6 +3,7 @@ package com.wastemanagement.backend.controller;
 
 import com.wastemanagement.backend.dto.vehicle.VehicleRequestDTO;
 import com.wastemanagement.backend.dto.vehicle.VehicleResponseDTO;
+import com.wastemanagement.backend.model.vehicle.FuelType;
 import com.wastemanagement.backend.service.vehicle.VehicleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/vehicles")
+@RequestMapping("/api/v1/vehicles")
 public class VehicleController {
 
     @Autowired
@@ -47,7 +48,7 @@ public class VehicleController {
     }
 
     @GetMapping("/fuel/{fuelType}")
-    public ResponseEntity<List<VehicleResponseDTO>> getByFuelType(@PathVariable String fuelType) {
+    public ResponseEntity<List<VehicleResponseDTO>> getByFuelType(@PathVariable FuelType fuelType) {
         return ResponseEntity.ok(service.getVehiclesByFuelType(fuelType));
     }
 }

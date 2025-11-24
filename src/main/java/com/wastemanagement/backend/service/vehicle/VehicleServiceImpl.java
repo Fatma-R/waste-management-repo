@@ -3,6 +3,7 @@ package com.wastemanagement.backend.service.vehicle;
 import com.wastemanagement.backend.dto.vehicle.VehicleRequestDTO;
 import com.wastemanagement.backend.dto.vehicle.VehicleResponseDTO;
 import com.wastemanagement.backend.mapper.vehicle.VehicleMapper;
+import com.wastemanagement.backend.model.vehicle.FuelType;
 import com.wastemanagement.backend.model.vehicle.Vehicle;
 import com.wastemanagement.backend.repository.vehicle.VehicleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,7 +67,7 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
-    public List<VehicleResponseDTO> getVehiclesByFuelType(String fuelType) {
+    public List<VehicleResponseDTO> getVehiclesByFuelType(FuelType fuelType) {
         return repository.findByFuelType(fuelType)
                 .stream().map(mapper::toResponseDTO).collect(Collectors.toList());
     }

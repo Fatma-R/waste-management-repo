@@ -1,5 +1,6 @@
 package com.wastemanagement.backend.repository.vehicle;
 
+import com.wastemanagement.backend.model.vehicle.FuelType;
 import com.wastemanagement.backend.model.vehicle.Vehicle;
 import com.wastemanagement.backend.model.vehicle.VehicleStatus;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -10,6 +11,6 @@ import java.util.List;
 @Repository
 public interface VehicleRepository extends MongoRepository<Vehicle, String> {
     List<Vehicle> findByStatus(VehicleStatus status);
-    List<Vehicle> findByFuelType(String fuelType);
+    List<Vehicle> findByFuelType(FuelType fuelType);
 }
 

@@ -17,6 +17,6 @@ public class Vehicle {
     private String plateNumber;
     private double capacityVolumeL;
     private GeoJSONPoint currentLocation;
-    private String fuelType;
+    private FuelType fuelType;
     private VehicleStatus status;
 }

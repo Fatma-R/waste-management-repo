@@ -5,6 +5,7 @@ import com.wastemanagement.backend.security.AuthTokenFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -97,17 +98,62 @@ public class WebSecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/auth/signin").permitAll()
+                        .requestMatchers("/api/v1/auth/signup").hasRole("ADMIN")
                         .requestMatchers("/api/test/all").permitAll()
                         .requestMatchers("/api/hello").permitAll()
-                        // Swagger/API docs (optional - comment out if not needed)
+
+                        // Swagger/API docs
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        // Health check endpoints (optional)
+
+                        // Health check
                         .requestMatchers("/actuator/health").permitAll()
-                        // All other requests require authentication
+
+
+
+                        // Employee CRUD -> Admin ONLY
+                        .requestMatchers(HttpMethod.POST, "/api/v1/employees/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/employees/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/employees/**").hasRole("ADMIN")
+
+                        // Admin CRUD -> Admin ONLY
+                        .requestMatchers(HttpMethod.POST, "/api/v1/admins/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/admins/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/admins/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/admins/**").hasRole("ADMIN")
+
+                        // Tournee CRUD -> Admin ONLY
+                        .requestMatchers(HttpMethod.POST, "/api/v1/tournees/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/tournees/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/tournees/**").hasRole("ADMIN")
+                        //.requestMatchers(HttpMethod.GET, "/api/v1/tournees/**").hasRole("ADMIN")
+                        // Vehicle CRUD -> Admin ONLY
+                        .requestMatchers(HttpMethod.POST, "/api/v1/vehicles/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/vehicles/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/vehicles/**").hasRole("ADMIN")
+                        // .requestMatchers(HttpMethod.GET, "/api/v1/vehicles/**").hasRole("ADMIN")
+
+
+
+
+                        // RouteStep CRUD -> Admin ONLY
+                        .requestMatchers(HttpMethod.POST, "/api/v1/route-steps/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/route-steps/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/route-steps/**").hasRole("ADMIN")
+                        //.requestMatchers(HttpMethod.GET, "/api/v1/route-steps/**").hasRole("ADMIN")
+
+                        // Employee READ -> Admin ONLY (employees cannot view other employees)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/employees/**").hasRole("ADMIN")
+
+                        //When employee wants to view his own profile. To be created later.
+                        //.requestMatchers(HttpMethod.GET, "/api/v1/employees/me").hasAnyRole("ADMIN","USER")
+
+                        // Anything else must be authenticated
                         .anyRequest().authenticated()
+
                 )
                 .authenticationProvider(authenticationProvider());
+
 
         // Add JWT filter before username/password authentication
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
