@@ -5,11 +5,9 @@ import com.wastemanagement.backend.dto.request.SignupRequest;
 import com.wastemanagement.backend.dto.response.ErrorResponse;
 import com.wastemanagement.backend.dto.response.JwtResponse;
 import com.wastemanagement.backend.dto.response.MessageResponse;
-import com.wastemanagement.backend.model.user.ERole;
-import com.wastemanagement.backend.model.user.Role;
-import com.wastemanagement.backend.model.user.User;
-import com.wastemanagement.backend.service.user.AdminService;
-import com.wastemanagement.backend.service.user.EmployeeService;
+import com.wastemanagement.backend.model.employee.ERole;
+import com.wastemanagement.backend.model.employee.Role;
+import com.wastemanagement.backend.model.employee.User;
 import com.wastemanagement.backend.repository.RoleRepository;
 import com.wastemanagement.backend.repository.UserRepository;
 import com.wastemanagement.backend.security.JwtUtil;
@@ -35,25 +33,20 @@ public class AuthController {
     private final RoleRepository roleRepository;
     private final PasswordEncoder encoder;
     private final JwtUtil jwtUtils;
-    private final AdminService adminService;
-    private final EmployeeService employeeService;
 
     public AuthController(AuthenticationManager authenticationManager,
                           UserRepository userRepository,
                           RoleRepository roleRepository,
                           PasswordEncoder encoder,
-                          JwtUtil jwtUtils,
-                          AdminService adminService,
-                          EmployeeService employeeService) {
+                          JwtUtil jwtUtils) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.encoder = encoder;
         this.jwtUtils = jwtUtils;
-        this.adminService = adminService;
-        this.employeeService = employeeService;
     }
 
+    // Login endpoint - /signin (your existing endpoint name)
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
         try {
@@ -67,6 +60,7 @@ public class AuthController {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             String jwt = jwtUtils.generateToken(userDetails.getUsername());
 
+            // Extract roles from authenticated user
             List<String> roles = userDetails.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .collect(Collectors.toList());
@@ -93,12 +87,18 @@ public class AuthController {
         }
     }
 
+    // Registration endpoint - /signup (your existing endpoint name)
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@RequestBody SignupRequest signupRequest) {
-
+        // Validation
         if (signupRequest.getEmail() == null || signupRequest.getEmail().trim().isEmpty()) {
             return ResponseEntity.badRequest()
                     .body(new ErrorResponse("Email is required"));
+        }
+
+        if (signupRequest.getPassword() == null || signupRequest.getPassword().trim().isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(new ErrorResponse("Password is required"));
         }
 
         if (userRepository.existsByEmail(signupRequest.getEmail())) {
@@ -106,83 +106,43 @@ public class AuthController {
                     .body(new ErrorResponse("Email is already in use"));
         }
 
-        // 1) Determine password
-        String rawPassword;
-
-        if (signupRequest.getPassword() == null || signupRequest.getPassword().trim().isEmpty()) {
-            // Auto-generate backend password
-            rawPassword = generateRandomPassword();
-
-            // DEV OVERRIDE: comment when pushing to production
-            rawPassword = "123";  // ⚠️ DEV ONLY — static password to simplify tests
-
-            System.out.println("Generated password for " + signupRequest.getEmail() + ": " + rawPassword);
-        } else {
-            rawPassword = signupRequest.getPassword();
-        }
-
-        // 2️⃣ Create User
+        // Create new user
         User user = new User();
         user.setFullName(signupRequest.getFullName());
         user.setEmail(signupRequest.getEmail());
-        user.setPassword(encoder.encode(rawPassword));
+        user.setPassword(encoder.encode(signupRequest.getPassword()));
 
-        // 3️⃣ Assign Roles
+        // Assign roles
         Set<Role> roles = new HashSet<>();
-        Set<String> requestedRoles = signupRequest.getRoles();
 
-        if (requestedRoles == null || requestedRoles.isEmpty()) {
-            roles.add(roleRepository.findByName(ERole.ROLE_USER)
-                    .orElseThrow(() -> new RuntimeException("ROLE_USER not found")));
+        if (signupRequest.getRoles() == null || signupRequest.getRoles().isEmpty()) {
+            // Default role is USER
+            Role userRole = roleRepository.findByName(ERole.ROLE_USER)
+                    .orElseThrow(() -> new RuntimeException("Error: Role USER not found"));
+            roles.add(userRole);
         } else {
-            for (String roleName : requestedRoles) {
+            // Assign requested roles
+            for (String roleName : signupRequest.getRoles()) {
                 switch (roleName.toLowerCase()) {
                     case "admin":
-                        roles.add(roleRepository.findByName(ERole.ROLE_ADMIN)
-                                .orElseThrow(() -> new RuntimeException("ROLE_ADMIN not found")));
-                        roles.add(roleRepository.findByName(ERole.ROLE_USER)
-                                .orElseThrow(() -> new RuntimeException("ROLE_USER not found")));
+                        Role adminRole = roleRepository.findByName(ERole.ROLE_ADMIN)
+                                .orElseThrow(() -> new RuntimeException("Error: Role ADMIN not found"));
+                        roles.add(adminRole);
                         break;
+                    case "user":
                     default:
-                        roles.add(roleRepository.findByName(ERole.ROLE_USER)
-                                .orElseThrow(() -> new RuntimeException("ROLE_USER not found")));
+                        Role userRole = roleRepository.findByName(ERole.ROLE_USER)
+                                .orElseThrow(() -> new RuntimeException("Error: Role USER not found"));
+                        roles.add(userRole);
+                        break;
                 }
             }
         }
 
         user.setRoles(roles);
-        user = userRepository.save(user);
+        userRepository.save(user);
 
-        // 4️⃣ Create the associated profile
-        if (requestedRoles == null || requestedRoles.isEmpty()) {
-            employeeService.createFromUser(user, signupRequest.getSkill());
-        } else {
-            if (requestedRoles.stream().anyMatch(r -> r.equalsIgnoreCase("admin"))) {
-                adminService.createFromUser(user);
-            }
-            if (requestedRoles.stream().anyMatch(r -> r.equalsIgnoreCase("user"))) {
-                employeeService.createFromUser(user, signupRequest.getSkill());
-            }
-        }
-
-        // Returning password ONLY FOR TEST — will be removed later
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "User registered successfully");
-
-        // ⚠️ DEV ONLY — allows front-end to log in during development
-        response.put("generatedPassword", rawPassword);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new MessageResponse("User registered successfully"));
     }
-
-
-
-    private String generateRandomPassword() {
-        return UUID.randomUUID().toString()
-                .replace("-", "")
-                .substring(0, 10); // 10-char random password
-    }
-
-
-
 }

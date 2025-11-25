@@ -12,8 +12,5 @@ public class AlertRequestDTO {
     private AlertType type;
     private double value;
     private boolean cleared;
-
-    public void setBinId(String s) {
-    }
 }
 
