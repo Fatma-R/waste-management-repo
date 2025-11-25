@@ -8,7 +8,6 @@ import java.util.Date;
 
 @Data
 public class AlertRequestDTO {
-    private String binId;
     private Date ts;
     private AlertType type;
     private double value;
