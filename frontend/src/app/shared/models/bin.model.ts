@@ -1,22 +1,27 @@
+export type TrashType = 'PLASTIC' | 'ORGANIC' | 'PAPER' | 'GLASS' | 'METAL';
+// adapt this to your actual enum from backend
+
 export interface Bin {
   id: string;
-  type: 'plastic' | 'organic' | 'glass' | 'paper' | 'general';
-  latitude: number;
-  longitude: number;
-  fillLevel: number;
-  status: 'active' | 'inactive' | 'maintenance';
-  zone?: string;
-  lastUpdated?: Date;
+  collectionPointId: string;
+  active: boolean;
+  type: TrashType;
+  readingIds: string[];
+  alertIds: string[];
 }
 
 export interface CreateBinDto {
-  type: Bin['type'];
-  latitude: number;
-  longitude: number;
-  zone?: string;
+  collectionPointId: string;
+  active: boolean;
+  type: TrashType;
+  readingIds: string[];
+  alertIds: string[];
 }
 
-export interface UpdateBinDto extends Partial<CreateBinDto> {
-  fillLevel?: number;
-  status?: Bin['status'];
+export interface UpdateBinDto {
+  collectionPointId: string;
+  active: boolean;
+  type: TrashType;
+  readingIds: string[];
+  alertIds: string[];
 }

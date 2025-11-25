@@ -76,7 +76,7 @@ class BinControllerTests {
     void testCreateBinController() throws Exception {
         when(binService.createBin(any())).thenReturn(responseDTO);
 
-        mockMvc.perform(post("/bins")
+        mockMvc.perform(post("/api/v1/bins")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDTO)))
                 .andExpect(status().isOk())
@@ -97,7 +97,7 @@ class BinControllerTests {
 
         when(binService.updateBin(eq("1"), any())).thenReturn(Optional.of(updated));
 
-        mockMvc.perform(put("/bins/1")
+        mockMvc.perform(put("/api/v1/bins/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDTO)))
                 .andExpect(status().isOk())
@@ -110,7 +110,7 @@ class BinControllerTests {
     void testGetBinByIdController() throws Exception {
         when(binService.getBinById("1")).thenReturn(Optional.of(responseDTO));
 
-        mockMvc.perform(get("/bins/1")
+        mockMvc.perform(get("/api/v1/bins/1")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("1"))
@@ -130,7 +130,7 @@ class BinControllerTests {
 
         when(binService.getAllBins()).thenReturn(List.of(responseDTO, d2));
 
-        mockMvc.perform(get("/bins")
+        mockMvc.perform(get("/api/v1/bins")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value("1"))
@@ -141,7 +141,7 @@ class BinControllerTests {
     void testDeleteBinController() throws Exception {
         when(binService.deleteBin("1")).thenReturn(true);
 
-        mockMvc.perform(delete("/bins/1"))
+        mockMvc.perform(delete("/api/v1/bins/1"))
                 .andExpect(status().isNoContent());
 
         verify(binService).deleteBin("1");

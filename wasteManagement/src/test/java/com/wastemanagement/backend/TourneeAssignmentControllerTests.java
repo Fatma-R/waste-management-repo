@@ -79,7 +79,7 @@ class TourneeAssignmentControllerTests {
         List<TourneeAssignmentResponseDTO> list = Arrays.asList(responseDTO);
         when(tourneeAssignmentService.getAll()).thenReturn(list);
 
-        mockMvc.perform(get("/tournee-assignments")
+        mockMvc.perform(get("/api/v1/tournee-assignments")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value("1"))
@@ -92,7 +92,7 @@ class TourneeAssignmentControllerTests {
     void testGetByIdFound() throws Exception {
         when(tourneeAssignmentService.getById("1")).thenReturn(Optional.of(responseDTO));
 
-        mockMvc.perform(get("/tournee-assignments/1")
+        mockMvc.perform(get("/api/v1/tournee-assignments/1")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("1"))
@@ -105,7 +105,7 @@ class TourneeAssignmentControllerTests {
     void testGetByIdNotFound() throws Exception {
         when(tourneeAssignmentService.getById("1")).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/tournee-assignments/1")
+        mockMvc.perform(get("/api/v1/tournee-assignments/1")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
 
@@ -116,7 +116,7 @@ class TourneeAssignmentControllerTests {
     void testCreate() throws Exception {
         when(tourneeAssignmentService.create(any())).thenReturn(responseDTO);
 
-        mockMvc.perform(post("/tournee-assignments")
+        mockMvc.perform(post("/api/v1/tournee-assignments")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDTO)))
                 .andExpect(status().isOk())
@@ -138,7 +138,7 @@ class TourneeAssignmentControllerTests {
 
         when(tourneeAssignmentService.update(eq("1"), any())).thenReturn(Optional.of(updatedDTO));
 
-        mockMvc.perform(put("/tournee-assignments/1")
+        mockMvc.perform(put("/api/v1/tournee-assignments/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDTO)))
                 .andExpect(status().isOk())
@@ -152,7 +152,7 @@ class TourneeAssignmentControllerTests {
     void testUpdateNotFound() throws Exception {
         when(tourneeAssignmentService.update(eq("1"), any())).thenReturn(Optional.empty());
 
-        mockMvc.perform(put("/tournee-assignments/1")
+        mockMvc.perform(put("/api/v1/tournee-assignments/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDTO)))
                 .andExpect(status().isNotFound());
@@ -164,7 +164,7 @@ class TourneeAssignmentControllerTests {
     void testDeleteFound() throws Exception {
         when(tourneeAssignmentService.delete("1")).thenReturn(true);
 
-        mockMvc.perform(delete("/tournee-assignments/1"))
+        mockMvc.perform(delete("/api/v1/tournee-assignments/1"))
                 .andExpect(status().isNoContent());
 
         verify(tourneeAssignmentService).delete("1");
@@ -174,7 +174,7 @@ class TourneeAssignmentControllerTests {
     void testDeleteNotFound() throws Exception {
         when(tourneeAssignmentService.delete("1")).thenReturn(false);
 
-        mockMvc.perform(delete("/tournee-assignments/1"))
+        mockMvc.perform(delete("/api/v1/tournee-assignments/1"))
                 .andExpect(status().isNotFound());
 
         verify(tourneeAssignmentService).delete("1");

@@ -78,7 +78,7 @@ class BinReadingControllerTests {
     void testCreateBinReading() throws Exception {
         when(binReadingService.create(any())).thenReturn(responseDTO);
 
-        mockMvc.perform(post("/api/bin-readings")
+        mockMvc.perform(post("/api/v1/bin-readings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDTO)))
                 .andExpect(status().isOk())
@@ -93,7 +93,7 @@ class BinReadingControllerTests {
     void testGetBinReadingById() throws Exception {
         when(binReadingService.getById("reading1")).thenReturn(responseDTO);
 
-        mockMvc.perform(get("/api/bin-readings/reading1")
+        mockMvc.perform(get("/api/v1/bin-readings/reading1")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("reading1"))
@@ -116,7 +116,7 @@ class BinReadingControllerTests {
 
         when(binReadingService.getAll()).thenReturn(list);
 
-        mockMvc.perform(get("/api/bin-readings")
+        mockMvc.perform(get("/api/v1/bin-readings")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value("reading1"))
@@ -127,7 +127,7 @@ class BinReadingControllerTests {
     void testDeleteBinReading() throws Exception {
         doNothing().when(binReadingService).delete("reading1");
 
-        mockMvc.perform(delete("/api/bin-readings/reading1"))
+        mockMvc.perform(delete("/api/v1/bin-readings/reading1"))
                 .andExpect(status().isOk());
 
         verify(binReadingService).delete("reading1");
