@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/bins")
+@RequestMapping("/api/v1/bins")
 public class BinController {
 
     private final BinService binService;
