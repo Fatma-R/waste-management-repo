@@ -1,4 +1,4 @@
-package com.wastemanagement.backend.mapper.vehicle;
+package com.wastemanagement.backend.mapper;
 
 import com.wastemanagement.backend.dto.vehicle.VehicleRequestDTO;
 import com.wastemanagement.backend.dto.vehicle.VehicleResponseDTO;

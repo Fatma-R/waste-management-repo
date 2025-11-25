@@ -2,10 +2,10 @@ package com.wastemanagement.backend.service.vehicle;
 
 import com.wastemanagement.backend.dto.vehicle.VehicleRequestDTO;
 import com.wastemanagement.backend.dto.vehicle.VehicleResponseDTO;
-import com.wastemanagement.backend.mapper.vehicle.VehicleMapper;
+import com.wastemanagement.backend.mapper.VehicleMapper;
 import com.wastemanagement.backend.model.vehicle.FuelType;
 import com.wastemanagement.backend.model.vehicle.Vehicle;
-import com.wastemanagement.backend.repository.vehicle.VehicleRepository;
+import com.wastemanagement.backend.repository.VehicleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;

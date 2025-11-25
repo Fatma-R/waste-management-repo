@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wastemanagement.backend.controller.VehicleController;
 import com.wastemanagement.backend.dto.vehicle.VehicleRequestDTO;
 import com.wastemanagement.backend.dto.vehicle.VehicleResponseDTO;
-import com.wastemanagement.backend.mapper.vehicle.VehicleMapper;
+import com.wastemanagement.backend.mapper.VehicleMapper;
 import com.wastemanagement.backend.model.GeoJSONPoint;
 import com.wastemanagement.backend.model.vehicle.FuelType;
 import com.wastemanagement.backend.model.vehicle.Vehicle;

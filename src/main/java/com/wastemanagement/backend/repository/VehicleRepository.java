@@ -1,4 +1,4 @@
-package com.wastemanagement.backend.repository.vehicle;
+package com.wastemanagement.backend.repository;
 
 import com.wastemanagement.backend.model.vehicle.FuelType;
 import com.wastemanagement.backend.model.vehicle.Vehicle;

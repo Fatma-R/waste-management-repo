@@ -132,6 +132,15 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/v1/vehicles/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/vehicles/**").hasRole("ADMIN")
                         // .requestMatchers(HttpMethod.GET, "/api/v1/vehicles/**").hasRole("ADMIN")
+                        // CollectionPoint CRUD -> Admin ONLY
+                        .requestMatchers(HttpMethod.POST, "/api/v1/collectionPoints/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/collectionPoints/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/collectionPoints/**").hasRole("ADMIN")
+                        // Alert CRUD -> Admin ONLY
+                        .requestMatchers(HttpMethod.POST, "/api/v1/alerts/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/alerts/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/alerts/**").hasRole("ADMIN")
+
 
 
 
