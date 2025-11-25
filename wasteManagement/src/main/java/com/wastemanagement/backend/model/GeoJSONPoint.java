@@ -15,4 +15,11 @@ public class GeoJSONPoint {
     public GeoJSONPoint(double longitude, double latitude) {
         this.coordinates = new double[]{longitude, latitude};
     }
+
+    public double getLongitude() {
+        return 0;
+    }
+
+    public double getLatitude() {
+    }
 }
