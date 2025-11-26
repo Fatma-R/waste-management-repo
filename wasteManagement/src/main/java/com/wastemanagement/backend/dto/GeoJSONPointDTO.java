@@ -1,4 +1,4 @@
-package com.wastemanagement.backend.dto.collection.incident;
+package com.wastemanagement.backend.dto;
 
 import lombok.Data;
 

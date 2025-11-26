@@ -1,5 +1,6 @@
 package com.wastemanagement.backend.dto.collection.incident;
 
+import com.wastemanagement.backend.dto.GeoJSONPointDTO;
 import com.wastemanagement.backend.model.collection.incident.IncidentSeverity;
 import com.wastemanagement.backend.model.collection.incident.IncidentStatus;
 import com.wastemanagement.backend.model.collection.incident.IncidentType;

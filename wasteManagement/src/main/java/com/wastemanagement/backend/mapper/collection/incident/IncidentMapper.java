@@ -1,6 +1,6 @@
 package com.wastemanagement.backend.mapper.collection.incident;
 
-import com.wastemanagement.backend.dto.collection.incident.GeoJSONPointDTO;
+import com.wastemanagement.backend.dto.GeoJSONPointDTO;
 import com.wastemanagement.backend.dto.collection.incident.IncidentRequestDTO;
 import com.wastemanagement.backend.dto.collection.incident.IncidentResponseDTO;
 import com.wastemanagement.backend.model.GeoJSONPoint;
