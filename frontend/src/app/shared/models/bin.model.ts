@@ -1,5 +1,10 @@
-export type TrashType = 'PLASTIC' | 'ORGANIC' | 'PAPER' | 'GLASS' | 'METAL';
-// adapt this to your actual enum from backend
+export enum TrashType {
+  PLASTIC = 'PLASTIC',
+  ORGANIC = 'ORGANIC',
+  PAPER = 'PAPER',
+  GLASS = 'GLASS',
+}
+
 
 export interface Bin {
   id: string;

@@ -12,6 +12,8 @@ import { DashboardComponent } from './features/dashboard/dashboard';
 import { AdminDashboardComponent } from './features/admin-dashboard/admin-dashboard';
 import { EmployeesComponent } from './features/employees/employees';
 import { AdminsComponent } from './features/admins/admins';
+import { BinComponent } from './features/bin/bin';
+import { CollectionPointComponent } from './features/collection-point/collection-point';
 
 export const routes: Routes = [
 
@@ -55,7 +57,10 @@ export const routes: Routes = [
         children: [
           { path: 'dashboard', component: AdminDashboardComponent },
           { path: 'employees', component: EmployeesComponent },
-          { path: 'admins', component: AdminsComponent }
+          { path: 'admins', component: AdminsComponent },
+          { path: 'bins', component: BinComponent },
+          { path: 'collection-points', component: CollectionPointComponent }
+
         ]
       },
 

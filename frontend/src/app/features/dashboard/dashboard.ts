@@ -52,12 +52,9 @@ export class DashboardComponent implements OnInit {
 
   loadDashboardData(): void {
     // Using mock data for development
-    this.binService.getMockBins().subscribe({
+    this.binService.getBins().subscribe({
       next: (bins) => {
         this.stats.totalBins = bins.length;
-        this.stats.binsFull = bins.filter(b => b.fillLevel >= 80).length;
-        this.stats.activeRoutes = 3; // Mock value
-        this.stats.co2Saved = 245; // Mock value in kg
         this.isLoading = false;
       },
       error: (err) => {
