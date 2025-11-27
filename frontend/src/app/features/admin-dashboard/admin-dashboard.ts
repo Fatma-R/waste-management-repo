@@ -159,7 +159,7 @@ export class AdminDashboardComponent implements OnInit {
     });
 
     // Bins from service
-    this.binService.getMockBins().subscribe({
+    this.binService.getBins().subscribe({
       next: (bins) => {
         this.bins = bins;
         this.totalBins = bins.length;
