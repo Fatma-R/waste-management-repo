@@ -59,7 +59,8 @@ export const routes: Routes = [
           { path: 'employees', component: EmployeesComponent },
           { path: 'admins', component: AdminsComponent },
           { path: 'bins', component: BinComponent },
-          { path: 'collection-points', component: CollectionPointComponent }
+          { path: 'collection-points', component: CollectionPointComponent },
+          { path: 'collection-points/:id/bins', component: BinComponent }
 
         ]
       },

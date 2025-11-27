@@ -18,6 +18,22 @@
   }
 }
 
+.header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.header-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.back-button-wrapper {
+  display: flex;
+  margin-bottom: $spacing-xs;
+}
+
 .page-title {
   font-size: 2rem;
   font-weight: 700;

@@ -2,18 +2,24 @@
   <div class="container">
     <!-- Page Header -->
     <div class="page-header">
-      <div>
-        <h1 class="page-title">Bin Management</h1>
-        <p class="page-subtitle">Manage and monitor waste bins</p>
+      <div class="header-content">
+        <div class="header-title-section">
+          <div *ngIf="isCollectionPointView" class="back-button-wrapper">
+            <app-button variant="outline" size="sm" (click)="goBackToCollectionPoints()">
+              ← Back to Collection Points
+            </app-button>
+          </div>
+          <h1 class="page-title">
+            {{ isCollectionPointView ? 'Bins - ' + collectionPointAddress : 'Bin Management' }}
+          </h1>
+          <p class="page-subtitle">{{ isCollectionPointView ? 'Manage bins for this collection point' : 'Manage and monitor waste bins' }}</p>
+        </div>
       </div>
 
       <div class="page-actions">
-        <!-- Optional -->
-        <!--
-        <app-button variant="outline" (click)="openAutoAssignModal()">
-          🔄 Auto-Assign
+        <app-button variant="outline" (click)="goToDashboard()">
+          📊 Dashboard
         </app-button>
-        -->
         <app-button variant="primary" (click)="openCreateBinModal()">
           + Add Bin
         </app-button>
@@ -92,16 +98,6 @@
                   {{ bin.active ? 'Active' : 'Inactive' }}
                 </span>
               </div>
-
-              <div class="detail-item">
-                <span class="detail-label">Readings:</span>
-                <span class="detail-value">{{ bin.readingIds.length }}</span>
-              </div>
-
-              <div class="detail-item">
-                <span class="detail-label">Alerts:</span>
-                <span class="detail-value">{{ bin.alertIds.length }}</span>
-              </div>
             </div>
           </app-card>
 
@@ -148,16 +144,6 @@
         </span>
       </div>
 
-      <div class="detail-row">
-        <span class="detail-label">Readings:</span>
-        <span class="detail-value">{{ selectedBin.readingIds.length }}</span>
-      </div>
-
-      <div class="detail-row">
-        <span class="detail-label">Alerts:</span>
-        <span class="detail-value">{{ selectedBin.alertIds.length }}</span>
-      </div>
-
     </div>
 
     <div class="modal-actions">
@@ -187,17 +173,6 @@
   (close)="closeBinFormModal()">
 
   <form (ngSubmit)="onSubmitBinForm()" class="bin-form">
-
-    <div class="form-group">
-      <label class="form-label">Collection Point ID</label>
-      <input
-        type="text"
-        [(ngModel)]="binForm.collectionPointId"
-        name="collectionPointId"
-        class="form-input"
-        required
-      >
-    </div>
 
     <div class="form-group">
       <label class="form-label">Type</label>

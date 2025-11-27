@@ -8,6 +8,9 @@
       </div>
 
       <div class="page-actions">
+        <app-button variant="outline" (click)="goToDashboard()">
+          📊 Dashboard
+        </app-button>
         <app-button variant="primary" (click)="openCreateModal()">
           + Add Collection Point
         </app-button>
@@ -134,7 +137,7 @@
       
       <div *ngIf="selectedCollectionPoint.bins && selectedCollectionPoint.bins.length > 0" class="bins-list">
         <div *ngFor="let bin of selectedCollectionPoint.bins" class="bin-item">
-          {{ bin.id }} - {{ bin.type }}
+          {{ bin.type }} - {{ bin.active ? 'Active' : 'Inactive' }}
         </div>
       </div>
 
@@ -146,6 +149,13 @@
         size="sm"
         (click)="openEditModal(selectedCollectionPoint)">
         Edit
+      </app-button>
+
+      <app-button
+        variant="primary"
+        size="sm"
+        (click)="viewBins(selectedCollectionPoint.id)">
+        View Bins
       </app-button>
 
       <app-button
