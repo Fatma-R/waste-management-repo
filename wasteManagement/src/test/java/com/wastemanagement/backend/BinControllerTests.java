@@ -60,16 +60,14 @@ class BinControllerTests {
         requestDTO.setCollectionPointId("CP1");
         requestDTO.setActive(true);
         requestDTO.setType(TrashType.PLASTIC);
-        requestDTO.setReadingIds(Arrays.asList("r1", "r2"));
-        requestDTO.setAlertIds(Arrays.asList("a1"));
+
 
         responseDTO = new BinResponseDTO();
         responseDTO.setId("1");
         responseDTO.setCollectionPointId("CP1");
         responseDTO.setActive(true);
         responseDTO.setType(TrashType.PLASTIC);
-        responseDTO.setReadingIds(Arrays.asList("r1", "r2"));
-        responseDTO.setAlertIds(Arrays.asList("a1"));
+
     }
 
     @Test
@@ -92,8 +90,7 @@ class BinControllerTests {
         updated.setCollectionPointId("CP2");
         updated.setActive(false);
         updated.setType(TrashType.PLASTIC);
-        updated.setReadingIds(Arrays.asList("r3"));
-        updated.setAlertIds(Arrays.asList("a2"));
+
 
         when(binService.updateBin(eq("1"), any())).thenReturn(Optional.of(updated));
 
@@ -125,8 +122,7 @@ class BinControllerTests {
         d2.setCollectionPointId("CP2");
         d2.setActive(false);
         d2.setType(TrashType.PLASTIC);
-        d2.setReadingIds(Arrays.asList("x"));
-        d2.setAlertIds(Arrays.asList("y"));
+
 
         when(binService.getAllBins()).thenReturn(List.of(responseDTO, d2));
 

@@ -1,15 +1,8 @@
+import { Bin } from './bin.model';
+
 export interface GeoJSONPoint {
   type: string;
   coordinates: [number, number];
-}
-
-export interface Bin {
-  id: string;
-  collectionPointId: string;
-  active: boolean;
-  type: string;
-  readingIds: string[];
-  alertIds: string[];
 }
 
 export interface CollectionPoint {

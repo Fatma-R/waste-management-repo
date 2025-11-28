@@ -11,6 +11,5 @@ public class BinRequestDTO {
     private String collectionPointId;
     private boolean active;
     private TrashType type;
-    private List<String> readingIds;
-    private List<String> alertIds;
+
 }

@@ -11,22 +11,16 @@ export interface Bin {
   collectionPointId: string;
   active: boolean;
   type: TrashType;
-  readingIds: string[];
-  alertIds: string[];
 }
 
 export interface CreateBinDto {
   collectionPointId: string;
   active: boolean;
   type: TrashType;
-  readingIds: string[];
-  alertIds: string[];
 }
 
 export interface UpdateBinDto {
   collectionPointId: string;
   active: boolean;
   type: TrashType;
-  readingIds: string[];
-  alertIds: string[];
 }

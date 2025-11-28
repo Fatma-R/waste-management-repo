@@ -14,6 +14,7 @@ import { EmployeesComponent } from './features/employees/employees';
 import { AdminsComponent } from './features/admins/admins';
 import { BinComponent } from './features/bin/bin';
 import { CollectionPointComponent } from './features/collection-point/collection-point';
+import { BinReadingComponent } from './features/bin-reading/bin-reading';
 
 export const routes: Routes = [
 
@@ -59,7 +60,9 @@ export const routes: Routes = [
           { path: 'employees', component: EmployeesComponent },
           { path: 'admins', component: AdminsComponent },
           { path: 'bins', component: BinComponent },
-          { path: 'collection-points', component: CollectionPointComponent }
+          { path: 'collection-points', component: CollectionPointComponent },
+          { path: 'collection-points/:cpId/bins', component: BinComponent },
+          { path: 'collection-points/:cpId/bins/:binId/readings', component: BinReadingComponent }
 
         ]
       },

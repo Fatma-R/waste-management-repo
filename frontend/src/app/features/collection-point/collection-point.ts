@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { CollectionPoint, CreateCollectionPointDto, UpdateCollectionPointDto, GeoJSONPoint } from '../../shared/models/collection-point.model';
 import { CollectionPointService } from '../../core/services/collection-point';
 import { CardComponent } from '../../shared/components/card/card';
@@ -45,7 +46,7 @@ export class CollectionPointComponent implements OnInit {
     binIds: []
   };
 
-  constructor(private collectionPointService: CollectionPointService) {}
+  constructor(private collectionPointService: CollectionPointService, private router: Router) {}
 
   ngOnInit(): void {
     this.loadCollectionPoints();
@@ -176,5 +177,16 @@ export class CollectionPointComponent implements OnInit {
 
   getBinCount(point: CollectionPoint): number {
     return point.bins ? point.bins.length : 0;
+  }
+
+  // -----------------
+  // NAVIGATION
+  // -----------------
+  viewBins(collectionPointId: string): void {
+    this.router.navigate(['/admin/collection-points', collectionPointId, 'bins']);
+  }
+
+  goToDashboard(): void {
+    this.router.navigate(['/admin/dashboard']);
   }
 }

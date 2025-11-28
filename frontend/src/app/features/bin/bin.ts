@@ -1,8 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Bin, TrashType, CreateBinDto, UpdateBinDto } from '../../shared/models/bin.model';
 import { BinService } from '../../core/services/bin';
+import { CollectionPointService } from '../../core/services/collection-point';
 import { CardComponent } from '../../shared/components/card/card';
 import { ButtonComponent } from '../../shared/components/button/button';
 import { ModalComponent } from '../../shared/components/modal/modal';
@@ -42,18 +44,52 @@ export class BinComponent implements OnInit {
   binForm: CreateBinDto = {
     collectionPointId: '',
     active: true,
-    type: TrashType.PLASTIC,
-    readingIds: [],
-    alertIds: []
+    type: TrashType.PLASTIC
   };
 
   // Enum lists
   trashTypes = Object.values(TrashType);
 
-  constructor(private binService: BinService) {}
+  // Collection Point specific view
+  collectionPointId: string | null = null;
+  isCollectionPointView = false;
+  collectionPointAddress: string = '';
+
+  constructor(
+    private binService: BinService,
+    private collectionPointService: CollectionPointService,
+    private route: ActivatedRoute,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
-    this.loadBins();
+    this.route.params.subscribe(params => {
+      if (params['cpId']) {
+        this.collectionPointId = params['cpId'];
+        this.isCollectionPointView = true;
+        this.loadBinsForCollectionPoint(params['cpId']);
+      } else {
+        this.isCollectionPointView = false;
+        this.loadBins();
+      }
+    });
+  }
+
+  loadBinsForCollectionPoint(collectionPointId: string): void {
+    this.isLoading = true;
+    this.collectionPointService.getCollectionPointById(collectionPointId).subscribe({
+      next: (collectionPoint) => {
+        this.bins = collectionPoint.bins || [];
+        this.collectionPointAddress = collectionPoint.adresse;
+        this.binForm.collectionPointId = collectionPointId;
+        this.applyFilters();
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Error loading collection point:', err);
+        this.isLoading = false;
+      }
+    });
   }
 
   loadBins(): void {
@@ -95,6 +131,10 @@ export class BinComponent implements OnInit {
   openCreateBinModal(): void {
     this.formMode = 'create';
     this.resetBinForm();
+    // Auto-fill collectionPointId if in collection point view
+    if (this.isCollectionPointView && this.collectionPointId) {
+      this.binForm.collectionPointId = this.collectionPointId;
+    }
     this.isBinFormModalOpen = true;
   }
 
@@ -116,9 +156,7 @@ export class BinComponent implements OnInit {
     this.binForm = {
       collectionPointId: '',
       active: true,
-      type: TrashType.PLASTIC,
-      readingIds: [],
-      alertIds: []
+      type: TrashType.PLASTIC
     };
   }
 
@@ -126,8 +164,13 @@ export class BinComponent implements OnInit {
     if (this.formMode === 'create') {
       this.binService.createBin(this.binForm).subscribe({
         next: (bin) => {
-          this.bins.push(bin);
-          this.applyFilters();
+          // If in collection point view, reload bins from collection point
+          if (this.isCollectionPointView && this.collectionPointId) {
+            this.loadBinsForCollectionPoint(this.collectionPointId);
+          } else {
+            this.bins.push(bin);
+            this.applyFilters();
+          }
           this.closeBinFormModal();
         },
         error: (err) => console.error('Error creating bin', err)
@@ -139,8 +182,13 @@ export class BinComponent implements OnInit {
 
     this.binService.updateBin(this.editingBinId, this.binForm).subscribe({
       next: (updated) => {
-        this.bins = this.bins.map(b => b.id === this.editingBinId ? updated : b);
-        this.applyFilters();
+        // If in collection point view, reload bins from collection point
+        if (this.isCollectionPointView && this.collectionPointId) {
+          this.loadBinsForCollectionPoint(this.collectionPointId);
+        } else {
+          this.bins = this.bins.map(b => b.id === this.editingBinId ? updated : b);
+          this.applyFilters();
+        }
         this.closeBinFormModal();
       },
       error: (err) => console.error('Error updating bin', err)
@@ -162,8 +210,13 @@ export class BinComponent implements OnInit {
     if (!confirm('Are you sure you want to delete this bin?')) return;
     this.binService.deleteBin(binId).subscribe({
       next: () => {
-        this.bins = this.bins.filter(b => b.id !== binId);
-        this.applyFilters();
+        // If in collection point view, reload bins from collection point
+        if (this.isCollectionPointView && this.collectionPointId) {
+          this.loadBinsForCollectionPoint(this.collectionPointId);
+        } else {
+          this.bins = this.bins.filter(b => b.id !== binId);
+          this.applyFilters();
+        }
         if (this.selectedBin?.id === binId) this.deselectBin();
       },
       error: (err) => console.error('Error deleting bin', err)
@@ -191,5 +244,22 @@ export class BinComponent implements OnInit {
       GLASS: '🧪',
     };
     return icons[type];
+  }
+
+  // -----------------
+  // NAVIGATION
+  // -----------------
+  goToDashboard(): void {
+    this.router.navigate(['/admin/dashboard']);
+  }
+
+  goBackToCollectionPoints(): void {
+    this.router.navigate(['/admin/collection-points']);
+  }
+
+  viewReadings(binId: string): void {
+    if (this.isCollectionPointView && this.collectionPointId) {
+      this.router.navigate(['/admin/collection-points', this.collectionPointId, 'bins', binId, 'readings']);
+    }
   }
 }
