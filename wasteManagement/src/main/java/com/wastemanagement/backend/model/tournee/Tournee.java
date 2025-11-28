@@ -24,4 +24,5 @@ public class Tournee {
     private Date startedAt;
     private Date finishedAt;
     private List<RouteStep> steps;
+    private String geometry;
 }

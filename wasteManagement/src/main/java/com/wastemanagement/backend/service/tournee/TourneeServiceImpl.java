@@ -232,6 +232,7 @@ public class TourneeServiceImpl implements TourneeService {
         tournee.setPlannedKm(route.getDistance() / 1000.0);
         // TODO: calculer plannedCO2 si tu veux, sinon 0 pour le moment
         tournee.setPlannedCO2(0.0);
+        tournee.setGeometry(route.getGeometry());
         tournee.setStartedAt(null);
         tournee.setFinishedAt(null);
 

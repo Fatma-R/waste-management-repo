@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.Date;
+import java.time.Instant;
 
 @Data
 @NoArgsConstructor
@@ -20,7 +20,7 @@ public class TourneeAssignment {
     private String tourneeId;   // reference to Tournee
     private String employeeId;  // reference to Employee
     private String vehicleId;   // reference to Vehicle
-    private Date shiftStart;
-    private Date shiftEnd;
+    private Instant shiftStart;
+    private Instant shiftEnd;
 }
 

@@ -1,7 +1,7 @@
-import { Bin } from './bin.model';
+import { Bin } from "./bin.model";
 
 export interface GeoJSONPoint {
-  type: string;
+  type?: string;
   coordinates: [number, number];
 }
 

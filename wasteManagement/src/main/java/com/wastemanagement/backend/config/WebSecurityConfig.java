@@ -146,6 +146,12 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/admins/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/admins/**").hasRole("ADMIN")
 
+                        // assignment CRUD -> Admin ONLY
+                        .requestMatchers(HttpMethod.POST, "/api/v1/tournee-assignments/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/tournee-assignments/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/tournee-assignments/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/tournee-assignments/**").hasRole("ADMIN")
+
                         // Tournee CRUD -> Admin ONLY
                         .requestMatchers(HttpMethod.POST, "/api/v1/tournees/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/tournees/**").hasRole("ADMIN")

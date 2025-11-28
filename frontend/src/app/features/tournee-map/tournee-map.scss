@@ -1,0 +1,449 @@
+@use '../../shared/styles/variables' as *;
+
+.map-page {
+  background: var(--color-off-white);
+}
+
+.map-container {
+  height: calc(100vh - 70px);
+  display: flex;
+  flex-direction: column;
+}
+
+// Filter Bar
+.filter-bar {
+  background: white;
+  padding: $spacing-md;
+  box-shadow: $shadow-sm;
+  display: flex;
+  gap: $spacing-md;
+  align-items: center;
+  flex-wrap: wrap;
+  
+  @media (max-width: 768px) {
+    padding: $spacing-sm;
+    gap: $spacing-sm;
+  }
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.filter-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-grey-dark);
+  white-space: nowrap;
+}
+
+.filter-select {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--color-sand);
+  border-radius: $radius-sm;
+  font-size: 0.875rem;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--color-green);
+  }
+}
+
+// Map Content
+.map-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 0;
+  overflow: hidden;
+  
+  @media (max-width: 968px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.map-view {
+  position: relative;
+  background: var(--color-sand-light);
+  overflow: hidden;
+}
+
+/* Leaflet map canvas */
+.map-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Common overlay (loading + placeholder text) */
+.map-overlay {
+  position: absolute;
+  inset: 0; // top, right, bottom, left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-lg;
+  pointer-events: none; // let map interactions through
+
+  .map-placeholder-content {
+    pointer-events: auto; // allow selection / buttons if needed
+  }
+}
+
+/* You can keep this if reused elsewhere, but not needed for the map container now */
+.map-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.map-placeholder-content {
+  text-align: center;
+  max-width: 600px;
+}
+
+.map-placeholder-icon {
+  font-size: 4rem;
+  margin-bottom: $spacing-md;
+}
+
+.map-placeholder-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-grey-dark);
+  margin-bottom: $spacing-sm;
+}
+
+.map-placeholder-text {
+  color: var(--color-grey);
+  margin-bottom: $spacing-lg;
+  line-height: 1.6;
+}
+
+.map-markers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: $spacing-sm;
+  margin-top: $spacing-lg;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.map-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-sm;
+  background: white;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+  
+  &.marker-green {
+    border-color: var(--color-green);
+  }
+  
+  &.marker-amber {
+    border-color: var(--color-amber);
+  }
+  
+  &.marker-red {
+    border-color: var(--color-red);
+  }
+}
+
+.marker-icon {
+  font-size: 2rem;
+  margin-bottom: 0.25rem;
+}
+
+.marker-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-grey-dark);
+}
+
+// Bins Sidebar
+.bins-sidebar {
+  background: white;
+  border-left: 1px solid var(--color-sand);
+  overflow-y: auto;
+  
+  @media (max-width: 968px) {
+    border-left: none;
+    border-top: 1px solid var(--color-sand);
+    max-height: 300px;
+  }
+}
+
+.bins-list-card {
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.sidebar-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-grey-dark);
+  margin-bottom: $spacing-md;
+}
+
+.bins-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.bin-item {
+  padding: $spacing-sm;
+  background: var(--color-sand-light);
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  
+  &:hover {
+    background: white;
+    border-color: var(--color-green);
+  }
+  
+  &.bin-selected {
+    background: white;
+    border-color: var(--color-green);
+  }
+}
+
+.bin-item-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-xs;
+}
+
+.bin-icon {
+  font-size: 1.5rem;
+}
+
+.bin-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.bin-id {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-grey-dark);
+}
+
+.bin-type {
+  font-size: 0.75rem;
+  color: var(--color-grey);
+  text-transform: capitalize;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: $radius-sm;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: $spacing-xs;
+  width: fit-content;
+  
+  &.status-active {
+    background: rgba(95, 167, 119, 0.1);
+    color: var(--color-green-dark);
+  }
+  
+  &.status-inactive {
+    background: rgba(107, 114, 128, 0.1);
+    color: var(--color-grey-dark);
+  }
+  
+  &.status-maintenance {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--color-amber);
+  }
+}
+
+.no-bins {
+  text-align: center;
+  padding: $spacing-lg;
+  color: var(--color-grey);
+}
+
+// Details Panel
+.details-panel {
+  position: fixed;
+  top: 0;
+  right: -400px;
+  width: 400px;
+  height: 100vh;
+  background: white;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+  transition: right 0.3s ease;
+  z-index: 200;
+  overflow-y: auto;
+  
+  &.panel-open {
+    right: 0;
+  }
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    right: -100%;
+  }
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+  border-bottom: 1px solid var(--color-sand);
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+}
+
+.panel-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-grey-dark);
+  margin: 0;
+}
+
+.panel-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--color-grey);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: $radius-sm;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: var(--color-sand-light);
+    color: var(--color-grey-dark);
+  }
+}
+
+.panel-content {
+  padding: $spacing-lg;
+}
+
+.detail-section {
+  margin-bottom: $spacing-lg;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.detail-icon {
+  font-size: 3rem;
+  text-align: center;
+  margin-bottom: $spacing-sm;
+}
+
+.detail-heading {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-grey-dark);
+  text-align: center;
+  margin: 0;
+}
+
+.detail-subheading {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-grey-dark);
+  margin-bottom: $spacing-sm;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-xs 0;
+  border-bottom: 1px solid var(--color-sand);
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.detail-label {
+  font-size: 0.875rem;
+  color: var(--color-grey);
+  font-weight: 500;
+}
+
+.detail-value {
+  font-size: 0.875rem;
+  color: var(--color-grey-dark);
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.detail-actions {
+  display: flex;
+  gap: $spacing-sm;
+  margin-top: $spacing-lg;
+}
+
+// Add Bin Form (kept for later if you reuse it)
+.add-bin-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.form-label {
+  font-weight: 500;
+  color: var(--color-grey-dark);
+  font-size: 0.938rem;
+}
+
+.form-input {
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--color-sand);
+  border-radius: $radius-md;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+  font-family: 'Open Sans', sans-serif;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--color-green);
+  }
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+}

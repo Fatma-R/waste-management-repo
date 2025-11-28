@@ -17,4 +17,6 @@ public interface TourneeAssignmentService {
     Optional<TourneeAssignmentResponseDTO> update(String id, TourneeAssignmentRequestDTO dto);
 
     boolean delete(String id);
+
+    List<TourneeAssignmentResponseDTO> autoAssignForTournee(String tourneeId);
 }

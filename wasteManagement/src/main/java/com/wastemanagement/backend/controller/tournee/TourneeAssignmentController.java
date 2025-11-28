@@ -3,6 +3,7 @@ package com.wastemanagement.backend.controller.tournee;
 import com.wastemanagement.backend.dto.tournee.TourneeAssignmentRequestDTO;
 import com.wastemanagement.backend.dto.tournee.TourneeAssignmentResponseDTO;
 import com.wastemanagement.backend.service.tournee.TourneeAssignmentService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -50,5 +51,15 @@ public class TourneeAssignmentController {
         return service.delete(id)
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
+    }
+
+    @PostMapping("/{tourneeId}/assignments/auto")
+    public ResponseEntity<List<TourneeAssignmentResponseDTO>> autoAssign(
+            @PathVariable String tourneeId
+    ) {
+        List<TourneeAssignmentResponseDTO> created =
+                service.autoAssignForTournee(tourneeId);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 }

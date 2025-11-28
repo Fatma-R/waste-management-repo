@@ -68,6 +68,8 @@ public class TourneeMapper {
         dto.setPlannedCO2(tournee.getPlannedCO2());
         dto.setStartedAt(tournee.getStartedAt());
         dto.setFinishedAt(tournee.getFinishedAt());
+        dto.setGeometry(tournee.getGeometry());
+
 
         // Map steps to response DTOs
         if (tournee.getSteps() != null) {

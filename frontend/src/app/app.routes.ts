@@ -15,6 +15,8 @@ import { AdminsComponent } from './features/admins/admins';
 import { BinComponent } from './features/bin/bin';
 import { CollectionPointComponent } from './features/collection-point/collection-point';
 import { BinReadingComponent } from './features/bin-reading/bin-reading';
+import { TourneeMapComponent } from './features/tournee-map/tournee-map';
+
 
 export const routes: Routes = [
 
@@ -62,7 +64,9 @@ export const routes: Routes = [
           { path: 'bins', component: BinComponent },
           { path: 'collection-points', component: CollectionPointComponent },
           { path: 'collection-points/:cpId/bins', component: BinComponent },
-          { path: 'collection-points/:cpId/bins/:binId/readings', component: BinReadingComponent }
+          { path: 'collection-points/:cpId/bins/:binId/readings', component: BinReadingComponent },
+          { path: 'tournee-map', component: TourneeMapComponent }
+
 
         ]
       },

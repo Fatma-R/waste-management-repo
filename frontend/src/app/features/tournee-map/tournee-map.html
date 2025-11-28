@@ -1,0 +1,218 @@
+<main class="map-page">
+  <div class="map-container">
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label for="filter-type" class="filter-label">Waste type:</label>
+        <select
+          id="filter-type"
+          [(ngModel)]="selectedType"
+          class="filter-select">
+          <option *ngFor="let type of trashTypes" [ngValue]="type">
+            {{ type | titlecase }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="threshold" class="filter-label">Fill threshold (%):</label>
+        <input
+          id="threshold"
+          type="number"
+          class="filter-select"
+          [(ngModel)]="threshold"
+          min="0"
+          max="100"
+          step="5" />
+      </div>
+
+      <app-button variant="primary" (click)="planTour()">
+        Plan tour
+      </app-button>
+
+      <app-button
+        variant="outline"
+        [disabled]="!tournee || isAssigning"
+        (click)="assignResources()">
+        {{ isAssigning ? 'Assigning...' : 'Assign crew' }}
+      </app-button>
+    </div>
+
+    <!-- Map and Sidebar -->
+    <div class="map-content">
+      <!-- Map View -->
+      <div class="map-view">
+        <!-- Leaflet map ALWAYS present -->
+        <div
+          id="tourneeMap"
+          class="map-canvas">
+        </div>
+
+        <!-- Loading overlay -->
+        <div *ngIf="isLoading" class="map-overlay">
+          <app-loading-spinner message="Planning tour and loading map...">
+          </app-loading-spinner>
+        </div>
+
+        <!-- Text placeholder when no tour yet -->
+        <div
+          *ngIf="!isLoading && !tournee"
+          class="map-overlay">
+          <div class="map-placeholder-content">
+            <p class="map-placeholder-icon">🗺️</p>
+            <h3 class="map-placeholder-title">Plan a collection tour</h3>
+            <p class="map-placeholder-text">
+              Select a waste type and threshold, then click "Plan tour" to generate
+              an optimized route from the depot to the collection points that need
+              service.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stops Sidebar -->
+      <div class="bins-sidebar">
+        <app-card padding="md" class="bins-list-card">
+          <h2 class="sidebar-title">
+            Stops
+            <span *ngIf="tournee">({{ stops.length }})</span>
+          </h2>
+
+          <div class="bins-list" *ngIf="tournee">
+            <div
+              *ngFor="let stop of stops"
+              class="bin-item"
+              (click)="selectStop(stop)"
+              [class.bin-selected]="selectedStop && selectedStop.step.id === stop.step.id">
+              <div class="bin-item-header">
+                <span
+                  class="bin-icon"
+                  aria-hidden="true">
+                  {{ getTrashTypeIcon(tournee.tourneeType) }}
+                </span>
+                <div class="bin-info">
+                  <span class="bin-id">
+                    Stop #{{ stop.step.order }}
+                  </span>
+                  <span class="bin-type">
+                    {{ stop.collectionPoint.adresse || stop.collectionPoint.id }}
+                  </span>
+                </div>
+              </div>
+
+              <span [class]="getStatusBadgeClass(stop.step.status)">
+                {{ stop.step.status }}
+              </span>
+            </div>
+
+            <div *ngIf="stops.length === 0" class="no-bins">
+              <p>No collection points in this tour.</p>
+            </div>
+          </div>
+
+          <div *ngIf="!tournee" class="no-bins">
+            <p>No tour planned yet.</p>
+          </div>
+        </app-card>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Details Panel -->
+<div
+  class="details-panel"
+  [class.panel-open]="selectedStop"
+  *ngIf="selectedStop">
+  <div class="panel-header">
+    <h2 class="panel-title">Collection point details</h2>
+    <button
+      class="panel-close"
+      (click)="closeDetailsPanel()"
+      aria-label="Close details panel">
+      ✕
+    </button>
+  </div>
+
+  <div class="panel-content">
+    <div class="detail-section">
+      <div class="detail-icon">
+        {{ tournee ? getTrashTypeIcon(tournee.tourneeType) : '🗑️' }}
+      </div>
+      <h3 class="detail-heading">
+        Stop #{{ selectedStop.step.order }}
+      </h3>
+      <p class="map-placeholder-text" style="text-align: center;">
+        {{ selectedStop.collectionPoint.adresse || selectedStop.collectionPoint.id }}
+      </p>
+    </div>
+
+    <div class="detail-section">
+      <h4 class="detail-subheading">Location</h4>
+      <div class="detail-row">
+        <span class="detail-label">Address:</span>
+        <span class="detail-value">
+          {{ selectedStop.collectionPoint.adresse || 'N/A' }}
+        </span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Latitude:</span>
+        <span class="detail-value">
+          {{ selectedStop.collectionPoint.location.coordinates[1] }}
+        </span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Longitude:</span>
+        <span class="detail-value">
+          {{ selectedStop.collectionPoint.location.coordinates[0] }}
+        </span>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <h4 class="detail-subheading">Tour info</h4>
+      <div class="detail-row" *ngIf="tournee">
+        <span class="detail-label">Tour type:</span>
+        <span class="detail-value">
+          {{ tournee.tourneeType | titlecase }}
+        </span>
+      </div>
+      <div class="detail-row" *ngIf="tournee">
+        <span class="detail-label">Planned distance:</span>
+        <span class="detail-value">
+          {{ tournee.plannedKm | number: '1.2-2' }} km
+        </span>
+      </div>
+    </div>
+
+    <!-- Assigned resources -->
+    <div class="detail-section" *ngIf="assignments.length">
+      <h4 class="detail-subheading">Assigned resources</h4>
+
+      <div class="detail-row">
+        <span class="detail-label">Vehicle:</span>
+        <span class="detail-value">
+          {{ assignments[0]?.vehicleId }}
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Crew:</span>
+        <span class="detail-value">
+          <ng-container *ngFor="let a of assignments; let i = index">
+            {{ a.employeeId }}<span *ngIf="i < assignments.length - 1">, </span>
+          </ng-container>
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Shift:</span>
+        <span class="detail-value">
+          {{ assignments[0]?.shiftStart | date:'short' }}
+          –
+          {{ assignments[0]?.shiftEnd | date:'short' }}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>

@@ -18,4 +18,5 @@ public class TourneeResponseDTO {
     private Date startedAt;
     private Date finishedAt;
     private List<RouteStepResponseDTO> steps;
+    private String geometry; // encoded polyline from VROOM
 }
