@@ -10,6 +10,7 @@ import { ModalComponent } from '../../shared/components/modal/modal';
 
 import { EmployeeService } from '../../core/services/employee';
 import { BinService } from '../../core/services/bin';
+import { CollectionPointService } from '../../core/services/collection-point';
 import { NotificationService } from '../../core/services/notification';
 
 import { Employee } from '../../shared/models/employee.model';
@@ -126,10 +127,12 @@ export class AdminDashboardComponent implements OnInit {
   // internal loading flags
   private employeesLoaded = false;
   private binsLoaded = false;
+  private collectionPointsLoaded = false;
 
   constructor(
     private employeeService: EmployeeService,
     private binService: BinService,
+    private collectionPointService: CollectionPointService,
     private notificationService: NotificationService,
     private router: Router
   ) {}
@@ -142,8 +145,9 @@ export class AdminDashboardComponent implements OnInit {
     this.isLoading = true;
     this.employeesLoaded = false;
     this.binsLoaded = false;
+    this.collectionPointsLoaded = false;
 
-    // Employees from backend (requires admin auth + AuthInterceptor)
+    // Employees from backend
     this.employeeService.getEmployees().subscribe({
       next: (employees) => {
         this.employees = employees;
@@ -174,8 +178,30 @@ export class AdminDashboardComponent implements OnInit {
       }
     });
 
-    // Local mock data reflecting your domain
-    this.loadMockCollectionPoints();
+    // Collection Points from API
+    this.collectionPointService.getCollectionPoints().subscribe({
+      next: (collectionPointsData) => {
+        this.collectionPoints = collectionPointsData.map(cp => ({
+          id: cp.id,
+          adresse: cp.adresse,
+          active: cp.active,
+          binsCount: cp.bins?.length || 0,
+          avgFillPct: this.calculateAvgFillForCP(cp.bins || []),
+          alertsCount: 0 // TODO: Calculate from bin readings if available
+        }));
+        this.totalCollectionPoints = this.collectionPoints.length;
+        this.collectionPointsLoaded = true;
+        this.checkLoadingComplete();
+        this.updateNetworkAvgFill();
+      },
+      error: (err) => {
+        console.error('Error loading collection points:', err);
+        this.collectionPointsLoaded = true;
+        this.checkLoadingComplete();
+      }
+    });
+
+    // Local mock data for other features
     this.loadMockTournees();
     this.loadMockVehicles();
     this.loadMockIncidents();
@@ -183,7 +209,7 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   private checkLoadingComplete(): void {
-    if (this.employeesLoaded && this.binsLoaded) {
+    if (this.employeesLoaded && this.binsLoaded && this.collectionPointsLoaded) {
       this.isLoading = false;
     }
   }
@@ -191,48 +217,20 @@ export class AdminDashboardComponent implements OnInit {
   // ========= MOCK DATA (pure frontend for now) =========
 
   private loadMockCollectionPoints(): void {
-    this.collectionPoints = [
-      {
-        id: 'cp1',
-        adresse: 'Avenue Habib Bourguiba · Zone A',
-        active: true,
-        binsCount: 4,
-        avgFillPct: 72,
-        alertsCount: 2
-      },
-      {
-        id: 'cp2',
-        adresse: 'Rue de la Liberté · Zone B',
-        active: true,
-        binsCount: 3,
-        avgFillPct: 48,
-        alertsCount: 0
-      },
-      {
-        id: 'cp3',
-        adresse: 'Place de la République · Zone C',
-        active: false,
-        binsCount: 5,
-        avgFillPct: 10,
-        alertsCount: 0
-      },
-      {
-        id: 'cp4',
-        adresse: 'Cité El Ghazela · Zone D',
-        active: true,
-        binsCount: 6,
-        avgFillPct: 65,
-        alertsCount: 3
-      }
-    ];
+    // No longer needed - data loaded from API in loadDashboardData()
+  }
 
-    this.totalCollectionPoints = this.collectionPoints.length;
+  private calculateAvgFillForCP(bins: Bin[]): number {
+    if (bins.length === 0) return 0;
+    // TODO: Calculate average fill percentage from bin readings
+    // For now, return 0 as a placeholder
+    return 0;
+  }
 
-    // If bins are not yet loaded, we can use collectionPoint avg as network avg
-    const avg =
-      this.collectionPoints.reduce((sum, cp) => sum + cp.avgFillPct, 0) /
-      (this.collectionPoints.length || 1);
-    this.avgNetworkFillPct = Math.round(avg);
+  private updateNetworkAvgFill(): void {
+    if (this.collectionPoints.length === 0) return;
+    const totalFill = this.collectionPoints.reduce((sum, cp) => sum + cp.avgFillPct, 0);
+    this.avgNetworkFillPct = Math.round(totalFill / this.collectionPoints.length);
   }
 
   private loadMockTournees(): void {
@@ -510,6 +508,10 @@ export class AdminDashboardComponent implements OnInit {
       `Collection point details for ${cp.adresse} (UI not implemented yet)`,
       'info'
     );
+  }
+
+  navigateToBins(collectionPointId: string): void {
+    this.router.navigate(['/admin/collection-points', collectionPointId, 'bins']);
   }
 
   // ========= VEHICLE ACTIONS =========
