@@ -16,7 +16,7 @@ export class TourneeAssignmentService {
    */
   autoAssignForTournee(tourneeId: string): Observable<TourneeAssignment[]> {
     return this.api.post<TourneeAssignment[]>(
-      `/tournees/${tourneeId}/assignments/auto`,
+      `/tournee-assignments/${tourneeId}/assignments/auto`,
       {}
     );
   }
