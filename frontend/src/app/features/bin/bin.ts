@@ -64,10 +64,10 @@ export class BinComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
-      if (params['id']) {
-        this.collectionPointId = params['id'];
+      if (params['cpId']) {
+        this.collectionPointId = params['cpId'];
         this.isCollectionPointView = true;
-        this.loadBinsForCollectionPoint(params['id']);
+        this.loadBinsForCollectionPoint(params['cpId']);
       } else {
         this.isCollectionPointView = false;
         this.loadBins();
@@ -255,5 +255,11 @@ export class BinComponent implements OnInit {
 
   goBackToCollectionPoints(): void {
     this.router.navigate(['/admin/collection-points']);
+  }
+
+  viewReadings(binId: string): void {
+    if (this.isCollectionPointView && this.collectionPointId) {
+      this.router.navigate(['/admin/collection-points', this.collectionPointId, 'bins', binId, 'readings']);
+    }
   }
 }
