@@ -22,9 +22,13 @@ export class TourneeService {
    * Planifie une tournée via VROOM.
    * Correspond à POST /api/v1/tournees/plan?type=...&threshold=...
    */
-  planTournee(type: TrashType, threshold: number): Observable<Tournee> {
+  planTournee(type: TrashType, threshold: number): Observable<Tournee[]> {
     const url = `/tournees/plan?type=${type}&threshold=${threshold}`;
     // body vide, on passe tout en query params
-    return this.api.post<Tournee>(url, {});
+    return this.api.post<Tournee[]>(url, {});
+  }
+
+  deleteTournee(id: string): Observable<void> {
+    return this.api.delete<void>(`/tournees/${id}`);
   }
 }

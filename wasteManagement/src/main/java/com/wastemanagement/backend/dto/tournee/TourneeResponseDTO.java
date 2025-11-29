@@ -15,6 +15,7 @@ public class TourneeResponseDTO {
     private TourneeStatus status;
     private double plannedKm;
     private double plannedCO2;
+    private String plannedVehicleId;
     private Date startedAt;
     private Date finishedAt;
     private List<RouteStepResponseDTO> steps;

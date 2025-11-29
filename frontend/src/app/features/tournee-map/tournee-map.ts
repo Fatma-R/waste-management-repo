@@ -1,3 +1,4 @@
+// src/app/features/tournee-map/tournee-map.component.ts
 import {
   AfterViewInit,
   Component,
@@ -22,6 +23,12 @@ import { Tournee, RouteStep } from '../../shared/models/tournee.model';
 import { CollectionPoint } from '../../shared/models/collection-point.model';
 import { TrashType } from '../../shared/models/bin.model';
 import { TourneeAssignment } from '../../shared/models/tournee-assignment';
+
+import { EmployeeService } from '../../core/services/employee';
+import { VehicleService } from '../../core/services/vehicle';
+import { Employee } from '../../shared/models/employee.model';
+import { Vehicle } from '../../shared/models/vehicle.model';
+
 import { forkJoin } from 'rxjs';
 
 // -----------------------------------------------------
@@ -48,6 +55,27 @@ interface StopView {
   collectionPoint: CollectionPoint;
 }
 
+interface CrewDisplay {
+  id: string;
+  fullName: string;
+  role: string;
+}
+
+interface VehicleDisplay {
+  id: string;
+  plateNumber: string;
+  capacityVolumeL: number;
+}
+
+interface TourView {
+  tournee: Tournee;
+  stops: StopView[];
+  assignments: TourneeAssignment[];
+  crewDisplay: CrewDisplay[];
+  vehicleDisplay: VehicleDisplay | null;
+  isAssigning: boolean;
+}
+
 @Component({
   selector: 'app-tournee-map',
   standalone: true,
@@ -64,16 +92,19 @@ interface StopView {
 export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private map!: L.Map;
   private layerGroup!: L.LayerGroup;
+  private depotCoords: [number, number] | null = null;
 
-  // Tour state
+  // Global state
   isLoading = false;
-  tournee: Tournee | null = null;
-  stops: StopView[] = [];
+  isAssigning = false; // pour le bouton "Assign crew to all tours"
+
+  tours: TourView[] = [];
+  activeTourIndex: number | null = null;
   selectedStop: StopView | null = null;
 
-  // Assignment state
-  assignments: TourneeAssignment[] = [];
-  isAssigning = false;
+  // Toasts
+  assignSuccessMessage: string | null = null;
+  assignErrorMessage: string | null = null;
 
   // Filters / planning params
   trashTypes = Object.values(TrashType);
@@ -84,7 +115,9 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     private tourneeService: TourneeService,
     private depotService: DepotService,
     private collectionPointService: CollectionPointService,
-    private tourneeAssignmentService: TourneeAssignmentService
+    private tourneeAssignmentService: TourneeAssignmentService,
+    private employeeService: EmployeeService,
+    private vehicleService: VehicleService
   ) {}
 
   ngOnInit(): void {}
@@ -97,6 +130,14 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.map) {
       this.map.remove();
     }
+  }
+
+  // Convenience getter: tournée active
+  get activeTour(): TourView | null {
+    if (this.activeTourIndex == null) {
+      return null;
+    }
+    return this.tours[this.activeTourIndex] || null;
   }
 
   // ------------------------------------------------------------------
@@ -114,39 +155,80 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ------------------------------------------------------------------
-  // Planning
+  // Toast helpers
   // ------------------------------------------------------------------
-  planTour(): void {
-    this.isLoading = true;
-    this.tournee = null;
-    this.stops = [];
-    this.selectedStop = null;
-    this.assignments = []; // on réinitialise les affectations
-    if (this.layerGroup) {
-      this.layerGroup.clearLayers();
+  private showAssignSuccess(message: string): void {
+    this.assignSuccessMessage = message;
+    this.assignErrorMessage = null;
+
+    setTimeout(() => {
+      this.assignSuccessMessage = null;
+    }, 3000);
+  }
+
+  private showAssignError(message: string): void {
+    this.assignErrorMessage = message;
+    this.assignSuccessMessage = null;
+
+    setTimeout(() => {
+      this.assignErrorMessage = null;
+    }, 4000);
+  }
+
+  // ------------------------------------------------------------------
+  // Plan / discard button handler
+  // ------------------------------------------------------------------
+  onPlanOrDiscardClick(): void {
+    if (this.tours.length) {
+      this.discardAllTours();
+    } else {
+      this.planTours();
     }
+  }
+
+  // ------------------------------------------------------------------
+  // Planning multiple tours (VROOM)
+  // ------------------------------------------------------------------
+  private planTours(): void {
+    this.isLoading = true;
+    this.resetPlanningState(false); // ne touche pas encore à la map
 
     this.tourneeService.planTournee(this.selectedType, this.threshold).subscribe({
-      next: (tournee) => {
-        this.tournee = tournee;
-        this.loadDepotAndCollectionPoints(tournee);
+      next: (tournees) => {
+        if (!tournees || !tournees.length) {
+          this.isLoading = false;
+          this.showAssignError('No tours could be planned for the selected criteria.');
+          return;
+        }
+
+        this.loadDepotAndCollectionPointsForTours(tournees);
       },
       error: (err) => {
-        console.error('Error planning tournee', err);
-        alert('Failed to plan tour. Please check backend logs.');
+        console.error('Error planning tours', err);
         this.isLoading = false;
+        this.showAssignError('Failed to plan tours. Please check backend logs.');
       }
     });
   }
 
-  private loadDepotAndCollectionPoints(tournee: Tournee): void {
-    const cpIds = [...new Set(tournee.steps.map((s) => s.collectionPointId))];
+  private loadDepotAndCollectionPointsForTours(tournees: Tournee[]): void {
+    // Récupérer tous les CP uniques sur toutes les tournées
+    const cpIdSet = new Set<string>();
+    tournees.forEach((t) => {
+      t.steps.forEach((s) => {
+        if (s.collectionPointId) {
+          cpIdSet.add(s.collectionPointId);
+        }
+      });
+    });
 
-    if (cpIds.length === 0) {
-      this.stops = [];
+    if (!cpIdSet.size) {
+      this.tours = [];
       this.isLoading = false;
       return;
     }
+
+    const cpIds = Array.from(cpIdSet);
 
     const depot$ = this.depotService.getMainDepot();
     const cps$ = forkJoin(
@@ -162,65 +244,229 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
           }
         });
 
-        const stops: StopView[] = tournee.steps
-          .slice()
-          .sort((a, b) => a.order - b.order)
-          .map((step) => {
-            const cp = cpMap.get(step.collectionPointId);
-            return cp ? { step, collectionPoint: cp } : null;
-          })
-          .filter((item): item is StopView => item !== null);
+        // Construire TourView pour chaque tournée
+        this.tours = tournees.map((tour) => {
+          const stops: StopView[] = tour.steps
+            .slice()
+            .sort((a, b) => a.order - b.order)
+            .map((step) => {
+              const cp = cpMap.get(step.collectionPointId);
+              return cp ? { step, collectionPoint: cp } : null;
+            })
+            .filter((item): item is StopView => item !== null);
 
-        this.stops = stops;
+          const tv: TourView = {
+            tournee: tour,
+            stops,
+            assignments: [],
+            crewDisplay: [],
+            vehicleDisplay: null,
+            isAssigning: false
+          };
+          return tv;
+        });
 
+        // Dépôt
         if (
           depot.location &&
           depot.location.coordinates &&
           depot.location.coordinates.length === 2
         ) {
-          const depotCoords = depot.location.coordinates as [number, number];
-          this.renderMap(depotCoords, this.stops);
+          this.depotCoords = depot.location.coordinates as [number, number];
+        } else {
+          this.depotCoords = null;
         }
 
         this.isLoading = false;
+        this.selectedStop = null;
+
+        if (this.tours.length && this.depotCoords) {
+          this.activeTourIndex = 0;
+          this.renderMap(this.depotCoords, this.tours[0]);
+        }
       },
       error: (err) => {
-        console.error('Error loading depot/collection points', err);
-        alert('Failed to load depot/collection points.');
+        console.error('Error loading depot/collection points for tours', err);
         this.isLoading = false;
+        this.showAssignError('Failed to load depot/collection points.');
       }
     });
   }
 
   // ------------------------------------------------------------------
-  // Auto-assign resources for this tour
+  // Discard tours
   // ------------------------------------------------------------------
-  assignResources(): void {
-    if (!this.tournee) {
+  private discardAllTours(): void {
+    if (!this.tours.length) {
+      return;
+    }
+
+    const delete$ = this.tours.map((t) =>
+      this.tourneeService.deleteTournee(t.tournee.id)
+    );
+
+    forkJoin(delete$).subscribe({
+      next: () => {
+        this.resetPlanningState(true);
+        this.showAssignSuccess('All planned tours have been discarded.');
+      },
+      error: (err) => {
+        console.error('Error discarding all tours', err);
+        this.showAssignError('Failed to discard all tours.');
+      }
+    });
+  }
+
+  discardTour(tour: TourView, index: number): void {
+    this.tourneeService.deleteTournee(tour.tournee.id).subscribe({
+      next: () => {
+        this.tours.splice(index, 1);
+
+        if (this.tours.length === 0) {
+          this.resetPlanningState(true);
+          return;
+        }
+
+        // Ajuster activeTourIndex
+        if (this.activeTourIndex === index) {
+          this.selectedStop = null;
+          this.activeTourIndex = 0;
+          if (this.depotCoords) {
+            this.renderMap(this.depotCoords, this.tours[0]);
+          }
+        } else if (
+          this.activeTourIndex !== null &&
+          this.activeTourIndex > index
+        ) {
+          this.activeTourIndex = this.activeTourIndex - 1;
+        }
+      },
+      error: (err) => {
+        console.error('Error discarding tour', err);
+        this.showAssignError('Failed to discard this tour.');
+      }
+    });
+  }
+
+  private resetPlanningState(clearMap: boolean): void {
+    this.tours = [];
+    this.activeTourIndex = null;
+    this.selectedStop = null;
+    this.isAssigning = false;
+
+    if (clearMap && this.layerGroup) {
+      this.layerGroup.clearLayers();
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Auto-assign resources
+  // ------------------------------------------------------------------
+  assignResourcesForAll(): void {
+    if (!this.tours.length) {
       return;
     }
 
     this.isAssigning = true;
 
+    const assign$ = this.tours.map((t) =>
+      this.tourneeAssignmentService.autoAssignForTournee(t.tournee.id)
+    );
+
+    forkJoin(assign$).subscribe({
+      next: (results) => {
+        results.forEach((assignments, idx) => {
+          const tour = this.tours[idx];
+          this.updateTourAssignments(tour, assignments);
+        });
+        this.isAssigning = false;
+        this.showAssignSuccess('Crew and vehicles assigned to all tours.');
+      },
+      error: (err) => {
+        console.error('Error assigning resources for all tours', err);
+        this.isAssigning = false;
+        this.showAssignError('Failed to assign crew for all tours.');
+      }
+    });
+  }
+
+  assignResourcesForTour(tour: TourView): void {
+    tour.isAssigning = true;
+
     this.tourneeAssignmentService
-      .autoAssignForTournee(this.tournee.id)
+      .autoAssignForTournee(tour.tournee.id)
       .subscribe({
         next: (assignments) => {
-          this.assignments = assignments;
-          this.isAssigning = false;
+          this.updateTourAssignments(tour, assignments);
+          tour.isAssigning = false;
+          this.showAssignSuccess('Crew and vehicle assigned to this tour.');
         },
         error: (err) => {
-          console.error('Error auto-assigning resources for tournee', err);
-          alert('Failed to assign crew and vehicle for this tour.');
-          this.isAssigning = false;
+          console.error('Error auto-assigning resources for tour', err);
+          tour.isAssigning = false;
+          this.showAssignError('Failed to assign crew and vehicle for this tour.');
         }
       });
   }
 
-  // ---------------- Map rendering (markers + route) ----------------
+  private updateTourAssignments(
+    tour: TourView,
+    assignments: TourneeAssignment[]
+  ): void {
+    tour.assignments = assignments || [];
+    tour.crewDisplay = [];
+    tour.vehicleDisplay = null;
+
+    if (!assignments || !assignments.length) {
+      return;
+    }
+
+    this.loadAssignmentDetailsForTour(tour, assignments);
+  }
+
+  private loadAssignmentDetailsForTour(
+    tour: TourView,
+    assignments: TourneeAssignment[]
+  ): void {
+    const vehicleId = assignments[0].vehicleId;
+    const employeeIds = Array.from(new Set(assignments.map((a) => a.employeeId)));
+
+    const vehicle$ = this.vehicleService.getVehicleById(vehicleId);
+    const employees$ = forkJoin(
+      employeeIds.map((id) => this.employeeService.getEmployeeById(id))
+    );
+
+    forkJoin({ vehicle: vehicle$, employees: employees$ }).subscribe({
+      next: ({ vehicle, employees }) => {
+        if (vehicle) {
+          const v = vehicle as Vehicle;
+          tour.vehicleDisplay = {
+            id: v.id,
+            plateNumber: v.plateNumber,
+            capacityVolumeL: v.capacityVolumeL
+          };
+        }
+
+        tour.crewDisplay = employees.map(
+          (emp: Employee, index: number): CrewDisplay => {
+            const fullName = emp.fullName || emp.id;
+            const role = index === 0 ? 'Driver' : 'Collector';
+            return { id: emp.id, fullName, role };
+          }
+        );
+      },
+      error: (err) => {
+        console.error('Failed to load assignment details (employees/vehicle)', err);
+      }
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // Map rendering (markers + route) pour la tournée active
+  // ------------------------------------------------------------------
   private renderMap(
     depotCoords: [number, number],
-    stops: StopView[]
+    tour: TourView
   ): void {
     if (!this.layerGroup || !this.map) {
       return;
@@ -228,11 +474,10 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.layerGroup.clearLayers();
 
-    // GeoJSON [lon, lat] -> Leaflet (lat, lon)
+    // Dépôt
     const [depotLon, depotLat] = depotCoords;
     const depotLatLng = L.latLng(depotLat, depotLon);
 
-    // Depot marker
     const depotMarker = L.marker(depotLatLng, {
       title: 'Depot',
       icon: depotIcon
@@ -242,8 +487,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     // Fallback straight-line route
     const fallbackLatLngs: L.LatLngExpression[] = [depotLatLng];
 
-    // Stops markers
-    stops.forEach((stop) => {
+    tour.stops.forEach((stop) => {
       const loc = stop.collectionPoint.location;
       if (!loc || !loc.coordinates || loc.coordinates.length !== 2) {
         return;
@@ -258,22 +502,23 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
         title: `Step ${stop.step.order}`,
         icon: binIcon
       }).bindPopup(
-        `<b>Step ${stop.step.order}</b><br>${stop.collectionPoint.adresse || stop.collectionPoint.id}`
+        `<b>Step ${stop.step.order}</b><br>${
+          stop.collectionPoint.adresse || stop.collectionPoint.id
+        }`
       );
 
       marker.addTo(this.layerGroup);
     });
 
-    if (stops.length > 0) {
+    if (tour.stops.length > 0) {
       fallbackLatLngs.push(depotLatLng);
     }
 
-    // 1) Try to use VROOM/OSRM geometry if present
-    if (this.tournee && this.tournee.geometry) {
+    // 1) Route géométrique VROOM (polyline) si dispo
+    if (tour.tournee.geometry) {
       try {
-        // VROOM polyline5 => precision 5
         const decoded = polyline.decode(
-          this.tournee.geometry,
+          tour.tournee.geometry,
           5
         ) as [number, number][];
 
@@ -293,14 +538,27 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }
 
-    // 2) Fallback: straight line depot -> stops -> depot
+    // 2) Fallback: lignes droites dépôt -> stops -> dépôt
     const routeLine = L.polyline(fallbackLatLngs, { weight: 4 });
     routeLine.addTo(this.layerGroup);
     this.map.fitBounds(routeLine.getBounds(), { padding: [30, 30] });
   }
 
+  focusTour(index: number): void {
+    if (index < 0 || index >= this.tours.length) {
+      return;
+    }
+    this.activeTourIndex = index;
+    this.selectedStop = null;
+
+    if (this.depotCoords) {
+      this.renderMap(this.depotCoords, this.tours[index]);
+    }
+  }
+
   // ---------------- UI helpers ----------------
-  selectStop(stop: StopView): void {
+  selectStop(tourIndex: number, stop: StopView): void {
+    this.activeTourIndex = tourIndex;
     this.selectedStop = stop;
 
     const loc = stop.collectionPoint.location;
