@@ -63,9 +63,9 @@
           </app-loading-spinner>
         </div>
 
-        <!-- Placeholder when no tours -->
+                <!-- Placeholder when no tours AND no initial points -->
         <div
-          *ngIf="!isLoading && !tours.length"
+          *ngIf="!isLoading && !tours.length && !hasInitialPoints"
           class="map-overlay">
           <div class="map-placeholder-content">
             <p class="map-placeholder-icon">🗺️</p>
@@ -73,10 +73,11 @@
             <p class="map-placeholder-text">
               Select a waste type and threshold, then click "Plan tours" to generate
               optimized routes from the depot to the collection points that need
-              service. Each route will be assigned to a different vehicle.
+              service.
             </p>
           </div>
         </div>
+
       </div>
 
       <!-- Tours + Stops Sidebar -->

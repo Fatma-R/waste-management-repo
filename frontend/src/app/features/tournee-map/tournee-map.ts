@@ -97,6 +97,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   // Global state
   isLoading = false;
   isAssigning = false; // pour le bouton "Assign crew to all tours"
+  hasInitialPoints = false;
 
   tours: TourView[] = [];
   activeTourIndex: number | null = null;
@@ -124,6 +125,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.initMap();
+    this.loadInitialPoints();
   }
 
   ngOnDestroy(): void {
@@ -153,6 +155,95 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.layerGroup = L.layerGroup().addTo(this.map);
   }
+
+  private loadInitialPoints(): void {
+  this.isLoading = true;
+
+  const depot$ = this.depotService.getMainDepot();
+  // ⚠️ Adapte le nom de la méthode au service réel (getAll, list, etc.)
+  const cps$ = this.collectionPointService.getCollectionPoints();
+
+  forkJoin({ depot: depot$, cps: cps$ }).subscribe({
+    next: ({ depot, cps }) => {
+      if (
+        depot.location &&
+        depot.location.coordinates &&
+        depot.location.coordinates.length === 2
+      ) {
+        this.depotCoords = depot.location.coordinates as [number, number];
+      }
+
+      this.hasInitialPoints = !!(cps && cps.length);
+
+      if (this.depotCoords && this.hasInitialPoints) {
+        this.renderInitialMap(this.depotCoords, cps);
+      } else if (this.depotCoords) {
+        // Juste centrer sur le dépôt si pas de points
+        const [lon, lat] = this.depotCoords;
+        this.map.setView([lat, lon], 12);
+      }
+
+      this.isLoading = false;
+    },
+    error: (err) => {
+      console.error('Error loading initial depot/collection points', err);
+      this.isLoading = false;
+      // On ne montre pas d’erreur bloquante ici, c’est juste du confort
+    }
+  });
+}
+  private renderInitialMap(
+  depotCoords: [number, number],
+  cps: CollectionPoint[]
+): void {
+  if (!this.layerGroup || !this.map) {
+    return;
+  }
+
+  this.layerGroup.clearLayers();
+
+  const [depotLon, depotLat] = depotCoords;
+  const depotLatLng = L.latLng(depotLat, depotLon);
+
+  // Dépôt
+  const depotMarker = L.marker(depotLatLng, {
+    title: 'Depot',
+    icon: depotIcon
+  }).bindPopup('<b>Depot</b>');
+  depotMarker.addTo(this.layerGroup);
+
+  const latLngs: L.LatLngExpression[] = [depotLatLng];
+
+  // Tous les points de collecte
+  cps.forEach((cp) => {
+    if (!cp.location || !cp.location.coordinates || cp.location.coordinates.length !== 2) {
+      return;
+    }
+
+    const [lon, lat] = cp.location.coordinates;
+    const latLng = L.latLng(lat, lon);
+    latLngs.push(latLng);
+
+    const label = cp.adresse || cp.id || 'Collection point';
+
+    const marker = L.marker(latLng, {
+      title: label,
+      icon: binIcon
+    }).bindPopup(`<b>${label}</b>`);
+
+    marker.addTo(this.layerGroup);
+  });
+
+  // Fit bounds sur tout
+  if (latLngs.length > 1) {
+    const bounds = L.latLngBounds(latLngs);
+    this.map.fitBounds(bounds, { padding: [30, 30] });
+  } else {
+    this.map.setView(depotLatLng, 12);
+  }
+}
+
+
 
   // ------------------------------------------------------------------
   // Toast helpers
