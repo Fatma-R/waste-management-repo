@@ -18,5 +18,5 @@ public interface TourneeService {
 
     void deleteTournee(String id);
 
-    TourneeResponseDTO planTourneeWithVroom(TrashType type, double fillThreshold);
+    List<TourneeResponseDTO> planTourneeWithVroom(TrashType type, double fillThreshold);
 }

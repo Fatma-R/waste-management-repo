@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Service
 @RequiredArgsConstructor
@@ -81,8 +82,12 @@ public class TourneeServiceImpl implements TourneeService {
         tourneeRepository.deleteById(id);
     }
 
+    /**
+     * Planifie UNE OU PLUSIEURS tournées pour un type de déchet donné.
+     * Chaque route renvoyée par VROOM → 1 Tournee, avec un plannedVehicleId.
+     */
     @Override
-    public TourneeResponseDTO planTourneeWithVroom(TrashType type, double fillThreshold) {
+    public List<TourneeResponseDTO> planTourneeWithVroom(TrashType type, double fillThreshold) {
         // 1) Récupérer le dépôt principal
         com.wastemanagement.backend.model.tournee.Depot depot =
                 depotService.getMainDepotEntityOrThrow();
@@ -91,7 +96,7 @@ public class TourneeServiceImpl implements TourneeService {
         if (depotLoc == null || depotLoc.getCoordinates() == null) {
             throw new IllegalStateException("Depot location not configured");
         }
-        double[] depotCoords = depotLoc.getCoordinates(); // [lon, lat]
+        double[] depotCoords = depotLoc.getCoordinates(); // [lon, lat] (GeoJSON)
 
         // 2) Déterminer les points de collecte à visiter pour ce type
         //    + construire un mapping CP -> volume total en litres
@@ -106,13 +111,18 @@ public class TourneeServiceImpl implements TourneeService {
             );
         }
 
-        // 3) Construire la requête VROOM + mapping jobId -> collectionPointId
+        // 3) Construire la requête VROOM + mappings :
+        //    - jobId -> collectionPointId
+        //    - vroomVehicleId -> vehicleId (Mongo)
         Map<Integer, String> jobIdToCollectionPointId = new HashMap<>();
+        Map<Integer, String> vroomVehicleIdToVehicleId = new HashMap<>();
+
         VroomRequest request = buildVroomRequestForPoints(
                 depotCoords,
                 pointsNeedingCollection,
                 cpIdToVolumeLiters,
-                jobIdToCollectionPointId
+                jobIdToCollectionPointId,
+                vroomVehicleIdToVehicleId
         );
 
         // 4) Appeler VROOM
@@ -122,15 +132,44 @@ public class TourneeServiceImpl implements TourneeService {
             throw new IllegalStateException("VROOM returned no routes");
         }
 
-        // Pour l’instant on ne gère qu’une route (un véhicule)
-        VroomRoute mainRoute = solution.getRoutes().get(0);
+        // 5) Pour CHAQUE route, créer une Tournee
+        List<Tournee> tournees = new ArrayList<>();
 
-        // 5) Créer l’entité Tournee + RouteSteps
-        Tournee tournee = buildTourneeFromVroom(type, mainRoute, jobIdToCollectionPointId);
+        for (VroomRoute route : solution.getRoutes()) {
+            // Si la route n'a pas de steps (aucun job affecté), on l'ignore
+            if (route.getSteps() == null || route.getSteps().isEmpty()) {
+                continue;
+            }
 
-        // 6) Sauvegarder + retourner le DTO
-        Tournee saved = tourneeRepository.save(tournee);
-        return TourneeMapper.toResponse(saved);
+            // VROOM renvoie l'id du véhicule (celui qu'on lui a donné dans VroomVehicle.setId)
+            Integer vroomVehicleId = route.getVehicle();
+            String plannedVehicleId = null;
+            if (vroomVehicleId != null) {
+                plannedVehicleId = vroomVehicleIdToVehicleId.get(vroomVehicleId);
+            }
+
+            Tournee tournee = buildTourneeFromVroom(
+                    type,
+                    route,
+                    jobIdToCollectionPointId,
+                    plannedVehicleId
+            );
+            tournees.add(tournee);
+        }
+
+        if (tournees.isEmpty()) {
+            throw new IllegalStateException("VROOM returned only empty routes (no steps)");
+        }
+
+        // 6) Sauvegarder toutes les tournées et retourner les DTO
+        Iterable<Tournee> savedIterable = tourneeRepository.saveAll(tournees);
+        List<Tournee> savedList = StreamSupport
+                .stream(savedIterable.spliterator(), false)
+                .toList();
+
+        return savedList.stream()
+                .map(TourneeMapper::toResponse)
+                .toList();
     }
 
     // --------------------------------------------------------------------
@@ -214,7 +253,10 @@ public class TourneeServiceImpl implements TourneeService {
     }
 
     /**
-     * Construit la requête VROOM et remplit un mapping jobId -> collectionPointId.
+     * Construit la requête VROOM et remplit les mappings :
+     * - jobId -> collectionPointId
+     * - vroomVehicleId -> vehicleId (Mongo)
+     *
      * Modèle "réaliste" :
      * - Chaque véhicule a une CAPACITÉ en litres (vehicle.capacityVolumeL).
      * - Chaque job a une DEMANDE en litres (volume actuel total des bacs de ce type au CP).
@@ -222,7 +264,8 @@ public class TourneeServiceImpl implements TourneeService {
     private VroomRequest buildVroomRequestForPoints(double[] depotCoords,
                                                     List<CollectionPoint> points,
                                                     Map<String, Double> cpIdToVolumeLiters,
-                                                    Map<Integer, String> jobIdToCollectionPointId) {
+                                                    Map<Integer, String> jobIdToCollectionPointId,
+                                                    Map<Integer, String> vroomVehicleIdToVehicleId) {
 
         // --- Vehicles : tous les véhicules en statut AVAILABLE ---
         List<Vehicle> availableVehicles = vehicleRepository.findByStatus(VehicleStatus.AVAILABLE);
@@ -242,12 +285,17 @@ public class TourneeServiceImpl implements TourneeService {
             }
 
             VroomVehicle vv = new VroomVehicle();
-            vv.setId(vroomVehicleId++);
+            vv.setId(vroomVehicleId);
+
+            // On mémorise quel véhicule "réel" se cache derrière cet id VROOM
+            vroomVehicleIdToVehicleId.put(vroomVehicleId, v.getId());
+
             vv.setStart(depotCoords);
             vv.setEnd(depotCoords);
             vv.setCapacity(new int[]{(int) Math.round(capLiters)}); // VROOM travaille en int
 
             vroomVehicles.add(vv);
+            vroomVehicleId++;
         }
 
         if (vroomVehicles.isEmpty()) {
@@ -307,10 +355,12 @@ public class TourneeServiceImpl implements TourneeService {
 
     /**
      * Construit une Tournee + RouteSteps à partir de la route VROOM.
+     * Ajoute aussi le plannedVehicleId (id Mongo du véhicule correspondant).
      */
     private Tournee buildTourneeFromVroom(TrashType type,
                                           VroomRoute route,
-                                          Map<Integer, String> jobIdToCollectionPointId) {
+                                          Map<Integer, String> jobIdToCollectionPointId,
+                                          String plannedVehicleId) {
 
         Tournee tournee = new Tournee();
         tournee.setTourneeType(type);
@@ -322,6 +372,9 @@ public class TourneeServiceImpl implements TourneeService {
         tournee.setGeometry(route.getGeometry());
         tournee.setStartedAt(null);
         tournee.setFinishedAt(null);
+
+        // <-- nouveau : on mémorise le véhicule choisi par VROOM pour cette route
+        tournee.setPlannedVehicleId(plannedVehicleId);
 
         List<RouteStep> steps = new ArrayList<>();
         int order = 0;

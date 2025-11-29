@@ -11,6 +11,7 @@ export interface RouteStep {
   predictedFillPct: number;
   notes: string | null;
   collectionPointId: string;
+  plannedVehicleId?: string;
 }
 
 export interface Tournee {
@@ -23,4 +24,5 @@ export interface Tournee {
   finishedAt: string | null;
   steps: RouteStep[];
   geometry?: string;
+  plannedVehicleId?: string;
 }

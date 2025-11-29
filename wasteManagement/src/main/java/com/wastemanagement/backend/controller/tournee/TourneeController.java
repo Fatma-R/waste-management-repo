@@ -53,7 +53,7 @@ public class TourneeController {
      * POST /api/v1/tournees/plan?type=PLASTIC&threshold=80
      */
     @PostMapping("/plan")
-    public TourneeResponseDTO planWithVroom(
+    public List<TourneeResponseDTO> planWithVroom(
             @RequestParam TrashType type,
             @RequestParam(defaultValue = "80") double threshold
     ) {
