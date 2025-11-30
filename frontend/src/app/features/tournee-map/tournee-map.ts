@@ -29,7 +29,8 @@ import { VehicleService } from '../../core/services/vehicle';
 import { Employee } from '../../shared/models/employee.model';
 import { Vehicle } from '../../shared/models/vehicle.model';
 
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 // -----------------------------------------------------
 // Custom Leaflet icons
@@ -120,7 +121,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // Filters / planning params
   trashTypes = Object.values(TrashType);
-  selectedType: TrashType = TrashType.PLASTIC;
+  selectedTypes: TrashType[] = [TrashType.PLASTIC]; // multi-select
   threshold = 80;
 
   constructor(
@@ -152,6 +153,23 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     return this.tours[this.activeTourIndex] || null;
   }
+
+  // Check if a type is currently selected
+isTypeSelected(type: TrashType): boolean {
+  return this.selectedTypes.includes(type);
+}
+
+// Toggle a type on checkbox change
+onWasteTypeToggle(type: TrashType, checked: boolean): void {
+  if (checked) {
+    if (!this.selectedTypes.includes(type)) {
+      this.selectedTypes = [...this.selectedTypes, type];
+    }
+  } else {
+    this.selectedTypes = this.selectedTypes.filter(t => t !== type);
+  }
+}
+
 
   // ------------------------------------------------------------------
   // Map init
@@ -231,12 +249,12 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
         return;
       }
 
+      const marker = this.createCollectionPointMarker(cp, false);
+      marker.addTo(this.layerGroup);
+
       const [lon, lat] = cp.location.coordinates;
       const latLng = L.latLng(lat, lon);
       latLngs.push(latLng);
-
-      const marker = this.createCollectionPointMarker(cp, false);
-      marker.addTo(this.layerGroup);
     });
 
     // Fit bounds sur tout
@@ -281,24 +299,48 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ------------------------------------------------------------------
-  // Planning multiple tours (VROOM)
+  // Planning multiple tours (VROOM) – now supports MULTIPLE types
   // ------------------------------------------------------------------
   private planTours(): void {
+    // no type selected at all
+    if (!this.selectedTypes || !this.selectedTypes.length) {
+      this.showAssignError('Please select at least one waste type.');
+      return;
+    }
+
     this.isLoading = true;
     this.resetPlanningState(false); // ne touche pas encore à la map
 
-    this.tourneeService.planTournee(this.selectedType, this.threshold).subscribe({
-      next: (tournees) => {
-        if (!tournees || !tournees.length) {
+    // One call per selected TrashType
+    const calls = this.selectedTypes.map((type) =>
+      this.tourneeService.planTournee(type, this.threshold).pipe(
+        catchError((err) => {
+          // We "swallow" the error for this type and move on
+          console.warn('Error planning tours for type', type, err);
+          return of([] as Tournee[]);
+        })
+      )
+    );
+
+    forkJoin(calls).subscribe({
+      next: (resultPerType: Tournee[][]) => {
+        // Flatten all tours from all types
+        const allTours: Tournee[] = resultPerType.flat();
+
+        if (!allTours.length) {
           this.isLoading = false;
-          this.showAssignError('No tours could be planned for the selected criteria.');
+          this.showAssignError(
+            'No tours could be planned for the selected types and threshold.'
+          );
           return;
         }
 
-        this.loadDepotAndCollectionPointsForTours(tournees);
+        this.loadDepotAndCollectionPointsForTours(allTours);
       },
       error: (err) => {
-        console.error('Error planning tours', err);
+        // In theory we should not get here because each call catches its own error,
+        // but keep a guard just in case.
+        console.error('Unexpected error when planning tours for multiple types', err);
         this.isLoading = false;
         this.showAssignError('Failed to plan tours. Please check backend logs.');
       }
@@ -602,9 +644,6 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
         return;
       }
 
-      const [lon, lat] = cp.location.coordinates;
-      const latLng = L.latLng(lat, lon);
-
       const marker = this.createCollectionPointMarker(cp, activeCpIds.has(cp.id));
       marker.addTo(this.layerGroup);
     });
@@ -718,7 +757,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private getRouteColor(type: TrashType): string {
     switch (type) {
       case TrashType.PLASTIC:
-        return '#EFFF00'; // jaune (recyclage plastique)
+        return '#EFFF00'; // jaune flashy (recyclage plastique)
       case TrashType.ORGANIC:
         return '#854d0e'; // brun/orange (organique)
       case TrashType.PAPER:

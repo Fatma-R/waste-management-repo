@@ -1,4 +1,4 @@
-<!-- Toasts -->
+<!-- Toasts --> 
 <div *ngIf="assignSuccessMessage" class="toast toast-success">
   <span class="toast-icon">✅</span>
   <span class="toast-text">{{ assignSuccessMessage }}</span>
@@ -13,16 +13,29 @@
   <div class="map-container">
     <!-- Filter Bar -->
     <div class="filter-bar">
-      <div class="filter-group">
-        <label for="filter-type" class="filter-label">Waste type:</label>
-        <select
-          id="filter-type"
-          [(ngModel)]="selectedType"
-          class="filter-select">
-          <option *ngFor="let type of trashTypes" [ngValue]="type">
-            {{ type | titlecase }}
-          </option>
-        </select>
+      <!-- Waste types: pretty pill checkboxes -->
+      <div class="filter-group waste-type-group">
+        <span class="filter-label">Waste types:</span>
+        <div class="filter-checkboxes">
+          <label
+            class="filter-checkbox"
+            *ngFor="let type of trashTypes"
+            [ngClass]="'filter-checkbox--' + type">
+            
+            <input
+              type="checkbox"
+              class="filter-checkbox-input"
+              [value]="type"
+              [checked]="isTypeSelected(type)"
+              (change)="onWasteTypeToggle(type, $event.target.checked)" />
+
+            <span class="filter-checkbox-box"></span>
+
+            <span class="filter-checkbox-label">
+              {{ type | titlecase }}
+            </span>
+          </label>
+        </div>
       </div>
 
       <div class="filter-group">
@@ -47,7 +60,7 @@
         variant="outline"
         [disabled]="!tours.length || isAssigning"
         (click)="assignResourcesForAll()">
-        {{ isAssigning ? 'Assigning...' : 'Assign crew to all tours' }}
+        {{ isAssigning ? 'Assigning...' : 'Assign crews to all' }}
       </app-button>
     </div>
 
@@ -71,9 +84,9 @@
             <p class="map-placeholder-icon">🗺️</p>
             <h3 class="map-placeholder-title">Plan collection tours</h3>
             <p class="map-placeholder-text">
-              Select a waste type and threshold, then click "Plan tours" to generate
-              optimized routes from the depot to the collection points that need
-              service.
+              Select one or more waste types and a threshold, then click "Plan tours"
+              to generate optimized routes from the depot to the collection points
+              that need service.
             </p>
           </div>
         </div>
@@ -127,7 +140,6 @@
                 </div>
 
                 <div class="tour-card-actions">
-                  
                   <app-button
                     size="sm"
                     variant="outline"
