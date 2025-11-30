@@ -10,4 +10,4 @@ public class WasteManagementApplication {
         SpringApplication.run(WasteManagementApplication.class, args);
     }
 
-}   
+}
