@@ -42,6 +42,14 @@ const binIcon = L.icon({
   popupAnchor: [0, -32]
 });
 
+const inactiveBinIcon = L.icon({
+  iconUrl: 'assets/map/marker-bin-inactive.png',
+  iconRetinaUrl: 'assets/map/marker-bin-inactive.png',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -32]
+});
+
 const depotIcon = L.icon({
   iconUrl: 'assets/map/marker-depot.png',
   iconRetinaUrl: 'assets/map/marker-depot.png',
@@ -93,6 +101,9 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private map!: L.Map;
   private layerGroup!: L.LayerGroup;
   private depotCoords: [number, number] | null = null;
+
+  /** All collection points (active + inactive), always rendered on map */
+  allCollectionPoints: CollectionPoint[] = [];
 
   // Global state
   isLoading = false;
@@ -157,93 +168,85 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private loadInitialPoints(): void {
-  this.isLoading = true;
+    this.isLoading = true;
 
-  const depot$ = this.depotService.getMainDepot();
-  // ⚠️ Adapte le nom de la méthode au service réel (getAll, list, etc.)
-  const cps$ = this.collectionPointService.getCollectionPoints();
+    const depot$ = this.depotService.getMainDepot();
+    const cps$ = this.collectionPointService.getCollectionPoints();
 
-  forkJoin({ depot: depot$, cps: cps$ }).subscribe({
-    next: ({ depot, cps }) => {
-      if (
-        depot.location &&
-        depot.location.coordinates &&
-        depot.location.coordinates.length === 2
-      ) {
-        this.depotCoords = depot.location.coordinates as [number, number];
+    forkJoin({ depot: depot$, cps: cps$ }).subscribe({
+      next: ({ depot, cps }) => {
+        if (
+          depot.location &&
+          depot.location.coordinates &&
+          depot.location.coordinates.length === 2
+        ) {
+          this.depotCoords = depot.location.coordinates as [number, number];
+        }
+
+        this.allCollectionPoints = cps || [];
+        this.hasInitialPoints = !!(this.allCollectionPoints && this.allCollectionPoints.length);
+
+        if (this.depotCoords && this.hasInitialPoints) {
+          this.renderInitialMap(this.depotCoords, this.allCollectionPoints);
+        } else if (this.depotCoords) {
+          const [lon, lat] = this.depotCoords;
+          this.map.setView([lat, lon], 12);
+        }
+
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Error loading initial depot/collection points', err);
+        this.isLoading = false;
+        // Pas bloquant : la page reste utilisable, mais sans points initiaux
       }
-
-      this.hasInitialPoints = !!(cps && cps.length);
-
-      if (this.depotCoords && this.hasInitialPoints) {
-        this.renderInitialMap(this.depotCoords, cps);
-      } else if (this.depotCoords) {
-        // Juste centrer sur le dépôt si pas de points
-        const [lon, lat] = this.depotCoords;
-        this.map.setView([lat, lon], 12);
-      }
-
-      this.isLoading = false;
-    },
-    error: (err) => {
-      console.error('Error loading initial depot/collection points', err);
-      this.isLoading = false;
-      // On ne montre pas d’erreur bloquante ici, c’est juste du confort
-    }
-  });
-}
-  private renderInitialMap(
-  depotCoords: [number, number],
-  cps: CollectionPoint[]
-): void {
-  if (!this.layerGroup || !this.map) {
-    return;
+    });
   }
 
-  this.layerGroup.clearLayers();
-
-  const [depotLon, depotLat] = depotCoords;
-  const depotLatLng = L.latLng(depotLat, depotLon);
-
-  // Dépôt
-  const depotMarker = L.marker(depotLatLng, {
-    title: 'Depot',
-    icon: depotIcon
-  }).bindPopup('<b>Depot</b>');
-  depotMarker.addTo(this.layerGroup);
-
-  const latLngs: L.LatLngExpression[] = [depotLatLng];
-
-  // Tous les points de collecte
-  cps.forEach((cp) => {
-    if (!cp.location || !cp.location.coordinates || cp.location.coordinates.length !== 2) {
+  private renderInitialMap(
+    depotCoords: [number, number],
+    cps: CollectionPoint[]
+  ): void {
+    if (!this.layerGroup || !this.map) {
       return;
     }
 
-    const [lon, lat] = cp.location.coordinates;
-    const latLng = L.latLng(lat, lon);
-    latLngs.push(latLng);
+    this.layerGroup.clearLayers();
 
-    const label = cp.adresse || cp.id || 'Collection point';
+    const [depotLon, depotLat] = depotCoords;
+    const depotLatLng = L.latLng(depotLat, depotLon);
 
-    const marker = L.marker(latLng, {
-      title: label,
-      icon: binIcon
-    }).bindPopup(`<b>${label}</b>`);
+    // Dépôt
+    const depotMarker = L.marker(depotLatLng, {
+      title: 'Depot',
+      icon: depotIcon
+    }).bindPopup('<b>Depot</b>');
+    depotMarker.addTo(this.layerGroup);
 
-    marker.addTo(this.layerGroup);
-  });
+    const latLngs: L.LatLngExpression[] = [depotLatLng];
 
-  // Fit bounds sur tout
-  if (latLngs.length > 1) {
-    const bounds = L.latLngBounds(latLngs);
-    this.map.fitBounds(bounds, { padding: [30, 30] });
-  } else {
-    this.map.setView(depotLatLng, 12);
+    // Tous les points de collecte (actifs + inactifs)
+    cps.forEach((cp) => {
+      if (!cp.location || !cp.location.coordinates || cp.location.coordinates.length !== 2) {
+        return;
+      }
+
+      const [lon, lat] = cp.location.coordinates;
+      const latLng = L.latLng(lat, lon);
+      latLngs.push(latLng);
+
+      const marker = this.createCollectionPointMarker(cp, false);
+      marker.addTo(this.layerGroup);
+    });
+
+    // Fit bounds sur tout
+    if (latLngs.length > 1) {
+      const bounds = L.latLngBounds(latLngs);
+      this.map.fitBounds(bounds, { padding: [30, 30] });
+    } else {
+      this.map.setView(depotLatLng, 12);
+    }
   }
-}
-
-
 
   // ------------------------------------------------------------------
   // Toast helpers
@@ -322,14 +325,15 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     const cpIds = Array.from(cpIdSet);
 
     const depot$ = this.depotService.getMainDepot();
-    const cps$ = forkJoin(
+    const cpsInTours$ = forkJoin(
       cpIds.map((id) => this.collectionPointService.getCollectionPointById(id))
     );
 
-    forkJoin({ depot: depot$, cps: cps$ }).subscribe({
-      next: ({ depot, cps }) => {
+    forkJoin({ depot: depot$, cpsInTours: cpsInTours$ }).subscribe({
+      next: ({ depot, cpsInTours }) => {
+        // Map id -> CP pour ceux qui sont dans les tournées
         const cpMap = new Map<string, CollectionPoint>();
-        cps.forEach((cp) => {
+        cpsInTours.forEach((cp) => {
           if (cp && cp.id) {
             cpMap.set(cp.id, cp);
           }
@@ -447,6 +451,10 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (clearMap && this.layerGroup) {
       this.layerGroup.clearLayers();
+      // Revenir à la vue "tous les points" si on a les données
+      if (this.depotCoords && this.allCollectionPoints.length) {
+        this.renderInitialMap(this.depotCoords, this.allCollectionPoints);
+      }
     }
   }
 
@@ -481,7 +489,12 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  assignResourcesForTour(tour: TourView): void {
+  assignResourcesForTour(tour: TourView, event?: MouseEvent): void {
+    // éviter que le clic sur le bouton déclenche aussi le clic sur la carte
+    if (event) {
+      event.stopPropagation();
+    }
+
     tour.isAssigning = true;
 
     this.tourneeAssignmentService
@@ -575,30 +588,36 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     }).bindPopup('<b>Depot</b>');
     depotMarker.addTo(this.layerGroup);
 
-    // Fallback straight-line route
+    const routeColor = this.getRouteColor(tour.tournee.tourneeType);
+
+    // Marqueurs pour TOUS les points de collecte (actifs + inactifs)
+    const activeCpIds = new Set<string>(
+      tour.stops.map((s) => s.collectionPoint.id)
+    );
+
     const fallbackLatLngs: L.LatLngExpression[] = [depotLatLng];
 
+    this.allCollectionPoints.forEach((cp) => {
+      if (!cp.location || !cp.location.coordinates || cp.location.coordinates.length !== 2) {
+        return;
+      }
+
+      const [lon, lat] = cp.location.coordinates;
+      const latLng = L.latLng(lat, lon);
+
+      const marker = this.createCollectionPointMarker(cp, activeCpIds.has(cp.id));
+      marker.addTo(this.layerGroup);
+    });
+
+    // Points de la tournée active pour la route fallback
     tour.stops.forEach((stop) => {
       const loc = stop.collectionPoint.location;
       if (!loc || !loc.coordinates || loc.coordinates.length !== 2) {
         return;
       }
-
       const [lon, lat] = loc.coordinates;
       const latLng = L.latLng(lat, lon);
-
       fallbackLatLngs.push(latLng);
-
-      const marker = L.marker(latLng, {
-        title: `Step ${stop.step.order}`,
-        icon: binIcon
-      }).bindPopup(
-        `<b>Step ${stop.step.order}</b><br>${
-          stop.collectionPoint.adresse || stop.collectionPoint.id
-        }`
-      );
-
-      marker.addTo(this.layerGroup);
     });
 
     if (tour.stops.length > 0) {
@@ -617,7 +636,10 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
           ([lat, lon]: [number, number]) => L.latLng(lat, lon)
         );
 
-        const geometryLine = L.polyline(geomLatLngs, { weight: 4 });
+        const geometryLine = L.polyline(geomLatLngs, {
+          weight: 4,
+          color: routeColor
+        });
         geometryLine.addTo(this.layerGroup);
         this.map.fitBounds(geometryLine.getBounds(), { padding: [30, 30] });
         return;
@@ -630,17 +652,23 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     // 2) Fallback: lignes droites dépôt -> stops -> dépôt
-    const routeLine = L.polyline(fallbackLatLngs, { weight: 4 });
+    const routeLine = L.polyline(fallbackLatLngs, {
+      weight: 4,
+      color: routeColor
+    });
     routeLine.addTo(this.layerGroup);
     this.map.fitBounds(routeLine.getBounds(), { padding: [30, 30] });
   }
 
-  focusTour(index: number): void {
+  focusTour(index: number, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
+
     if (index < 0 || index >= this.tours.length) {
       return;
     }
     this.activeTourIndex = index;
-    this.selectedStop = null;
 
     if (this.depotCoords) {
       this.renderMap(this.depotCoords, this.tours[index]);
@@ -676,7 +704,112 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     return icons[type] || '🗑️';
   }
 
-  getStatusBadgeClass(_status: string): string {
-    return `status-badge status-active`;
+  getStatusBadgeClass(status: string): string {
+    // Tu peux ajuster selon les statuts possibles (PENDING, DONE, etc.)
+    switch (status) {
+      default:
+        return 'status-badge status-active';
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Helpers pour popups / couleurs / marqueurs
+  // ------------------------------------------------------------------
+  private getRouteColor(type: TrashType): string {
+    switch (type) {
+      case TrashType.PLASTIC:
+        return '#EFFF00'; // jaune (recyclage plastique)
+      case TrashType.ORGANIC:
+        return '#854d0e'; // brun/orange (organique)
+      case TrashType.PAPER:
+        return '#3b82f6'; // bleu (papier/carton)
+      case TrashType.GLASS:
+        return '#22c55e'; // vert (verre)
+      default:
+        return '#4b5563'; // gris
+    }
+  }
+
+  private createCollectionPointMarker(
+    cp: CollectionPoint,
+    isInActiveTour: boolean
+  ): L.Marker {
+    const isActive = (cp as any).active !== false; // par défaut true si pas défini
+    const icon = isActive ? binIcon : inactiveBinIcon;
+
+    const popupHtml = this.buildCollectionPointPopup(cp, isInActiveTour, isActive);
+
+    const [lon, lat] = cp.location.coordinates;
+    const latLng = L.latLng(lat, lon);
+
+    return L.marker(latLng, {
+      title: cp.adresse || cp.id || 'Collection point',
+      icon
+    }).bindPopup(popupHtml);
+  }
+
+  private buildCollectionPointPopup(
+    cp: CollectionPoint,
+    isInActiveTour: boolean,
+    isActive: boolean
+  ): string {
+    const label = cp.adresse || cp.id || 'Collection point';
+
+    let html = `<div class="cp-popup">`;
+    html += `<div class="cp-popup-title">${label}</div>`;
+
+    html += `<div class="cp-popup-status-row">`;
+    html += `<span class="cp-popup-status-badge ${
+      isActive ? 'cp-popup-status-active' : 'cp-popup-status-inactive'
+    }">${isActive ? 'Active' : 'Inactive'}</span>`;
+    if (isInActiveTour) {
+      html += `<span class="cp-popup-status-badge cp-popup-status-intour">In active tour</span>`;
+    }
+    html += `</div>`;
+
+    // Bins + taux de remplissage (si dispo)
+    const anyCp = cp as any;
+    const bins = (anyCp.bins || []) as any[];
+
+    if (bins && bins.length) {
+      const perType = new Map<string, number[]>();
+
+      bins.forEach((b) => {
+        const type = b.type || b.trashType || b.binType;
+        if (!type) {
+          return;
+        }
+        const fill =
+          typeof b.fillPct === 'number'
+            ? b.fillPct
+            : typeof b.currentFillPct === 'number'
+            ? b.currentFillPct
+            : typeof b.latestFillPct === 'number'
+            ? b.latestFillPct
+            : null;
+
+        if (fill == null) {
+          return;
+        }
+
+        if (!perType.has(type)) {
+          perType.set(type, []);
+        }
+        perType.get(type)!.push(fill);
+      });
+
+      if (perType.size) {
+        html += `<div class="cp-popup-bins-title">Bins</div>`;
+        html += `<ul class="cp-popup-bins-list">`;
+        perType.forEach((fills, type) => {
+          const avg = fills.reduce((a, b) => a + b, 0) / fills.length;
+          html += `<li>${type}: ${avg.toFixed(0)}%</li>`;
+        });
+        html += `</ul>`;
+      }
+    }
+
+    html += `</div>`;
+    return html;
   }
 }

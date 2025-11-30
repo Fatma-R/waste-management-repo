@@ -167,6 +167,12 @@
   background: var(--color-sand-light);
   border: 2px solid transparent;
   transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--color-green);
+    background: white;
+  }
 
   &.tour-active {
     background: white;
@@ -201,9 +207,29 @@
   font-size: 0.75rem;
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
-  background: rgba(34, 197, 94, 0.12);
-  color: var(--color-green-dark);
   text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Couleurs par type de tournée */
+.tour-type-pill--PLASTIC {
+  background: rgba(250, 204, 21, 0.16); // jaune
+  color: #854d0e;
+}
+
+.tour-type-pill--ORGANIC {
+  background: rgba(132, 76, 19, 0.16); // brun
+  color: #78350f;
+}
+
+.tour-type-pill--PAPER {
+  background: rgba(59, 130, 246, 0.16); // bleu
+  color: #1d4ed8;
+}
+
+.tour-type-pill--GLASS {
+  background: rgba(34, 197, 94, 0.16); // vert
+  color: #15803d;
 }
 
 .tour-meta {
@@ -227,7 +253,7 @@
   gap: $spacing-xs;
 }
 
-// Stops (reutilisation des styles)
+// Stops / bins
 .bins-list {
   display: flex;
   flex-direction: column;
@@ -316,25 +342,28 @@
 // Details Panel
 .details-panel {
   position: fixed;
-  top: 0;
+  top: 61px; // same height as your navbar
   right: -400px;
   width: 400px;
-  height: 100vh;
+  height: calc(100vh - 61px); // panel fits exactly under the navbar
   background: white;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
   transition: right 0.3s ease;
-  z-index: 200;
+  z-index: 1500; // above map/sidebar, below/to match navbar
   overflow-y: auto;
-  
+
   &.panel-open {
     right: 0;
   }
-  
+
   @media (max-width: 768px) {
-    width: 100%;
+    top: 70px;
     right: -100%;
+    width: 100%;
+    height: calc(100vh - 70px);
   }
 }
+
 
 .panel-header {
   display: flex;
@@ -504,4 +533,59 @@
 .crew-role {
   font-size: 0.7rem;
   color: var(--color-grey);
+}
+
+/* Popup collection point (Leaflet) */
+.cp-popup {
+  font-size: 0.8rem;
+  max-width: 220px;
+}
+
+.cp-popup-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--color-grey-dark);
+}
+
+.cp-popup-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.35rem;
+}
+
+.cp-popup-status-badge {
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.cp-popup-status-active {
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
+}
+
+.cp-popup-status-inactive {
+  background: rgba(107, 114, 128, 0.15);
+  color: #374151;
+}
+
+.cp-popup-status-intour {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1d4ed8;
+}
+
+.cp-popup-bins-title {
+  margin-top: 0.25rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--color-grey-dark);
+}
+
+.cp-popup-bins-list {
+  margin: 0.1rem 0 0;
+  padding-left: 1rem;
+  list-style: disc;
+  color: var(--color-grey-dark);
 }

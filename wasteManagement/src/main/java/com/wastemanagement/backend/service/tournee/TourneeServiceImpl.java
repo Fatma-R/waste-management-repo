@@ -44,7 +44,7 @@ public class TourneeServiceImpl implements TourneeService {
      * Approximate capacity of one bin in liters.
      * TODO: replace with real value or per-bin config (e.g. 240L, 360L, 660L)
      */
-    private static final double BIN_CAPACITY_L = 75.0;
+    private static final double BIN_CAPACITY_L = 660;
 
     @Override
     public TourneeResponseDTO createTournee(TourneeRequestDTO dto) {
@@ -325,11 +325,8 @@ public class TourneeServiceImpl implements TourneeService {
             // DEMANDE en litres (réaliste) :
             double volumeLiters = cpIdToVolumeLiters.getOrDefault(cp.getId(), 0.0);
             if (volumeLiters <= 0) {
-                // Si on est là, c'est étrange : CP sélectionné mais pas de volume.
-                // On met une petite demande non nulle pour éviter de le "griller" complètement.
-                System.out.println("Warning: CP " + cp.getId()
-                        + " selected but volumeLiters <= 0, using fallback.");
-                volumeLiters = binCount * BIN_CAPACITY_L * 0.5;
+                throw new IllegalStateException("Inconsistent data: CP " + cp.getId()
+                        + " is selected for collection but has volume <= 0");
             }
 
             int amountLiters = (int) Math.round(volumeLiters);
