@@ -11,15 +11,17 @@ import java.util.List;
 
 @Repository
 public interface CollectionPointRepository extends MongoRepository<CollectionPoint, String> {
-    
-    /**
-     * Find all collection points within a given radius from a center location.
-     * Uses MongoDB's geospatial $near operator with maxDistance in meters.
-     * 
-     * @param location the center point (GeoJSONPoint)
-     * @param radiusInMeters the search radius in meters
-     * @return list of collection points within the radius
-     */
-    @Query("{ 'location': { $near: { $geometry: ?0, $maxDistance: ?1 } } }")
+
+    @Query("""
+{
+  'location': {
+    $nearSphere: {
+      $geometry: ?0,
+      $maxDistance: ?1
+    }
+  }
+}
+""")
     List<CollectionPoint> findNearby(GeoJSONPoint location, long radiusInMeters);
+
 }
