@@ -1,0 +1,232 @@
+@use '../../shared/styles/variables' as *;
+
+.incidents-page {
+  min-height: calc(100vh - 200px);
+  padding: $spacing-lg 0;
+  background: var(--color-off-white);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: $spacing-lg;
+  gap: $spacing-md;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-grey-dark);
+  margin-bottom: $spacing-xs;
+}
+
+.page-subtitle {
+  color: var(--color-grey);
+  font-size: 1rem;
+}
+
+.page-actions {
+  display: flex;
+  gap: $spacing-sm;
+
+  @media (max-width: 568px) {
+    flex-direction: column;
+    width: 100%;
+  }
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+// Filter Bar
+.filter-bar {
+  display: flex;
+  gap: $spacing-md;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: $spacing-lg;
+  padding: $spacing-md;
+  background: white;
+  border-radius: $radius-md;
+  box-shadow: $shadow-sm;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.filter-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-grey-dark);
+  white-space: nowrap;
+}
+
+.filter-select {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--color-sand);
+  border-radius: $radius-sm;
+  font-size: 0.875rem;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-green);
+  }
+}
+
+.filter-info {
+  margin-left: auto;
+}
+
+.info-text {
+  font-size: 0.875rem;
+  color: var(--color-grey);
+  font-weight: 500;
+}
+
+// Incidents Section
+.incidents-section {
+  margin-top: $spacing-lg;
+}
+
+.incidents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: $spacing-md;
+}
+
+.incident-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.incident-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-sm;
+  border-bottom: 1px solid var(--color-sand);
+}
+
+.incident-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.incident-type {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-grey-dark);
+  margin: 0 0 0.25rem 0;
+}
+
+.incident-status {
+  font-size: 0.875rem;
+  color: var(--color-grey);
+  margin: 0;
+}
+
+.incident-details {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.detail-label {
+  color: var(--color-grey);
+  font-weight: 500;
+}
+
+.detail-value {
+  color: var(--color-grey-dark);
+  font-weight: 500;
+  text-align: right;
+  text-transform: capitalize;
+}
+
+.no-incidents {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: $spacing-xl;
+  color: var(--color-grey);
+}
+
+// Incident Modals
+.incident-details-modal, .add-incident-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-xs 0;
+  border-bottom: 1px solid var(--color-sand);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.add-incident-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.form-label {
+  font-weight: 500;
+  color: var(--color-grey-dark);
+  font-size: 0.938rem;
+}
+
+.form-input {
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--color-sand);
+  border-radius: $radius-md;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+  font-family: 'Open Sans', sans-serif;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-green);
+  }
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+}

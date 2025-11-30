@@ -15,7 +15,14 @@ import { NotificationService } from '../../core/services/notification';
 import { Employee } from '../../shared/models/employee.model';
 import { Bin } from '../../shared/models/bin.model';
 import { Router, RouterModule } from '@angular/router';
+import { VehicleService } from '../../core/services/vehicle';
+import { IncidentService } from '../../core/services/incident';
+import { Incident } from '../../shared/models/incident.model';
+import { AlertService } from '../../core/services/alert';
+import { Alert , AlertType } from '../../shared/models/alert.model';
 
+// type alias réutilisable
+type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 interface ActivityLog {
   id: string;
   timestamp: Date;
@@ -49,20 +56,23 @@ interface TourneeView {
 }
 
 type VehicleStatus = 'AVAILABLE' | 'IN_SERVICE' | 'MAINTENANCE';
-
+type VehicleFuelType = 'DIESEL' | 'GASOLINE' | 'ELECTRIC' | 'HYBRID';
 interface VehicleView {
   id: string;
   plateNumber: string;
   capacityVolumeL: number;
-  type: string;
   status: VehicleStatus;
-  zoneLabel: string;
+  fuelType : VehicleFuelType
 }
 
 type IncidentType =
-  | 'VEHICLE_BREAKDOWN'
   | 'BLOCKED_STREET'
-  | 'BIN_DAMAGED'
+  | 'TRAFFIC_ACCIDENT'
+  | 'POLICE_ACTIVITY'
+  | 'ROAD_MAINTENANCE'
+  | 'PUBLIC_EVENT'
+  | 'NATURAL_OBSTRUCTION'
+  | 'FIRE_BLOCKAGE'
   | 'OTHER';
 
 type IncidentSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -77,8 +87,17 @@ interface IncidentView {
   reportedAt: Date;
   description: string;
   contextLabel: string;
-  reportedBy?: string;
+  //reportedBy?: string;
 }
+
+export interface AlertView {
+  id: string;
+  message: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  createdAt: Date;
+  resolved: boolean;
+}
+
 
 @Component({
   selector: 'app-admin',
@@ -107,6 +126,12 @@ export class AdminDashboardComponent implements OnInit {
   vehicles: VehicleView[] = [];
   recentIncidents: IncidentView[] = [];
   activityLogs: ActivityLog[] = [];
+  
+  incidents: Incident[] = [];
+  alerts: AlertView[] = [];
+
+
+
 
   // KPI values
   totalEmployees = 0;
@@ -116,6 +141,7 @@ export class AdminDashboardComponent implements OnInit {
   activeTournees = 0;
   openIncidentsCount = 0;
   avgNetworkFillPct = 0;
+  totalAlerts = 0;
 
   // Modals
   isDeleteEmployeeModalOpen = false;
@@ -131,11 +157,17 @@ export class AdminDashboardComponent implements OnInit {
     private employeeService: EmployeeService,
     private binService: BinService,
     private notificationService: NotificationService,
-    private router: Router
+    private router: Router,
+    private vehicleService: VehicleService,
+    private incidentService : IncidentService,
+    private alertService : AlertService
+
+    
   ) {}
 
   ngOnInit(): void {
     this.loadDashboardData();
+
   }
 
   loadDashboardData(): void {
@@ -157,6 +189,83 @@ export class AdminDashboardComponent implements OnInit {
         this.checkLoadingComplete();
       }
     });
+    //Vehicle from backend 
+    this.vehicleService.getVehicles().subscribe({
+      next: (vehicles) => {
+        this.vehicles = vehicles.map(v => ({
+          id: v.id,
+          plateNumber: v.plateNumber,
+          capacityVolumeL: v.capacityVolumeL,
+          fuelType: v.fuelType,
+          status: v.status
+        }));
+      this.totalVehicles = this.vehicles.length;
+      },
+      error: (err) => {
+        console.error(err);
+        this.notificationService.showToast(
+          'Erreur lors du chargement des véhicules',
+          'error'
+        );
+      }
+    });
+    // Incidents from backend
+    this.incidentService.getIncidents().subscribe({
+      next: (incidents) => {
+        this.recentIncidents = incidents
+          .map((i) => ({
+            id: i.id,
+            type: i.type,
+            severity: i.severity,
+            status: i.status,
+            reportedAt: i.reportedAt ? new Date(i.reportedAt) : new Date(),
+            description: i.description || 'Aucune description',
+            contextLabel: i.location
+              ? `Lat: ${i.location.coordinates[1]}, Lng: ${i.location.coordinates[0]}`
+              : 'Localisation inconnue',
+            //reportedBy: i.reportedBy || 'Inconnu',
+          }))
+          .sort(
+            (a, b) => b.reportedAt.getTime() - a.reportedAt.getTime()
+          )
+          .slice(0, 6); // garder seulement les 6 plus récents
+
+          // KPI : incidents ouverts ou en cours
+        this.openIncidentsCount = this.recentIncidents.filter(
+          (i) => i.status === 'OPEN' || i.status === 'IN_PROGRESS'
+        ).length;
+      },
+      error: (err: any) => {
+        console.error('Erreur lors du chargement des incidents', err);
+        this.notificationService.showToast(
+          'Erreur lors du chargement des incidents',
+          'error'
+        );
+      }
+    });
+    // 👉 Charge les ALERTS POUR DE VRAI
+    this.alertService.getAlerts().subscribe({
+      next: (alerts: Alert[]) => {
+        this.alerts = alerts
+          .map((a) => this.mapAlertToView(a))
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+          .slice(0, 6);
+
+        this.totalAlerts = alerts.length;
+      },
+      error: () => {
+        this.notificationService.showToast("Erreur chargement Alertes", "error");
+      }
+    });
+
+    
+
+
+
+
+
+
+
 
     // Bins from service
     this.binService.getMockBins().subscribe({
@@ -177,11 +286,12 @@ export class AdminDashboardComponent implements OnInit {
     // Local mock data reflecting your domain
     this.loadMockCollectionPoints();
     this.loadMockTournees();
-    this.loadMockVehicles();
-    this.loadMockIncidents();
+    //this.loadMockVehicles();
+    //this.loadMockIncidents();
     this.loadActivityLogs();
   }
 
+  
   private checkLoadingComplete(): void {
     if (this.employeesLoaded && this.binsLoaded) {
       this.isLoading = false;
@@ -288,87 +398,37 @@ export class AdminDashboardComponent implements OnInit {
       ['PLANNED', 'IN_PROGRESS'].includes(t.status)
     ).length;
   }
-
-  private loadMockVehicles(): void {
-    this.vehicles = [
-      {
-        id: 'v1',
-        plateNumber: 'TUN-123-AB',
-        capacityVolumeL: 8000,
-        type: 'Compactor Truck',
-        status: 'IN_SERVICE',
-        zoneLabel: 'Assigned to Zone A'
-      },
-      {
-        id: 'v2',
-        plateNumber: 'TUN-456-CD',
-        capacityVolumeL: 10000,
-        type: 'Compactor Truck',
-        status: 'MAINTENANCE',
-        zoneLabel: 'Depot · Maintenance'
-      },
-      {
-        id: 'v3',
-        plateNumber: 'TUN-789-EF',
-        capacityVolumeL: 4000,
-        type: 'Support Vehicle',
-        status: 'AVAILABLE',
-        zoneLabel: 'Unassigned'
-      }
-    ];
-
-    this.totalVehicles = this.vehicles.length;
-  }
-
-  private loadMockIncidents(): void {
+  // Charger les alertes (mock pour l'instant)
+  private loadAlerts(): void {
     const now = new Date();
-    this.recentIncidents = [
+    this.alerts = [
       {
-        id: 'i1',
-        type: 'BIN_DAMAGED',
+        id: 'a1',
+        message: 'Bin #12 is almost full (92%)',
         severity: 'HIGH',
-        status: 'OPEN',
-        reportedAt: new Date(now.getTime() - 30 * 60 * 1000),
-        description: 'Damaged lid on Bin #105 (PLASTIC).',
-        contextLabel: 'Bin #105 · Avenue Habib Bourguiba',
-        reportedBy: 'sensor'
+        createdAt: new Date(now.getTime() - 5 * 60 * 1000),
+        resolved: false
       },
       {
-        id: 'i2',
-        type: 'VEHICLE_BREAKDOWN',
-        severity: 'CRITICAL',
-        status: 'IN_PROGRESS',
-        reportedAt: new Date(now.getTime() - 90 * 60 * 1000),
-        description: 'Truck TUN-456-CD breakdown during organic tour.',
-        contextLabel: 'Tournée ORGANIC · Zone B',
-        reportedBy: 'driver'
-      },
-      {
-        id: 'i3',
-        type: 'BLOCKED_STREET',
+        id: 'a2',
+        message: 'Vehicle V-23 requires maintenance',
         severity: 'MEDIUM',
-        status: 'OPEN',
-        reportedAt: new Date(now.getTime() - 2 * 60 * 60 * 1000),
-        description: 'Street blocked, route step must be skipped or re-routed.',
-        contextLabel: 'Rue de la Liberté · Zone B',
-        reportedBy: 'planning system'
+        createdAt: new Date(now.getTime() - 45 * 60 * 1000),
+        resolved: false
       },
       {
-        id: 'i4',
-        type: 'OTHER',
-        severity: 'LOW',
-        status: 'RESOLVED',
-        reportedAt: new Date(now.getTime() - 4 * 60 * 60 * 1000),
-        description: 'Low battery on sensor for Bin #54.',
-        contextLabel: 'Bin #54 · Zone C',
-        reportedBy: 'technician'
+        id: 'a3',
+        message: 'Incident BLOCKED_STREET reported in Zone B',
+        severity: 'CRITICAL',
+        createdAt: new Date(now.getTime() - 120 * 60 * 1000),
+        resolved: false
       }
     ];
-
-    this.openIncidentsCount = this.recentIncidents.filter((i) =>
-      ['OPEN', 'IN_PROGRESS'].includes(i.status)
-    ).length;
+    this.totalAlerts = this.alerts.length;
   }
+
+  
+
 
   private loadActivityLogs(): void {
     this.activityLogs = [
@@ -521,6 +581,7 @@ export class AdminDashboardComponent implements OnInit {
       'info'
     );
   }
+  
 
   // ========= ACTIVITY LOG HELPERS =========
 
@@ -567,6 +628,7 @@ export class AdminDashboardComponent implements OnInit {
     };
     return icons[type];
   }
+  
 
   // ========= BADGE / STATUS HELPERS =========
 
@@ -586,14 +648,15 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
+
   getVehicleStatusClass(status: VehicleStatus): string {
     switch (status) {
-      case 'AVAILABLE':
-        return 'status-available';
       case 'IN_SERVICE':
-        return 'status-active';
+        return 'status-in-service'; // vert
       case 'MAINTENANCE':
-        return 'status-warning';
+        return 'status-maintenance'; // rouge
+      case 'AVAILABLE':
+        return 'status-available'; // bleu
       default:
         return '';
     }
@@ -631,17 +694,66 @@ export class AdminDashboardComponent implements OnInit {
 
   getIncidentTypeIcon(type: IncidentType): string {
     switch (type) {
-      case 'BIN_DAMAGED':
-        return '🗑️';
-      case 'VEHICLE_BREAKDOWN':
-        return '🚚';
+      case 'TRAFFIC_ACCIDENT':
+        return '🚧'; // accident / route bloquée
       case 'BLOCKED_STREET':
-        return '🚧';
+        return '⛔'; // rue bloquée
+      case 'POLICE_ACTIVITY':
+        return '🚓'; // police
+      case 'ROAD_MAINTENANCE':
+        return '🛠️';
+      case 'PUBLIC_EVENT':
+        return '🎉';
+      case 'NATURAL_OBSTRUCTION':
+        return '🌳';
+      case 'FIRE_BLOCKAGE':
+        return '🔥';
       case 'OTHER':
-      default:
-        return '❓';
+    default:
+      return '❓';
     }
   }
+  private mapAlertToView(alert: Alert): AlertView {
+    return {
+      id: alert.id,
+      message: this.getAlertMessage(alert),
+      severity: this.getSeverity(alert.type),
+      createdAt: new Date(alert.ts),
+      resolved: alert.cleared
+    };
+  }
+
+  private getAlertMessage(alert: Alert): string {
+    switch (alert.type) {
+      case 'LEVEL_HIGH':
+        return `Niveau élevé détecté dans la poubelle ${alert.binId}`;
+      case 'LEVEL_LOW':
+        return `Niveau bas détecté dans la poubelle ${alert.binId}`;
+      case 'LEVEL_CRITICAL':
+        return `⚠️ Niveau critique dans la poubelle ${alert.binId}`;
+      case 'BATTERY_LOW':
+        return `Batterie faible pour le capteur de la poubelle ${alert.binId}`;
+      case 'SENSOR_ANOMALY':
+        return `Anomalie détectée sur un capteur (poubelle ${alert.binId})`;
+      case 'THRESHOLD':
+        return `Seuil dépassé dans la poubelle ${alert.binId}`;
+      default:
+        return `Alerte détectée (poubelle ${alert.binId})`;
+    }
+  }
+
+  private getSeverity(type: AlertType): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' {
+    switch (type) {
+      case 'LEVEL_LOW': return 'LOW';
+      case 'BATTERY_LOW': return 'MEDIUM';
+      case 'LEVEL_HIGH': return 'HIGH';
+      case 'LEVEL_CRITICAL':
+      case 'SENSOR_ANOMALY': return 'CRITICAL';
+      default: return 'MEDIUM';
+    }
+  }
+
+
 
   // ========= CONTROL BUTTON HANDLERS =========
 
@@ -688,4 +800,11 @@ export class AdminDashboardComponent implements OnInit {
   onOpenSystemSettings(): void {
     this.router.navigate(['/admin/admins']);
   }
+  goToVehicles(): void {
+  this.router.navigate(['/admin/vehicles']);}
+  goToIncidents() {
+  this.router.navigate(['/admin/incidents']);}
+  
+
+
 }

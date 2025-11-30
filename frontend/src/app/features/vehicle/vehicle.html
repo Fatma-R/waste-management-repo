@@ -1,0 +1,211 @@
+<main class="vehicles-page">
+  <div class="container">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Vehicle Management</h1>
+        <p class="page-subtitle">Manage your fleet of vehicles</p>
+      </div>
+      <div class="page-actions">
+        <app-button variant="primary" (click)="openAddVehicleModal()">
+          + Add Vehicle
+        </app-button>
+      </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div *ngIf="isLoading" class="loading-container">
+      <app-loading-spinner message="Loading vehicles..."></app-loading-spinner>
+    </div>
+
+    <!-- Vehicles List -->
+    <div *ngIf="!isLoading">
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label for="filter-status" class="filter-label">Status:</label>
+          <select id="filter-status" [(ngModel)]="filterStatus" class="filter-select">
+            <option value="all">All Statuses</option>
+            <option value="AVAILABLE">Available</option>
+            <option value="IN_SERVICE">In Service</option>
+            <option value="MAINTENANCE">Maintenance</option>
+          </select>
+        </div>
+        <div class="filter-info">
+          <span class="info-text">{{ filteredVehicles.length }} vehicles</span>
+        </div>
+      </div>
+
+      <!-- Vehicles Grid -->
+      <div class="vehicles-section">
+        <h2 class="section-title">Fleet</h2>
+        <div class="vehicles-grid">
+
+          <app-card
+            *ngFor="let vehicle of filteredVehicles"
+            [hoverable]="true"
+            padding="md"
+            class="vehicle-card"
+            (click)="selectVehicle(vehicle)"
+          >
+            <div class="vehicle-header">
+              <div class="vehicle-info">
+                <h3 class="vehicle-plate">🚛 {{ vehicle.plateNumber }}</h3>
+                <p class="vehicle-status">{{ getStatusLabel(vehicle.status) }}</p>
+              </div>
+            </div>
+
+            <div class="vehicle-details">
+              <div class="detail-item">
+                <span class="detail-label">Capacity:</span>
+                <span class="detail-value">{{ vehicle.capacityVolumeL }} L</span>
+              </div>
+
+              <div class="detail-item">
+                <span class="detail-label">Fuel:</span>
+                <span class="detail-value">{{ getFuelLabel(vehicle.fuelType) }}</span>
+              </div>
+
+              <!-- Coordinates -->
+              <div class="detail-item">
+                <span class="detail-label">Coordinates:</span>
+                <span class="detail-value">
+                  {{ getLatitude(vehicle) }}, {{ getLongitude(vehicle) }}
+                </span>
+              </div>
+
+              <div class="detail-item" *ngIf="vehicle.createdAt">
+                <span class="detail-label">Created:</span>
+                <span class="detail-value">{{ formatDate(vehicle.createdAt) }}</span>
+              </div>
+            </div>
+
+          </app-card>
+
+          <div *ngIf="filteredVehicles.length === 0" class="no-vehicles">
+            <p>No vehicles match the selected filters</p>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<!-- Vehicle Details Modal -->
+<app-modal
+  [isOpen]="selectedVehicle !== null"
+  [title]="selectedVehicle?.plateNumber || ''"
+  size="md"
+  (close)="deselectVehicle()"
+>
+  <div *ngIf="selectedVehicle" class="vehicle-details-modal">
+
+    <h3>{{ selectedVehicle.plateNumber }}</h3>
+
+    <div class="detail-row">
+      <span class="detail-label">Status:</span>
+      <span class="detail-value">{{ getStatusLabel(selectedVehicle.status) }}</span>
+    </div>
+
+    <div class="detail-row">
+      <span class="detail-label">Capacity:</span>
+      <span class="detail-value">{{ selectedVehicle.capacityVolumeL }} L</span>
+    </div>
+
+    <div class="detail-row">
+      <span class="detail-label">Fuel:</span>
+      <span class="detail-value">{{ getFuelLabel(selectedVehicle.fuelType) }}</span>
+    </div>
+
+    <!-- Coordinates -->
+    <div class="detail-row">
+      <span class="detail-label">Coordinates:</span>
+      <span class="detail-value">
+        {{ getLatitude(selectedVehicle) }}, {{ getLongitude(selectedVehicle) }}
+      </span>
+    </div>
+
+    <div class="detail-row" *ngIf="selectedVehicle.createdAt">
+      <span class="detail-label">Created:</span>
+      <span class="detail-value">{{ formatDate(selectedVehicle.createdAt) }}</span>
+    </div>
+
+    <div class="detail-row" *ngIf="selectedVehicle.updatedAt">
+      <span class="detail-label">Updated:</span>
+      <span class="detail-value">{{ formatDate(selectedVehicle.updatedAt) }}</span>
+    </div>
+
+    <div class="modal-actions">
+      <app-button variant="outline" size="sm" (click)="openEditVehicleModal(selectedVehicle)">
+        Edit Vehicle
+      </app-button>
+      <app-button variant="outline" size="sm" (click)="onDeleteVehicle(selectedVehicle.id)">
+        Delete Vehicle
+      </app-button>
+    </div>
+
+  </div>
+</app-modal>
+
+<!-- Create/Edit Modal -->
+<app-modal
+  [isOpen]="isVehicleFormModalOpen"
+  [title]="formMode === 'create' ? 'Add New Vehicle' : 'Edit Vehicle'"
+  size="md"
+  (close)="closeVehicleFormModal()"
+>
+  <form (ngSubmit)="onSubmitVehicleForm()" class="add-vehicle-form">
+
+    <div class="form-group">
+      <label class="form-label">Plate Number</label>
+      <input type="text" [(ngModel)]="vehicleForm.plateNumber" name="plateNumber" class="form-input" required>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Capacity (L)</label>
+      <input type="number" [(ngModel)]="vehicleForm.capacityVolumeL" name="capacityVolumeL" class="form-input" required>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Fuel Type</label>
+      <select [(ngModel)]="vehicleForm.fuelType" name="fuelType" class="form-input" required>
+        <option value="DIESEL">Diesel</option>
+        <option value="GASOLINE">Gasoline</option>
+        <option value="ELECTRIC">Electric</option>
+        <option value="HYBRID">Hybrid</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select [(ngModel)]="vehicleForm.status" name="status" class="form-input" required>
+        <option value="AVAILABLE">Available</option>
+        <option value="IN_SERVICE">In Service</option>
+        <option value="MAINTENANCE">Maintenance</option>
+      </select>
+    </div>
+
+    <!-- Coordinates Inputs -->
+    <div class="form-group">
+      <label class="form-label">Longitude</label>
+      <input type="number" [(ngModel)]="vehicleForm.coordinates.longitude" name="longitude" class="form-input" required>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Latitude</label>
+      <input type="number" [(ngModel)]="vehicleForm.coordinates.latitude" name="latitude" class="form-input" required>
+    </div>
+
+    <div class="modal-actions">
+      <app-button type="button" variant="outline" (click)="closeVehicleFormModal()">Cancel</app-button>
+      <app-button type="submit" variant="primary">
+        {{ formMode === 'create' ? 'Add Vehicle' : 'Save Changes' }}
+      </app-button>
+    </div>
+
+  </form>
+</app-modal>

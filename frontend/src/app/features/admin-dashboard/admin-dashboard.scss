@@ -208,31 +208,41 @@
     outline-offset: 2px;
   }
 }
-
 .status-badge {
-  display: inline-block;
+  display: inline-flex;        // ⚡ pour aligner carré + texte
+  align-items: center;
+  gap: 0.5rem;                 // espace entre carré et texte
   padding: 0.25rem 0.5rem;
   border-radius: $radius-sm;
   font-size: 0.75rem;
   font-weight: 500;
   text-transform: capitalize;
   white-space: nowrap;
-  
-  &.status-active {
-    background: rgba(95, 167, 119, 0.1);
-    color: var(--color-green-dark);
+
+  // Couleur du texte et fond selon le statut
+  &.status-in-service {
+    background-color: rgba(40, 167, 69, 0.1); // fond vert clair
+    color: #28a745;                            // texte vert
   }
-  
-  &.status-inactive, &.status-offline {
-    background: rgba(107, 114, 128, 0.1);
-    color: var(--color-grey-dark);
+
+  &.status-maintenance {
+    background-color: rgba(220, 53, 69, 0.1); // fond rouge clair
+    color: #dc3545;                            // texte rouge
   }
-  
-  &.status-maintenance, &.status-on-route {
-    background: rgba(245, 158, 11, 0.1);
-    color: var(--color-amber);
+
+  &.status-available {
+    background-color: rgba(0, 123, 255, 0.1); // fond bleu clair
+    color: #007bff;                            // texte bleu
+  }
+
+  .status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
   }
 }
+
 
 // Activity Logs
 .activity-list {
@@ -294,6 +304,128 @@
   color: var(--color-grey);
   margin: 0;
 }
+.dashboard-card {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  h3 {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .badge {
+    background: #0080ff;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+  }
+}
+
+.card-content {
+  margin-top: 16px;
+}
+
+.alert-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.alert-info {
+  flex: 1;
+}
+
+.alert-date {
+  color: #666;
+  font-size: 13px;
+  margin-right: 10px;
+}
+
+.status-pill {
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  color: white;
+
+  &.active {
+    background: #e74c3c;
+  }
+
+  &.cleared {
+    background: #2ecc71;
+  }
+}
+
+.card-footer {
+  margin-top: 12px;
+  text-align: right;
+
+  button {
+    border: none;
+    background: #0080ff;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+  }
+}
+
+.empty-msg {
+  text-align: center;
+  color: #888;
+  padding: 20px 0;
+}
+
+
+
+.status-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  padding: 0.2rem 0.5rem;
+  border-radius: $radius-sm;
+
+  &.status-low {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+  }
+  &.status-medium {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+  }
+  &.status-high {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+  }
+  &.status-critical {
+    background-color: rgba(220, 53, 69, 0.2);
+    color: #a71d2a;
+  }
+  &.status-resolved {
+    background-color: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+  }
+  &.status-open {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+  }
+}
+
 
 // System Controls
 .controls-grid {

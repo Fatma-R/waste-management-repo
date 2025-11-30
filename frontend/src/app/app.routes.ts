@@ -12,6 +12,9 @@ import { DashboardComponent } from './features/dashboard/dashboard';
 import { AdminDashboardComponent } from './features/admin-dashboard/admin-dashboard';
 import { EmployeesComponent } from './features/employees/employees';
 import { AdminsComponent } from './features/admins/admins';
+import { VehiclesComponent } from './features/vehicle/vehicle';
+import { IncidentsComponent } from './features/incident/incident';
+import { AlertsComponent } from './features/alert/alert';
 
 export const routes: Routes = [
 
@@ -55,7 +58,12 @@ export const routes: Routes = [
         children: [
           { path: 'dashboard', component: AdminDashboardComponent },
           { path: 'employees', component: EmployeesComponent },
-          { path: 'admins', component: AdminsComponent }
+          { path: 'admins', component: AdminsComponent },
+          { path: 'incidents', component: IncidentsComponent },
+          { path: 'vehicles', component: VehiclesComponent },
+          { path: 'alerts', component: AlertsComponent } 
+
+
         ]
       },
 

@@ -1,0 +1,187 @@
+<!-- src/app/features/alerts/alerts.html -->
+<main class="alerts-page">
+  <div class="container">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Alerts</h1>
+        <p class="page-subtitle">Manage alerts from bins and sensors</p>
+      </div>
+      <div class="page-actions">
+        <app-button variant="primary" (click)="openAddAlertModal()">+ Add Alert</app-button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="isLoading" class="loading-container">
+      <app-loading-spinner message="Loading alerts..."></app-loading-spinner>
+    </div>
+
+    <div *ngIf="!isLoading">
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label class="filter-label">Type:</label>
+          <select [(ngModel)]="filterType" class="filter-select">
+            <option value="all">All Types</option>
+            <option value="THRESHOLD">Threshold</option>
+            <option value="SENSOR_ANOMALY">Sensor Anomaly</option>
+            <option value="LEVEL_HIGH">Level High</option>
+            <option value="LEVEL_LOW">Level Low</option>
+            <option value="LEVEL_CRITICAL">Level Critical</option>
+            <option value="LEVEL">Level</option>
+            <option value="BATTERY_LOW">Battery Low</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">Cleared:</label>
+          <select [(ngModel)]="filterCleared" class="filter-select">
+            <option value="all">All</option>
+            <option value="not_cleared">Not Cleared</option>
+            <option value="cleared">Cleared</option>
+          </select>
+        </div>
+
+        <div class="filter-info">
+          <span class="info-text">{{ filteredAlerts.length }} alerts</span>
+        </div>
+      </div>
+
+      <!-- Alerts Grid -->
+      <div class="alerts-section">
+        <h2 class="section-title">Recent Alerts</h2>
+        <div class="alerts-grid">
+          <app-card *ngFor="let alert of filteredAlerts" [hoverable]="true" padding="md" class="alert-card" (click)="selectAlert(alert)">
+            <div class="alert-header">
+              <div class="alert-info">
+                <h3 class="alert-type">{{ getTypeLabel(alert.type) }}</h3>
+                <p class="alert-bin">🗂 Bin: {{ alert.binId }}</p>
+              </div>
+              <div class="alert-meta">
+                <span class="alert-value">{{ alert.value }}</span>
+                <span class="alert-ts">{{ formatDate(alert.ts) }}</span>
+              </div>
+            </div>
+
+            <div class="alert-details">
+              <div class="detail-item">
+                <span class="detail-label">Type:</span>
+                <span class="detail-value">{{ getTypeLabel(alert.type) }}</span>
+              </div>
+
+              <div class="detail-item">
+                <span class="detail-label">Value:</span>
+                <span class="detail-value">{{ alert.value }}</span>
+              </div>
+
+              <div class="detail-item">
+                <span class="detail-label">Cleared:</span>
+                <span class="detail-value">{{ alert.cleared ? 'Yes' : 'No' }}</span>
+              </div>
+            </div>
+
+            <div class="card-actions">
+              <app-button variant="outline" size="sm" (click)="$event.stopPropagation(); openEditAlertModal(alert)">Edit</app-button>
+              <app-button variant="outline" size="sm" (click)="$event.stopPropagation(); onDeleteAlert(alert.id)">Delete</app-button>
+              <app-button variant="outline" size="sm" (click)="$event.stopPropagation(); toggleCleared(alert)">
+                {{ alert.cleared ? 'Mark Not Cleared' : 'Mark Cleared' }}
+              </app-button>
+            </div>
+          </app-card>
+
+          <div *ngIf="filteredAlerts.length === 0" class="no-alerts">
+            <p>No alerts match the selected filters</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<!-- Alert Details Modal -->
+<app-modal [isOpen]="selectedAlert !== null" [title]="selectedAlert?.type || ''" size="md" (close)="deselectAlert()">
+  <div *ngIf="selectedAlert" class="alert-details-modal">
+    <h3>{{ getTypeLabel(selectedAlert.type) }}</h3>
+
+    <div class="detail-row">
+      <span class="detail-label">Bin:</span>
+      <span class="detail-value">{{ selectedAlert.binId }}</span>
+    </div>
+
+    <div class="detail-row">
+      <span class="detail-label">Value:</span>
+      <span class="detail-value">{{ selectedAlert.value }}</span>
+    </div>
+
+    <div class="detail-row">
+      <span class="detail-label">Timestamp:</span>
+      <span class="detail-value">{{ formatDate(selectedAlert.ts) }}</span>
+    </div>
+
+    <div class="detail-row">
+      <span class="detail-label">Cleared:</span>
+      <span class="detail-value">{{ selectedAlert.cleared ? 'Yes' : 'No' }}</span>
+    </div>
+
+    <div class="modal-actions">
+      <app-button variant="outline" size="sm" (click)="openEditAlertModal(selectedAlert)">Edit</app-button>
+      <app-button variant="outline" size="sm" (click)="onDeleteAlert(selectedAlert.id)">Delete</app-button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Create/Edit Modal -->
+<app-modal [isOpen]="isAlertFormModalOpen" [title]="formMode === 'create' ? 'Add New Alert' : 'Edit Alert'" size="md" (close)="closeAlertFormModal()">
+  <form (ngSubmit)="onSubmitAlertForm()" class="add-alert-form">
+    <div class="form-group">
+      <label class="form-label">Bin ID</label>
+      <input type="text" [(ngModel)]="alertForm.binId" name="binId" class="form-input" required>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Type</label>
+      <select [(ngModel)]="alertForm.type" name="type" class="form-input" required>
+        <option value="THRESHOLD">Threshold</option>
+        <option value="SENSOR_ANOMALY">Sensor Anomaly</option>
+        <option value="LEVEL_HIGH">Level High</option>
+        <option value="LEVEL_LOW">Level Low</option>
+        <option value="LEVEL_CRITICAL">Level Critical</option>
+        <option value="LEVEL">Level</option>
+        <option value="BATTERY_LOW">Battery Low</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Value</label>
+      <input type="number" [(ngModel)]="alertForm.value" name="value" class="form-input" required>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Timestamp</label>
+      <!--<input type="datetime-local" [ngModel]="alertForm.ts ? (alertForm.ts | date:'yyyy-MM-ddTHH:mm') : ''" (ngModelChange)="alertForm.ts = $event ? new Date($event).toISOString() : ''" name="ts" class="form-input" /> -->
+      <input type="datetime-local"
+        [ngModel]="alertForm.ts ? (alertForm.ts | date:'yyyy-MM-ddTHH:mm') : ''"
+        (ngModelChange)="alertForm.ts = convertToISOString($event)"
+        name="ts"
+        class="form-input" />
+
+      <small class="info-text">Leave empty to use current time</small>
+    </div>
+
+    <div class="form-group checkbox-group">
+      <label>
+        <input type="checkbox" [(ngModel)]="alertForm.cleared" name="cleared" />
+        Cleared
+      </label>
+    </div>
+
+    <div class="modal-actions">
+      <app-button type="button" variant="outline" (click)="closeAlertFormModal()">Cancel</app-button>
+      <app-button type="submit" variant="primary">{{ formMode === 'create' ? 'Add Alert' : 'Save Changes' }}</app-button>
+    </div>
+  </form>
+</app-modal>
