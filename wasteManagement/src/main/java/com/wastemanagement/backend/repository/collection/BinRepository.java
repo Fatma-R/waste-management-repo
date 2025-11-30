@@ -10,4 +10,12 @@ import java.util.List;
 @Repository
 public interface BinRepository extends MongoRepository<Bin, String> {
     List<Bin> findByActiveTrueAndType(TrashType type);
+    
+    /**
+     * Find all bins associated with a specific collection point.
+     * 
+     * @param collectionPointId the collection point ID
+     * @return list of bins for that collection point
+     */
+    List<Bin> findByCollectionPointId(String collectionPointId);
 }
