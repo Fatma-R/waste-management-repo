@@ -1,6 +1,7 @@
 package com.wastemanagement.backend;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.wastemanagement.backend.controller.tournee.TourneeAssignmentController;
 import com.wastemanagement.backend.dto.tournee.TourneeAssignmentRequestDTO;
 import com.wastemanagement.backend.dto.tournee.TourneeAssignmentResponseDTO;
@@ -16,16 +17,21 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(
         controllers = TourneeAssignmentController.class,
@@ -44,14 +50,13 @@ class TourneeAssignmentControllerTests {
     @MockBean
     private TourneeAssignmentService tourneeAssignmentService;
 
-
     @MockBean
     private JwtUtil jwtUtils;
 
     @MockBean
     private CustomUserDetailsService customUserDetailsService;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     private TourneeAssignmentRequestDTO requestDTO;
     private TourneeAssignmentResponseDTO responseDTO;
@@ -62,8 +67,8 @@ class TourneeAssignmentControllerTests {
         requestDTO.setTourneeId("tournee1");
         requestDTO.setEmployeeId("emp1");
         requestDTO.setVehicleId("veh1");
-        requestDTO.setShiftStart(new Date());
-        requestDTO.setShiftEnd(new Date());
+        requestDTO.setShiftStart(Instant.now());
+        requestDTO.setShiftEnd(Instant.now());
 
         responseDTO = new TourneeAssignmentResponseDTO();
         responseDTO.setId("1");

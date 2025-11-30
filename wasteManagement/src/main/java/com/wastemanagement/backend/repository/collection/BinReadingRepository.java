@@ -14,4 +14,6 @@ public interface BinReadingRepository extends MongoRepository<BinReading, String
 
     // Tu peux ajouter des recherches par date ou par plage
     List<BinReading> findByBinIdAndTsBetween(String binId, java.util.Date start, java.util.Date end);
+
+    BinReading findTopByBinIdOrderByTsDesc(String binId);
 }

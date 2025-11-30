@@ -26,4 +26,7 @@ public class Incident {
     private String description;
     @GeoSpatialIndexed(type = GeoSpatialIndexType.GEO_2DSPHERE)
     private GeoJSONPoint location;
+
+
+
 }

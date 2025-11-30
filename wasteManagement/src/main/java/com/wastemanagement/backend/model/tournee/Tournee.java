@@ -21,7 +21,9 @@ public class Tournee {
     private TourneeStatus status;
     private double plannedKm;
     private double plannedCO2;
+    private String plannedVehicleId;
     private Date startedAt;
     private Date finishedAt;
     private List<RouteStep> steps;
+    private String geometry;
 }

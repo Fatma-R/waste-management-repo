@@ -1,0 +1,241 @@
+<main class="collection-points-page">
+  <div class="container">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Collection Points Management</h1>
+        <p class="page-subtitle">Manage and monitor waste collection points</p>
+      </div>
+
+      <div class="page-actions">
+        <app-button variant="outline" (click)="goToDashboard()">
+          📊 Dashboard
+        </app-button>
+        <app-button variant="primary" (click)="openCreateModal()">
+          + Add Collection Point
+        </app-button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="isLoading" class="loading-container">
+      <app-loading-spinner message="Loading collection points..."></app-loading-spinner>
+    </div>
+
+    <!-- Content -->
+    <div *ngIf="!isLoading">
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label for="filter-status" class="filter-label">Status:</label>
+          <select id="filter-status" [(ngModel)]="filterStatus" (change)="onFilterChange()" class="filter-select">
+            <option value="all">All</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+
+        <div class="filter-info">
+          <span class="info-text">{{ filteredCollectionPoints.length }} collection points</span>
+        </div>
+      </div>
+
+      <!-- Collection Points Grid -->
+      <div class="collection-points-section">
+        <h2 class="section-title">Collection Points</h2>
+
+        <div class="collection-points-grid">
+          <app-card
+            *ngFor="let point of filteredCollectionPoints"
+            [hoverable]="true"
+            padding="md"
+            class="collection-point-card"
+            (click)="selectCollectionPoint(point)"
+          >
+            <!-- Header -->
+            <div class="point-header">
+              <span class="point-icon">📍</span>
+              <div class="point-info">
+                <h3 class="point-address">{{ point.adresse }}</h3>
+                <p class="point-id">ID: {{ point.id }}</p>
+              </div>
+            </div>
+
+            <!-- Details -->
+            <div class="point-details">
+              <div class="detail-item">
+                <span class="detail-label">Coordinates:</span>
+                <span class="detail-value">{{ getCoordinatesString(point.location) }}</span>
+              </div>
+
+              <div class="detail-item">
+                <span class="detail-label">Status:</span>
+                <span class="detail-value">
+                  {{ point.active ? 'Active' : 'Inactive' }}
+                </span>
+              </div>
+
+              <div class="detail-item">
+                <span class="detail-label">Bins:</span>
+                <span class="detail-value">{{ getBinCount(point) }}</span>
+              </div>
+            </div>
+          </app-card>
+
+          <div *ngIf="filteredCollectionPoints.length === 0" class="no-items">
+            <p>No collection points match your filters</p>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<!-- Collection Point Details Modal -->
+<app-modal
+  [isOpen]="selectedCollectionPoint !== null"
+  [title]="selectedCollectionPoint ? 'Collection Point Details' : ''"
+  size="md"
+  (close)="deselectCollectionPoint()">
+
+  <div class="point-details-modal" *ngIf="selectedCollectionPoint">
+
+    <div class="detail-section">
+      <div class="detail-icon">📍</div>
+      <h3 class="detail-heading">{{ selectedCollectionPoint.adresse }}</h3>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-row">
+        <span class="detail-label">ID:</span>
+        <span class="detail-value">{{ selectedCollectionPoint.id }}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Coordinates:</span>
+        <span class="detail-value">{{ getCoordinatesString(selectedCollectionPoint.location) }}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Status:</span>
+        <span class="detail-value">
+          {{ selectedCollectionPoint.active ? 'Active' : 'Inactive' }}
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Number of Bins:</span>
+        <span class="detail-value">{{ getBinCount(selectedCollectionPoint) }}</span>
+      </div>
+
+      <div class="detail-row" *ngIf="selectedCollectionPoint.bins && selectedCollectionPoint.bins.length > 0">
+        <span class="detail-label">Associated Bins:</span>
+      </div>
+      
+      <div *ngIf="selectedCollectionPoint.bins && selectedCollectionPoint.bins.length > 0" class="bins-list">
+        <div *ngFor="let bin of selectedCollectionPoint.bins" class="bin-item">
+          {{ bin.type }} - {{ bin.active ? 'Active' : 'Inactive' }}
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-actions">
+      <app-button
+        variant="outline"
+        size="sm"
+        (click)="openEditModal(selectedCollectionPoint)">
+        Edit
+      </app-button>
+
+      <app-button
+        variant="primary"
+        size="sm"
+        (click)="viewBins(selectedCollectionPoint.id)">
+        View Bins
+      </app-button>
+
+      <app-button
+        variant="outline"
+        size="sm"
+        (click)="onDeleteCollectionPoint(selectedCollectionPoint.id)">
+        Delete
+      </app-button>
+    </div>
+
+  </div>
+</app-modal>
+
+<!-- Create / Edit Modal -->
+<app-modal
+  [isOpen]="isFormModalOpen"
+  [title]="formMode === 'create' ? 'Add New Collection Point' : 'Edit Collection Point'"
+  size="md"
+  (close)="closeFormModal()">
+
+  <form (ngSubmit)="onSubmitForm()" class="collection-point-form">
+
+    <div class="form-group">
+      <label class="form-label">Address</label>
+      <input
+        type="text"
+        [(ngModel)]="collectionPointForm.adresse"
+        name="adresse"
+        class="form-input"
+        required
+      >
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Latitude</label>
+      <input
+        type="number"
+        [(ngModel)]="collectionPointForm.location.coordinates[0]"
+        name="latitude"
+        class="form-input"
+        step="0.000001"
+        required
+      >
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Longitude</label>
+      <input
+        type="number"
+        [(ngModel)]="collectionPointForm.location.coordinates[1]"
+        name="longitude"
+        class="form-input"
+        step="0.000001"
+        required
+      >
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select
+        [(ngModel)]="collectionPointForm.active"
+        name="active"
+        class="form-input"
+      >
+        <option [value]="true">Active</option>
+        <option [value]="false">Inactive</option>
+      </select>
+    </div>
+
+    <div class="modal-actions">
+      <app-button
+        type="button"
+        variant="outline"
+        (click)="closeFormModal()">
+        Cancel
+      </app-button>
+      <app-button type="submit" variant="primary">
+        {{ formMode === 'create' ? 'Add Collection Point' : 'Save Changes' }}
+      </app-button>
+    </div>
+
+  </form>
+</app-modal>

@@ -114,7 +114,7 @@
         <app-card padding="lg" class="management-card">
           <div class="card-header">
             <h2 class="card-title">Collection Points & Bins</h2>
-            <a routerLink="/map" class="card-link">View Map →</a>
+            <a routerLink="/admin/collection-points" class="card-link">See All Collection Points →</a>
           </div>
 
           <div class="management-list">
@@ -142,8 +142,8 @@
                 </span>
                 <button
                   class="action-btn"
-                  (click)="openCollectionPointDetails(cp)"
-                  aria-label="View collection point details">
+                  (click)="navigateToBins(cp.id)"
+                  aria-label="View bins for this collection point">
                   🔎
                 </button>
               </div>

@@ -13,8 +13,7 @@ public class BinMapper {
         bin.setCollectionPointId(dto.getCollectionPointId());
         bin.setActive(dto.isActive());
         bin.setType(dto.getType());
-        bin.setReadingIds(dto.getReadingIds());
-        bin.setAlertIds(dto.getAlertIds());
+
         return bin;
     }
 
@@ -24,8 +23,7 @@ public class BinMapper {
         // Update non-primitives only if non-null
         if (dto.getCollectionPointId() != null) existing.setCollectionPointId(dto.getCollectionPointId());
         if (dto.getType() != null) existing.setType(dto.getType());
-        if (dto.getReadingIds() != null) existing.setReadingIds(dto.getReadingIds());
-        if (dto.getAlertIds() != null) existing.setAlertIds(dto.getAlertIds());
+
 
         // Always update primitives
         existing.setActive(dto.isActive());
@@ -38,8 +36,7 @@ public class BinMapper {
         dto.setCollectionPointId(bin.getCollectionPointId());
         dto.setActive(bin.isActive());
         dto.setType(bin.getType());
-        dto.setReadingIds(bin.getReadingIds());
-        dto.setAlertIds(bin.getAlertIds());
+
         return dto;
     }
 }

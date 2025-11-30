@@ -155,15 +155,21 @@ public class AuthController {
 
         // 4️⃣ Create the associated profile
         if (requestedRoles == null || requestedRoles.isEmpty()) {
+            // Par défaut: simple employé
             employeeService.createFromUser(user, signupRequest.getSkill());
         } else {
-            if (requestedRoles.stream().anyMatch(r -> r.equalsIgnoreCase("admin"))) {
+            boolean isAdmin = requestedRoles.stream().anyMatch(r -> r.equalsIgnoreCase("admin"));
+            boolean isUser  = requestedRoles.stream().anyMatch(r -> r.equalsIgnoreCase("user"));
+
+            if (isAdmin) {
+                // Créer uniquement le profil admin pour les admins
                 adminService.createFromUser(user);
-            }
-            if (requestedRoles.stream().anyMatch(r -> r.equalsIgnoreCase("user"))) {
+            } else if (isUser) {
+                // Créer un employé uniquement si ce n\'est pas un admin
                 employeeService.createFromUser(user, signupRequest.getSkill());
             }
         }
+
 
         // Returning password ONLY FOR TEST — will be removed later
         Map<String, Object> response = new HashMap<>();

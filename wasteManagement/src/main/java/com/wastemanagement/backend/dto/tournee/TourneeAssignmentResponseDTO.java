@@ -1,7 +1,8 @@
 package com.wastemanagement.backend.dto.tournee;
 
 import lombok.Data;
-import java.util.Date;
+
+import java.time.Instant;
 
 @Data
 public class TourneeAssignmentResponseDTO {
@@ -9,6 +10,6 @@ public class TourneeAssignmentResponseDTO {
     private String tourneeId;
     private String employeeId;
     private String vehicleId;
-    private Date shiftStart;
-    private Date shiftEnd;
+    private Instant shiftStart;
+    private Instant shiftEnd;
 }

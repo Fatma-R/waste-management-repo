@@ -78,6 +78,7 @@ class AuthControllerIntegrationTest {
         });
     }
 
+    // java
     @Test
     void testUserSignUpSignInAndEmployeeCreation() throws Exception {
         Optional<User> existing = userRepository.findByEmail(testUserEmail);
@@ -85,13 +86,13 @@ class AuthControllerIntegrationTest {
 
         // 1️⃣ signup user (no explicit roles -> ROLE_USER, Employee created)
         String signupJson = """
-                {
-                    "email": "%s",
-                    "password": "%s",
-                    "fullName": "Test User",
-                    "skill": "DRIVER"
-                }
-                """.formatted(testUserEmail, testPassword);
+            {
+                "email": "%s",
+                "password": "%s",
+                "fullName": "Test User",
+                "skill": "DRIVER"
+            }
+            """.formatted(testUserEmail, testPassword);
 
         String signupResponse = mockMvc.perform(post("/api/v1/auth/signup")
                         .contentType("application/json")
@@ -111,18 +112,18 @@ class AuthControllerIntegrationTest {
         assertTrue(createdUser.getRoles().stream()
                 .anyMatch(role -> role.getName() == ERole.ROLE_USER));
 
-        // 3️⃣ Employee linked to User
+        // 3️⃣ Employee linked to User (toujours vrai pour un simple user)
         Employee employee = employeeRepository.findByUser(createdUser)
                 .orElseThrow(() -> new AssertionError("Employee should be created for user signup"));
         assertEquals(Skill.DRIVER, employee.getSkill());
 
-        // 4️⃣ signin to get JWT (we still check payload, even if security is disabled)
+        // 4️⃣ signin to get JWT
         String signinJson = """
-                {
-                    "email": "%s",
-                    "password": "%s"
-                }
-                """.formatted(testUserEmail, testPassword);
+            {
+                "email": "%s",
+                "password": "%s"
+            }
+            """.formatted(testUserEmail, testPassword);
 
         String signinResponse = mockMvc.perform(post("/api/v1/auth/signin")
                         .contentType("application/json")
@@ -148,24 +149,22 @@ class AuthControllerIntegrationTest {
         assertEquals(1, rolesNode.size());
         assertEquals("ROLE_USER", rolesNode.get(0).asText());
 
-        // ⚠️ Security is disabled, so /api/test/user will not return 401.
-        // If you still want, you can keep a simple sanity check like:
         mockMvc.perform(get("/api/test/all"))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void testAdminSignUpCreatesAdminAndEmployeeAndAccess() throws Exception {
+    void testAdminSignUpCreatesOnlyAdminAndNoEmployeeAndAccess() throws Exception {
         // 1️⃣ signup admin with roles ["admin","user"]
         String signupJson = """
-                {
-                    "email": "%s",
-                    "password": "%s",
-                    "fullName": "Test Admin",
-                    "roles": ["admin", "user"],
-                    "skill": "AGENT"
-                }
-                """.formatted(testAdminEmail, testPassword);
+            {
+                "email": "%s",
+                "password": "%s",
+                "fullName": "Test Admin",
+                "roles": ["admin", "user"],
+                "skill": "AGENT"
+            }
+            """.formatted(testAdminEmail, testPassword);
 
         mockMvc.perform(post("/api/v1/auth/signup")
                         .contentType("application/json")
@@ -181,22 +180,23 @@ class AuthControllerIntegrationTest {
         assertTrue(adminUser.getRoles().stream()
                 .anyMatch(role -> role.getName() == ERole.ROLE_USER));
 
-        // 3️⃣ Admin and Employee linked to User
+        // 3️⃣ Admin linked to User, mais **pas** d'Employee
         Admin admin = adminRepository.findByUser(adminUser)
                 .orElseThrow(() -> new AssertionError("Admin should be created for admin signup"));
         assertNotNull(admin);
 
-        Employee employee = employeeRepository.findByUser(adminUser)
-                .orElseThrow(() -> new AssertionError("Employee should be created for admin signup"));
-        assertEquals(Skill.AGENT, employee.getSkill());
+        assertTrue(
+                employeeRepository.findByUser(adminUser).isEmpty(),
+                "Employee should NOT be created for admin signup"
+        );
 
-        // 4️⃣ signin admin (we still validate response)
+        // 4️⃣ signin admin (on valide toujours la réponse)
         String signinJson = """
-                {
-                    "email": "%s",
-                    "password": "%s"
-                }
-                """.formatted(testAdminEmail, testPassword);
+            {
+                "email": "%s",
+                "password": "%s"
+            }
+            """.formatted(testAdminEmail, testPassword);
 
         String signinResponse = mockMvc.perform(post("/api/v1/auth/signin")
                         .contentType("application/json")
@@ -214,9 +214,8 @@ class AuthControllerIntegrationTest {
         assertEquals(2, rolesNode.size());
         assertTrue(rolesNode.toString().contains("ROLE_ADMIN"));
         assertTrue(rolesNode.toString().contains("ROLE_USER"));
-
-        // Security is disabled here, so we don't test access control with/without token.
     }
+
 
     @Test
     void testSignUpWithExistingEmail() throws Exception {

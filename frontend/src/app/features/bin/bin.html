@@ -1,0 +1,225 @@
+<main class="bins-page">
+  <div class="container">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="header-title-section">
+          <div *ngIf="isCollectionPointView" class="back-button-wrapper">
+            <app-button variant="outline" size="sm" (click)="goBackToCollectionPoints()">
+              ← Back to Collection Points
+            </app-button>
+          </div>
+          <h1 class="page-title">
+            {{ isCollectionPointView ? 'Bins - ' + collectionPointAddress : 'Bin Management' }}
+          </h1>
+          <p class="page-subtitle">{{ isCollectionPointView ? 'Manage bins for this collection point' : 'Manage and monitor waste bins' }}</p>
+        </div>
+      </div>
+
+      <div class="page-actions">
+        <app-button variant="outline" (click)="goToDashboard()">
+          📊 Dashboard
+        </app-button>
+        <app-button variant="primary" (click)="openCreateBinModal()">
+          + Add Bin
+        </app-button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="isLoading" class="loading-container">
+      <app-loading-spinner message="Loading bins..."></app-loading-spinner>
+    </div>
+
+    <!-- Content -->
+    <div *ngIf="!isLoading">
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label for="filter-type" class="filter-label">Type:</label>
+          <select id="filter-type" [(ngModel)]="filterType" (change)="onFilterChange()" class="filter-select">
+            <option value="all">All Types</option>
+            <option value="PLASTIC">Plastic</option>
+            <option value="ORGANIC">Organic</option>
+            <option value="PAPER">Paper</option>
+            <option value="GLASS">Glass</option>
+            <option value="METAL">Metal</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="filter-status" class="filter-label">Status:</label>
+          <select id="filter-status" [(ngModel)]="filterStatus" (change)="onFilterChange()" class="filter-select">
+            <option value="all">All</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+
+        <div class="filter-info">
+          <span class="info-text">{{ filteredBins.length }} bins</span>
+        </div>
+      </div>
+
+      <!-- Bin Grid -->
+      <div class="bins-section">
+        <h2 class="section-title">Waste Bins</h2>
+
+        <div class="bins-grid">
+          <app-card
+            *ngFor="let bin of filteredBins"
+            [hoverable]="true"
+            padding="md"
+            class="bin-card"
+            (click)="selectBin(bin)"
+          >
+            <!-- Header -->
+            <div class="bin-header">
+              <span class="bin-icon">
+                {{ getBinTypeIcon(bin.type) }}
+              </span>
+              <div class="bin-info">
+                <h3 class="bin-type">{{ getBinTypeLabel(bin.type) }}</h3>
+                <p class="bin-id">ID: {{ bin.id }}</p>
+              </div>
+            </div>
+
+            <!-- Details -->
+            <div class="bin-details">
+              <div class="detail-item">
+                <span class="detail-label">Collection Point:</span>
+                <span class="detail-value">{{ bin.collectionPointId }}</span>
+              </div>
+
+              <div class="detail-item">
+                <span class="detail-label">Status:</span>
+                <span class="detail-value">
+                  {{ bin.active ? 'Active' : 'Inactive' }}
+                </span>
+              </div>
+            </div>
+          </app-card>
+
+          <div *ngIf="filteredBins.length === 0" class="no-items">
+            <p>No bins match your filters</p>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<!-- Bin Details Modal -->
+<app-modal
+  [isOpen]="selectedBin !== null"
+  [title]="selectedBin ? getBinTypeLabel(selectedBin.type) + ' Bin' : ''"
+  size="md"
+  (close)="deselectBin()">
+
+  <div class="bin-details-modal" *ngIf="selectedBin">
+
+    <div class="detail-section">
+      <div class="detail-icon">{{ getBinTypeIcon(selectedBin.type) }}</div>
+      <h3 class="detail-heading">{{ getBinTypeLabel(selectedBin.type) }}</h3>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-row">
+        <span class="detail-label">ID:</span>
+        <span class="detail-value">{{ selectedBin.id }}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Collection Point:</span>
+        <span class="detail-value">{{ selectedBin.collectionPointId }}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Status:</span>
+        <span class="detail-value">
+          {{ selectedBin.active ? 'Active' : 'Inactive' }}
+        </span>
+      </div>
+
+    </div>
+
+    <div class="modal-actions">
+      <app-button
+        variant="outline"
+        size="sm"
+        (click)="openEditBinModal(selectedBin)">
+        Edit
+      </app-button>
+
+      <app-button
+        variant="primary"
+        size="sm"
+        (click)="viewReadings(selectedBin.id)">
+        View Readings
+      </app-button>
+
+      <app-button
+        variant="outline"
+        size="sm"
+        (click)="onDeleteBin(selectedBin.id)">
+        Delete
+      </app-button>
+    </div>
+
+  </div>
+</app-modal>
+
+<!-- Create / Edit Bin Modal -->
+<app-modal
+  [isOpen]="isBinFormModalOpen"
+  [title]="formMode === 'create' ? 'Add New Bin' : 'Edit Bin'"
+  size="md"
+  (close)="closeBinFormModal()">
+
+  <form (ngSubmit)="onSubmitBinForm()" class="bin-form">
+
+    <div class="form-group">
+      <label class="form-label">Type</label>
+      <select
+        [(ngModel)]="binForm.type"
+        name="type"
+        class="form-input"
+        required
+      >
+        <option value="PLASTIC">Plastic</option>
+        <option value="ORGANIC">Organic</option>
+        <option value="PAPER">Paper</option>
+        <option value="GLASS">Glass</option>
+        <option value="METAL">Metal</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select
+        [(ngModel)]="binForm.active"
+        name="active"
+        class="form-input"
+      >
+        <option [value]="true">Active</option>
+        <option [value]="false">Inactive</option>
+      </select>
+    </div>
+
+    <div class="modal-actions">
+      <app-button
+        type="button"
+        variant="outline"
+        (click)="closeBinFormModal()">
+        Cancel
+      </app-button>
+      <app-button type="submit" variant="primary">
+        {{ formMode === 'create' ? 'Add Bin' : 'Save Changes' }}
+      </app-button>
+    </div>
+
+  </form>
+</app-modal>

@@ -116,11 +116,41 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/v1/employees/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/employees/**").hasRole("ADMIN")
 
+                        // Depot CRUD -> Admin ONLY
+                        .requestMatchers(HttpMethod.POST, "/api/v1/depots/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/depots/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/depots/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/depots/**").hasRole("ADMIN")
+
+                        // Collection point CRUD -> Admin ONLY
+                        .requestMatchers(HttpMethod.POST, "/api/v1/collectionPoints/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/collectionPoints/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/collectionPoints/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/collectionPoints/**").hasRole("ADMIN")
+
+                        // Bins CRUD -> Admin ONLY
+                        .requestMatchers(HttpMethod.POST, "/api/v1/bins/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/bins/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/bins/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/bins/**").hasRole("ADMIN")
+
+                        // Bins CRUD -> Admin ONLY
+                        .requestMatchers(HttpMethod.POST, "/api/v1/bin-readings/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/bin-readings/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/bin-readings/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/bin-readings/**").hasRole("ADMIN")
+
                         // Admin CRUD -> Admin ONLY
                         .requestMatchers(HttpMethod.POST, "/api/v1/admins/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/admins/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/admins/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/admins/**").hasRole("ADMIN")
+
+                        // assignment CRUD -> Admin ONLY
+                        .requestMatchers(HttpMethod.POST, "/api/v1/tournee-assignments/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/tournee-assignments/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/tournee-assignments/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/tournee-assignments/**").hasRole("ADMIN")
 
                         // Tournee CRUD -> Admin ONLY
                         .requestMatchers(HttpMethod.POST, "/api/v1/tournees/**").hasRole("ADMIN")

@@ -1,10 +1,18 @@
 package com.wastemanagement.backend.config;
 
+import com.wastemanagement.backend.model.GeoJSONPoint;
+import com.wastemanagement.backend.model.collection.Bin;
+import com.wastemanagement.backend.model.collection.BinReading;
+import com.wastemanagement.backend.model.collection.CollectionPoint;
+import com.wastemanagement.backend.model.collection.TrashType;
 import com.wastemanagement.backend.model.user.Admin;
 import com.wastemanagement.backend.model.user.ERole;
 import com.wastemanagement.backend.model.user.Role;
+import com.wastemanagement.backend.repository.CollectionPointRepository;
 import com.wastemanagement.backend.repository.RoleRepository;
 import com.wastemanagement.backend.repository.UserRepository;
+import com.wastemanagement.backend.repository.collection.BinReadingRepository;
+import com.wastemanagement.backend.repository.collection.BinRepository;
 import com.wastemanagement.backend.repository.user.AdminRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -13,6 +21,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.wastemanagement.backend.model.user.User;
 
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -24,6 +34,9 @@ public class DatabaseInitializer {
     private final AdminRepository adminRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CollectionPointRepository collectionPointRepository;
+    private final BinRepository binRepository;
+    private final BinReadingRepository binReadingRepository;
 
     @Bean
     CommandLineRunner initDatabase() {
@@ -63,6 +76,43 @@ public class DatabaseInitializer {
 
                 adminRepository.save(admin);
                 System.out.println("Initial admin created: admin@example.com / admin123");
+            }
+            // --- Initialize Collection Point ---
+            if (collectionPointRepository.count() == 0) {
+
+                CollectionPoint cp = new CollectionPoint();
+                cp.setActive(true);
+                cp.setAdresse("Test Address");
+
+                GeoJSONPoint point = new GeoJSONPoint(10.0, 20.0);
+                cp.setLocation(point);
+
+                cp.setBins(new ArrayList<>());
+                collectionPointRepository.save(cp);
+
+                // --- Initialize Bin ---
+                Bin bin = new Bin();
+                bin.setActive(true);
+                bin.setCollectionPointId(cp.getId());
+                bin.setType(TrashType.PLASTIC);
+                bin = binRepository.save(bin);
+
+                // attach bin to cp
+                cp.getBins().add(bin);
+                collectionPointRepository.save(cp);
+
+                // --- Init BinReading ---
+                BinReading reading = new BinReading();
+                reading.setBinId(bin.getId());
+                reading.setTs(new Date());
+                reading.setFillPct(42);
+                reading.setBatteryPct(90);
+                reading.setTemperatureC(27);
+                reading.setSignalDbm(-65);
+
+                binReadingRepository.save(reading);
+
+                System.out.println("Initialized CP + Bin + BinReading for testing");
             }
         };
     }
