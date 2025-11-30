@@ -191,68 +191,76 @@
         <app-card padding="lg" class="management-card">
           <div class="card-header">
             <h2 class="card-title">Vehicles</h2>
-            <a routerLink="/vehicles" class="card-link">Manage →</a>
+            <a routerLink="/admin/vehicles" class="card-link">Manage →</a>
           </div>
 
           <div class="management-list">
             <div
-              *ngFor="let v of vehicles.slice(0, 5)"
-              class="management-item">
+              *ngFor="let v of vehicles.slice(0, 3)"
+              class="management-item"
+            >
               <div class="item-info">
                 <span class="item-icon" aria-hidden="true">🚚</span>
                 <div class="item-details">
                   <span class="item-name">
-                    {{ v.plateNumber }} · {{ v.type }}
+                    {{ v.plateNumber }}
                   </span>
                   <span class="item-meta">
-                    Capacity: {{ v.capacityVolumeL }} L
-                    · {{ v.zoneLabel }}
+                    {{ v.fuelType }}
+                    · {{ v.capacityVolumeL }} L
                   </span>
                 </div>
               </div>
+
               <div class="item-actions">
-                <span
-                  class="status-badge"
-                  [ngClass]="getVehicleStatusClass(v.status)">
+                <span class="status-badge" [ngClass]="getVehicleStatusClass(v.status)">
                   {{ v.status }}
                 </span>
+
                 <button
                   class="action-btn"
                   (click)="openVehicleMaintenanceModal(v)"
-                  aria-label="Register maintenance">
+                  aria-label="Register maintenance"
+                >
                   🛠️
                 </button>
               </div>
             </div>
+
+            <!-- AUCUN véhicule -->
+            <div *ngIf="vehicles.length === 0" class="no-vehicles">
+              <p>No vehicles available</p>
+            </div>
           </div>
         </app-card>
+
+
 
         <!-- Incidents -->
         <app-card padding="lg" class="activity-card">
           <div class="card-header">
             <h2 class="card-title">Recent Incidents</h2>
-            <a routerLink="/incidents" class="card-link">View All →</a>
+            <a routerLink="/admin/incidents" class="card-link">View All →</a>
+
           </div>
 
           <div class="activity-list">
             <div
-              *ngFor="let incident of recentIncidents.slice(0, 6)"
-              class="activity-item">
+              *ngFor="let incident of recentIncidents.slice(0, 3)"
+              class="activity-item"
+            >
               <span class="activity-icon" aria-hidden="true">
                 {{ getIncidentTypeIcon(incident.type) }}
               </span>
+
               <div class="activity-content">
                 <div class="activity-header">
-                  <span class="activity-user">
-                    {{ incident.contextLabel }}
-                  </span>
-                  <span class="activity-time">
-                    {{ formatTimestamp(incident.reportedAt) }}
-                  </span>
+                  <span class="activity-user">{{ incident.contextLabel }}</span>
+                  <span class="activity-time">{{ formatTimestamp(incident.reportedAt) }}</span>
                 </div>
-                <p class="activity-action">
-                  {{ incident.description }}
-                </p>
+
+                <p class="activity-action">{{ incident.description }}</p>
+
                 <p class="activity-details">
                   <span class="status-badge" [ngClass]="getIncidentSeverityClass(incident.severity)">
                     {{ incident.severity }}
@@ -260,14 +268,21 @@
                   <span class="status-badge" [ngClass]="getIncidentStatusClass(incident.status)">
                     {{ incident.status }}
                   </span>
-                  <span *ngIf="incident.reportedBy">
+                  <!--<span *ngIf="incident.reportedBy">
                     · Reported by: {{ incident.reportedBy }}
-                  </span>
+                  </span>-->
                 </p>
               </div>
             </div>
+
+            <!-- Message si aucun incident -->
+            <div *ngIf="recentIncidents.length === 0" class="no-activity">
+              <p>No recent incidents</p>
+            </div>
           </div>
+        
         </app-card>
+
 
         <!-- Activity Logs -->
         <app-card padding="lg" class="activity-card">
@@ -295,6 +310,52 @@
             </div>
           </div>
         </app-card>
+        <!-- Alerts -->
+        <app-card padding="lg" class="activity-card">
+          <div class="card-header">
+            <h2 class="card-title">Recent Alerts</h2>
+            <a routerLink="/admin/alerts" class="card-link">View All →</a>
+          </div>
+
+          <div class="activity-list">
+            <div
+              *ngFor="let alert of alerts.slice(0, 5)"
+              class="activity-item"
+            >
+            <span class="activity-icon" aria-hidden="true">
+              🚨
+            </span>
+
+              <div class="activity-content">
+                <div class="activity-header">
+                  <span class="activity-user">{{ alert.severity }}</span>
+                  <span class="activity-time">{{ formatTimestamp(alert.createdAt) }}</span>
+                </div>
+
+                <p class="activity-action">{{ alert.message }}</p>
+
+                <p class="activity-details">
+                  <span class="status-badge" [ngClass]="{
+                    'status-low': alert.severity === 'LOW',
+                    'status-medium': alert.severity === 'MEDIUM',
+                    'status-high': alert.severity === 'HIGH',
+                    'status-critical': alert.severity === 'CRITICAL'
+                  }">
+                    {{ alert.severity }}
+                  </span>
+                  <span class="status-badge" [ngClass]="alert.resolved ? 'status-resolved' : 'status-open'">
+                    {{ alert.resolved ? 'Resolved' : 'Open' }}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <div *ngIf="alerts.length === 0" class="no-activity">
+              <p>No recent alerts</p>
+            </div>
+          </div>
+        </app-card>
+
 
         <!-- System Controls -->
         <app-card padding="lg" class="controls-card">

@@ -3,11 +3,15 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { environment } from '../../environment/environment.development';
+import { UpdateIncidentDto } from '../../shared/models/incident.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ApiService {
+  patch<T>(arg0: string, dto: UpdateIncidentDto): Observable<import("../../shared/models/incident.model").Incident> {
+    throw new Error('Method not implemented.');
+  }
   private baseUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
