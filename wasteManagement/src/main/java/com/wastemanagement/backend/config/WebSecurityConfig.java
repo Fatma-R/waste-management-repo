@@ -188,6 +188,7 @@ public class WebSecurityConfig {
                         //.requestMatchers(HttpMethod.GET, "/api/v1/employees/me").hasAnyRole("ADMIN","USER")
 
                         // Anything else must be authenticated
+
                         .anyRequest().authenticated()
 
                 )
