@@ -10,4 +10,5 @@ import java.util.List;
 @Repository
 public interface BinRepository extends MongoRepository<Bin, String> {
     List<Bin> findByActiveTrueAndType(TrashType type);
+    Object findByActiveTrue();
 }

@@ -31,6 +31,7 @@ import { Vehicle } from '../../shared/models/vehicle.model';
 
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { BinReadingService } from '../../core/services/bin-reading';
 
 // -----------------------------------------------------
 // Custom Leaflet icons
@@ -130,7 +131,8 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     private collectionPointService: CollectionPointService,
     private tourneeAssignmentService: TourneeAssignmentService,
     private employeeService: EmployeeService,
-    private vehicleService: VehicleService
+    private vehicleService: VehicleService,
+    private binReadingService: BinReadingService
   ) {}
 
   ngOnInit(): void {}
@@ -155,21 +157,20 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // Check if a type is currently selected
-isTypeSelected(type: TrashType): boolean {
-  return this.selectedTypes.includes(type);
-}
-
-// Toggle a type on checkbox change
-onWasteTypeToggle(type: TrashType, checked: boolean): void {
-  if (checked) {
-    if (!this.selectedTypes.includes(type)) {
-      this.selectedTypes = [...this.selectedTypes, type];
-    }
-  } else {
-    this.selectedTypes = this.selectedTypes.filter(t => t !== type);
+  isTypeSelected(type: TrashType): boolean {
+    return this.selectedTypes.includes(type);
   }
-}
 
+  // Toggle a type on checkbox change
+  onWasteTypeToggle(type: TrashType, checked: boolean): void {
+    if (checked) {
+      if (!this.selectedTypes.includes(type)) {
+        this.selectedTypes = [...this.selectedTypes, type];
+      }
+    } else {
+      this.selectedTypes = this.selectedTypes.filter((t) => t !== type);
+    }
+  }
 
   // ------------------------------------------------------------------
   // Map init
@@ -202,7 +203,9 @@ onWasteTypeToggle(type: TrashType, checked: boolean): void {
         }
 
         this.allCollectionPoints = cps || [];
-        this.hasInitialPoints = !!(this.allCollectionPoints && this.allCollectionPoints.length);
+        this.hasInitialPoints = !!(
+          this.allCollectionPoints && this.allCollectionPoints.length
+        );
 
         if (this.depotCoords && this.hasInitialPoints) {
           this.renderInitialMap(this.depotCoords, this.allCollectionPoints);
@@ -245,7 +248,11 @@ onWasteTypeToggle(type: TrashType, checked: boolean): void {
 
     // Tous les points de collecte (actifs + inactifs)
     cps.forEach((cp) => {
-      if (!cp.location || !cp.location.coordinates || cp.location.coordinates.length !== 2) {
+      if (
+        !cp.location ||
+        !cp.location.coordinates ||
+        cp.location.coordinates.length !== 2
+      ) {
         return;
       }
 
@@ -299,7 +306,7 @@ onWasteTypeToggle(type: TrashType, checked: boolean): void {
   }
 
   // ------------------------------------------------------------------
-  // Planning multiple tours (VROOM) – now supports MULTIPLE types
+  // Planning multiple tours (VROOM) – backend multi-types API
   // ------------------------------------------------------------------
   private planTours(): void {
     // no type selected at all
@@ -311,22 +318,19 @@ onWasteTypeToggle(type: TrashType, checked: boolean): void {
     this.isLoading = true;
     this.resetPlanningState(false); // ne touche pas encore à la map
 
-    // One call per selected TrashType
-    const calls = this.selectedTypes.map((type) =>
-      this.tourneeService.planTournee(type, this.threshold).pipe(
+    this.tourneeService
+      .planTournees(this.selectedTypes, this.threshold)
+      .pipe(
         catchError((err) => {
-          // We "swallow" the error for this type and move on
-          console.warn('Error planning tours for type', type, err);
+          console.error('Error planning tours for selected types', err);
+          this.isLoading = false;
+          this.showAssignError(
+            'No tours could be planned for the selected types and threshold.'
+          );
           return of([] as Tournee[]);
         })
       )
-    );
-
-    forkJoin(calls).subscribe({
-      next: (resultPerType: Tournee[][]) => {
-        // Flatten all tours from all types
-        const allTours: Tournee[] = resultPerType.flat();
-
+      .subscribe((allTours: Tournee[]) => {
         if (!allTours.length) {
           this.isLoading = false;
           this.showAssignError(
@@ -336,15 +340,7 @@ onWasteTypeToggle(type: TrashType, checked: boolean): void {
         }
 
         this.loadDepotAndCollectionPointsForTours(allTours);
-      },
-      error: (err) => {
-        // In theory we should not get here because each call catches its own error,
-        // but keep a guard just in case.
-        console.error('Unexpected error when planning tours for multiple types', err);
-        this.isLoading = false;
-        this.showAssignError('Failed to plan tours. Please check backend logs.');
-      }
-    });
+      });
   }
 
   private loadDepotAndCollectionPointsForTours(tournees: Tournee[]): void {
@@ -501,7 +497,7 @@ onWasteTypeToggle(type: TrashType, checked: boolean): void {
   }
 
   // ------------------------------------------------------------------
-  // Auto-assign resources
+  // Auto-assign resources (crew only, vehicle comes from Tournee)
   // ------------------------------------------------------------------
   assignResourcesForAll(): void {
     if (!this.tours.length) {
@@ -521,7 +517,7 @@ onWasteTypeToggle(type: TrashType, checked: boolean): void {
           this.updateTourAssignments(tour, assignments);
         });
         this.isAssigning = false;
-        this.showAssignSuccess('Crew and vehicles assigned to all tours.');
+        this.showAssignSuccess('Crew assigned to all tours.');
       },
       error: (err) => {
         console.error('Error assigning resources for all tours', err);
@@ -545,12 +541,12 @@ onWasteTypeToggle(type: TrashType, checked: boolean): void {
         next: (assignments) => {
           this.updateTourAssignments(tour, assignments);
           tour.isAssigning = false;
-          this.showAssignSuccess('Crew and vehicle assigned to this tour.');
+          this.showAssignSuccess('Crew assigned to this tour.');
         },
         error: (err) => {
           console.error('Error auto-assigning resources for tour', err);
           tour.isAssigning = false;
-          this.showAssignError('Failed to assign crew and vehicle for this tour.');
+          this.showAssignError('Failed to assign crew for this tour.');
         }
       });
   }
@@ -574,23 +570,36 @@ onWasteTypeToggle(type: TrashType, checked: boolean): void {
     tour: TourView,
     assignments: TourneeAssignment[]
   ): void {
-    const vehicleId = assignments[0].vehicleId;
-    const employeeIds = Array.from(new Set(assignments.map((a) => a.employeeId)));
+    // Vehicle now comes from the Tournee itself (plannedVehicleId),
+    // NOT from assignments (we don't set vehicleId there anymore).
+    const plannedVehicleId = (tour.tournee as any).plannedVehicleId as string | undefined;
 
-    const vehicle$ = this.vehicleService.getVehicleById(vehicleId);
+    const employeeIds = Array.from(new Set(assignments.map((a) => a.employeeId)));
     const employees$ = forkJoin(
       employeeIds.map((id) => this.employeeService.getEmployeeById(id))
     );
 
+    // If there is no planned vehicle, just return null in the forkJoin
+    const vehicle$ = plannedVehicleId
+      ? this.vehicleService.getVehicleById(plannedVehicleId).pipe(
+          catchError((err) => {
+            console.error('Failed to load planned vehicle', err);
+            return of(null as unknown as Vehicle);
+          })
+        )
+      : of(null as unknown as Vehicle);
+
     forkJoin({ vehicle: vehicle$, employees: employees$ }).subscribe({
       next: ({ vehicle, employees }) => {
-        if (vehicle) {
+        if (vehicle && (vehicle as any).id) {
           const v = vehicle as Vehicle;
           tour.vehicleDisplay = {
             id: v.id,
             plateNumber: v.plateNumber,
             capacityVolumeL: v.capacityVolumeL
           };
+        } else {
+          tour.vehicleDisplay = null;
         }
 
         tour.crewDisplay = employees.map(
@@ -640,7 +649,11 @@ onWasteTypeToggle(type: TrashType, checked: boolean): void {
     const fallbackLatLngs: L.LatLngExpression[] = [depotLatLng];
 
     this.allCollectionPoints.forEach((cp) => {
-      if (!cp.location || !cp.location.coordinates || cp.location.coordinates.length !== 2) {
+      if (
+        !cp.location ||
+        !cp.location.coordinates ||
+        cp.location.coordinates.length !== 2
+      ) {
         return;
       }
 
@@ -770,85 +783,163 @@ onWasteTypeToggle(type: TrashType, checked: boolean): void {
   }
 
   private createCollectionPointMarker(
-    cp: CollectionPoint,
-    isInActiveTour: boolean
-  ): L.Marker {
-    const isActive = (cp as any).active !== false; // par défaut true si pas défini
-    const icon = isActive ? binIcon : inactiveBinIcon;
+  cp: CollectionPoint,
+  isInActiveTour: boolean
+): L.Marker {
+  const isActive = (cp as any).active !== false; // par défaut true si pas défini
+  const icon = isActive ? binIcon : inactiveBinIcon;
 
-    const popupHtml = this.buildCollectionPointPopup(cp, isInActiveTour, isActive);
+  const [lon, lat] = cp.location.coordinates;
+  const latLng = L.latLng(lat, lon);
 
-    const [lon, lat] = cp.location.coordinates;
-    const latLng = L.latLng(lat, lon);
+  const marker = L.marker(latLng, {
+    title: cp.adresse || cp.id || 'Collection point',
+    icon
+  });
 
-    return L.marker(latLng, {
-      title: cp.adresse || cp.id || 'Collection point',
-      icon
-    }).bindPopup(popupHtml);
-  }
+  // Set a temporary popup while we load latest bin readings
+  marker.bindPopup('<div class="cp-popup">Loading bins...</div>');
+
+  // Build the real popup asynchronously using BinReadingService
+  this.buildCollectionPointPopup(cp, isInActiveTour, isActive, marker);
+
+  return marker;
+}
+
 
   private buildCollectionPointPopup(
-    cp: CollectionPoint,
-    isInActiveTour: boolean,
-    isActive: boolean
-  ): string {
-    const label = cp.adresse || cp.id || 'Collection point';
+  cp: CollectionPoint,
+  isInActiveTour: boolean,
+  isActive: boolean,
+  marker: L.Marker
+): void {
+  const label = cp.adresse || cp.id || 'Collection point';
 
-    let html = `<div class="cp-popup">`;
-    html += `<div class="cp-popup-title">${label}</div>`;
+  // Base container (card style)
+  let baseHtml = `<div style="
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+    max-width: 240px;
+    padding: 6px 8px;
+  ">`;
 
-    html += `<div class="cp-popup-status-row">`;
-    html += `<span class="cp-popup-status-badge ${
-      isActive ? 'cp-popup-status-active' : 'cp-popup-status-inactive'
-    }">${isActive ? 'Active' : 'Inactive'}</span>`;
-    if (isInActiveTour) {
-      html += `<span class="cp-popup-status-badge cp-popup-status-intour">In active tour</span>`;
-    }
-    html += `</div>`;
+  // Title
+  baseHtml += `<div style="font-weight: 600; margin-bottom: 4px;">${label}</div>`;
 
-    // Bins + taux de remplissage (si dispo)
-    const anyCp = cp as any;
-    const bins = (anyCp.bins || []) as any[];
+  // Status badges row
+  baseHtml += `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px;">`;
 
-    if (bins && bins.length) {
-      const perType = new Map<string, number[]>();
+  const statusBg = isActive ? '#DCFCE7' : '#FEE2E2';
+  const statusColor = isActive ? '#166534' : '#991B1B';
 
-      bins.forEach((b) => {
-        const type = b.type || b.trashType || b.binType;
-        if (!type) {
-          return;
-        }
-        const fill =
-          typeof b.fillPct === 'number'
-            ? b.fillPct
-            : typeof b.currentFillPct === 'number'
-            ? b.currentFillPct
-            : typeof b.latestFillPct === 'number'
-            ? b.latestFillPct
-            : null;
+  baseHtml += `<span style="
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: 11px;
+    background: ${statusBg};
+    color: ${statusColor};
+    border: 1px solid rgba(0,0,0,0.06);
+  ">Status: ${isActive ? 'Active' : 'Inactive'}</span>`;
 
-        if (fill == null) {
-          return;
-        }
+  if (isInActiveTour) {
+    baseHtml += `<span style="
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: #DBEAFE;
+      color: #1D4ED8;
+      border: 1px solid rgba(0,0,0,0.06);
+    ">In active tour</span>`;
+  }
 
-        if (!perType.has(type)) {
-          perType.set(type, []);
-        }
-        perType.get(type)!.push(fill);
-      });
+  baseHtml += `</div>`; // end status row
 
-      if (perType.size) {
-        html += `<div class="cp-popup-bins-title">Bins</div>`;
-        html += `<ul class="cp-popup-bins-list">`;
-        perType.forEach((fills, type) => {
-          const avg = fills.reduce((a, b) => a + b, 0) / fills.length;
-          html += `<li>${type}: ${avg.toFixed(0)}%</li>`;
-        });
-        html += `</ul>`;
+  const bins = ((cp as any).bins || []) as any[];
+
+  // No bins at this CP
+  if (!bins.length) {
+    const html =
+      baseHtml +
+      `<div style="margin-top: 4px; font-size: 11px; color: #6B7280;">No bins</div>` +
+      `</div>`;
+    marker.setPopupContent(html);
+    return;
+  }
+
+  // One request per bin to fetch latest reading
+  const readingRequests = bins.map((b) =>
+    this.binReadingService.getLatestBinReadingForBin(b.id).pipe(
+      catchError((err) => {
+        console.error('Error loading latest bin reading for bin', b.id, err);
+        return of(null);
+      })
+    )
+  );
+
+  forkJoin(readingRequests).subscribe((readings) => {
+    const rows: string[] = [];
+
+    bins.forEach((b, index) => {
+      const rawType = b.type || b.trashType || b.binType;
+      if (!rawType) {
+        return;
       }
-    }
 
-    html += `</div>`;
-    return html;
+      const displayType = this.formatTrashTypeLabel(String(rawType));
+      const reading = readings[index] as any;
+
+      let fill: number | null = null;
+      if (reading != null && reading.fillPct != null) {
+        const parsed = Number(reading.fillPct);
+        fill = isNaN(parsed) ? null : parsed;
+      }
+
+      const value = fill != null ? `${fill.toFixed(0)}%` : 'N/A';
+
+      rows.push(`
+        <tr>
+          <td style="padding: 2px 4px; white-space: nowrap; color: #374151;">
+            ${displayType}
+          </td>
+          <td style="padding: 2px 4px; text-align: right; font-weight: 500; color: #111827;">
+            ${value}
+          </td>
+        </tr>
+      `);
+    });
+
+    let html = baseHtml;
+    html += `<div style="margin-top: 4px; font-weight: 600;">Bins</div>`;
+    html += `<table style="width: 100%; border-collapse: collapse; margin-top: 2px;">`;
+    html += rows.join('');
+    html += `</table>`;
+    html += `</div>`; // close container
+
+    marker.setPopupContent(html);
+  });
+}
+
+
+
+
+  private formatTrashTypeLabel(raw: string): string {
+    if (!raw) {
+      return '';
+    }
+    const upper = raw.toUpperCase();
+    switch (upper) {
+      case 'PLASTIC':
+        return 'Plastic';
+      case 'ORGANIC':
+        return 'Organic';
+      case 'GLASS':
+        return 'Glass';
+      case 'PAPER':
+        return 'Paper';
+      default:
+        // Fallback: capitalize first letter, lower the rest
+        return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    }
   }
 }
