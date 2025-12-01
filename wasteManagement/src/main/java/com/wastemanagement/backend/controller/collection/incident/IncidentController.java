@@ -54,6 +54,16 @@ public class IncidentController {
         );
     }
 
+    @PostMapping("/{id}/resolve")
+    public EntityModel<IncidentResponseDTO> resolve(@PathVariable String id) {
+        IncidentResponseDTO response = incidentService.resolveIncident(id);
+
+        return EntityModel.of(
+                response,
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(IncidentController.class).get(id)).withSelfRel()
+        );
+    }
+
     @DeleteMapping("/{id}")
     public void delete(@PathVariable String id) {
         incidentService.deleteIncident(id);

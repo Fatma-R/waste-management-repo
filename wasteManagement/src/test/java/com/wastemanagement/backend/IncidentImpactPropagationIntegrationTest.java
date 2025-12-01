@@ -67,14 +67,14 @@ class IncidentImpactPropagationIntegrationTest {
     }
 
     /**
-     * Test: Incident within 500m radius deactivates nearby collection points' bins
+     * Test: Incident within 500m radius deactivates nearby collection points
      *
      * Scenario:
      * - Incident at (10.5, 45.5)
      * - CP1 at (10.50036, 45.50036) ~5m away - WITHIN radius
      * - CP2 at (10.50900, 45.50900) ~1.4km away - OUTSIDE radius
      *
-     * Expected: Only CP1's bins are deactivated
+     * Expected: Only CP1 is deactivated
      */
     @Test
     void testIncidentDeactivatesBinsWithinGeospatialRadius() {
@@ -114,18 +114,31 @@ class IncidentImpactPropagationIntegrationTest {
         Incident savedIncident = incidentRepository.findById(result.getId()).orElse(null);
         assertNotNull(savedIncident);
 
-        Bin savedBin1 = binRepository.findById(bin1.getId()).orElse(null);
-        Bin savedBin2 = binRepository.findById(bin2.getId()).orElse(null);
+        CollectionPoint savedCpClose = collectionPointRepository.findById(cpClose.getId()).orElse(null);
+        CollectionPoint savedCpFar = collectionPointRepository.findById(cpFar.getId()).orElse(null);
 
-        assertNotNull(savedBin1);
-        assertNotNull(savedBin2);
+        assertNotNull(savedCpClose);
+        assertNotNull(savedCpFar);
 
-        assertFalse(savedBin1.isActive(), "Bin in close collection point should be deactivated");
-        assertTrue(savedBin2.isActive(), "Bin in far collection point should remain active");
+        assertFalse(savedCpClose.isActive(), "Close collection point should be deactivated");
+        assertTrue(savedCpFar.isActive(), "Far collection point should remain active");
+
+        // Bins remain unchanged
+        assertTrue(binRepository.findById(bin1.getId()).orElseThrow().isActive());
+        assertTrue(binRepository.findById(bin2.getId()).orElseThrow().isActive());
+
+        // Resolve incident should reactivate impacted collection point
+        IncidentResponseDTO resolved = incidentService.resolveIncident(result.getId());
+        assertEquals("RESOLVED", resolved.getStatus().name());
+
+        CollectionPoint reactivatedCpClose = collectionPointRepository.findById(cpClose.getId()).orElseThrow();
+        CollectionPoint reactivatedCpFar = collectionPointRepository.findById(cpFar.getId()).orElseThrow();
+        assertTrue(reactivatedCpClose.isActive(), "Close collection point should be reactivated after resolve");
+        assertTrue(reactivatedCpFar.isActive(), "Far collection point should remain active after resolve");
     }
 
     /**
-     * Test: Multiple collection points within radius all get their bins deactivated
+     * Test: Multiple collection points within radius all get deactivated
      *
      * Scenario:
      * - Incident at (10.5, 45.5)
@@ -133,7 +146,7 @@ class IncidentImpactPropagationIntegrationTest {
      * - CP2 at (10.50045, 45.50045) ~7m - WITHIN
      * - CP3 at (10.50090, 45.50090) ~1.4km - OUTSIDE
      *
-     * Expected: CP1 and CP2's bins deactivated, CP3's bins remain active
+     * Expected: CP1 and CP2 deactivated, CP3 remains active
      */
     @Test
     void testMultipleCollectionPointsWithinRadiusAllGetDeactivated() {
@@ -181,13 +194,18 @@ class IncidentImpactPropagationIntegrationTest {
 
         assertNotNull(result);
 
-        Bin savedBin1 = binRepository.findById(bin1.getId()).orElse(null);
-        Bin savedBin2 = binRepository.findById(bin2.getId()).orElse(null);
-        Bin savedBin3 = binRepository.findById(bin3.getId()).orElse(null);
+        CollectionPoint savedCp1 = collectionPointRepository.findById(cp1.getId()).orElseThrow();
+        CollectionPoint savedCp2 = collectionPointRepository.findById(cp2.getId()).orElseThrow();
+        CollectionPoint savedCp3 = collectionPointRepository.findById(cp3.getId()).orElseThrow();
 
-        assertFalse(savedBin1.isActive(), "Bin1 in close CP1 should be deactivated");
-        assertFalse(savedBin2.isActive(), "Bin2 in close CP2 should be deactivated");
-        assertTrue(savedBin3.isActive(), "Bin3 in far CP3 should remain active");
+        assertFalse(savedCp1.isActive(), "CP1 should be deactivated");
+        assertFalse(savedCp2.isActive(), "CP2 should be deactivated");
+        assertTrue(savedCp3.isActive(), "CP3 should remain active");
+
+        // Bins remain unchanged
+        assertTrue(binRepository.findById(bin1.getId()).orElseThrow().isActive());
+        assertTrue(binRepository.findById(bin2.getId()).orElseThrow().isActive());
+        assertTrue(binRepository.findById(bin3.getId()).orElseThrow().isActive());
     }
 
     /**
@@ -250,13 +268,18 @@ class IncidentImpactPropagationIntegrationTest {
         List<CollectionPoint> nearby = collectionPointRepository.findNearby(incidentLocation, 500);
         assertEquals(2, nearby.size(), "Should find exactly 2 collection points within 500m");
 
-        Bin savedBin1 = binRepository.findById(bin1.getId()).orElse(null);
-        Bin savedBin2 = binRepository.findById(bin2.getId()).orElse(null);
-        Bin savedBin3 = binRepository.findById(bin3.getId()).orElse(null);
+        CollectionPoint savedExact = collectionPointRepository.findById(cpExact.getId()).orElseThrow();
+        CollectionPoint savedNear = collectionPointRepository.findById(cpNear.getId()).orElseThrow();
+        CollectionPoint savedFar = collectionPointRepository.findById(cpFar.getId()).orElseThrow();
 
-        assertFalse(savedBin1.isActive(), "Bin in exact location should be deactivated");
-        assertFalse(savedBin2.isActive(), "Bin near location should be deactivated");
-        assertTrue(savedBin3.isActive(), "Bin far from location should remain active");
+        assertFalse(savedExact.isActive(), "Exact location CP should be deactivated");
+        assertFalse(savedNear.isActive(), "Near location CP should be deactivated");
+        assertTrue(savedFar.isActive(), "Far location CP should remain active");
+
+        // Bins remain unchanged
+        assertTrue(binRepository.findById(bin1.getId()).orElseThrow().isActive());
+        assertTrue(binRepository.findById(bin2.getId()).orElseThrow().isActive());
+        assertTrue(binRepository.findById(bin3.getId()).orElseThrow().isActive());
     }
 
     /**
@@ -309,5 +332,37 @@ class IncidentImpactPropagationIntegrationTest {
         assertEquals(2, nearby.size(), "Should find both collection points");
         assertTrue(nearby.stream().anyMatch(cp -> cp.getId().equals(cp1.getId())));
         assertTrue(nearby.stream().anyMatch(cp -> cp.getId().equals(cp2.getId())));
+    }
+
+    /**
+     * Test: Resolving an incident reactivates previously deactivated collection points
+     */
+    @Test
+    void testResolveIncidentReactivatesCollectionPoints() {
+        IncidentRequestDTO incidentDTO = new IncidentRequestDTO();
+        incidentDTO.setDescription("Incident to resolve");
+        incidentDTO.setSeverity(IncidentSeverity.HIGH);
+        GeoJSONPointDTO incidentPoint = new GeoJSONPointDTO();
+        incidentPoint.setCoordinates(new double[]{incidentLocation.getCoordinates()[0], incidentLocation.getCoordinates()[1]});
+        incidentDTO.setLocation(incidentPoint);
+
+        CollectionPoint cpClose = new CollectionPoint();
+        cpClose.setLocation(new GeoJSONPoint(10.50036, 45.50036));
+        cpClose.setActive(true);
+        cpClose.setAdresse("Close Address");
+        collectionPointRepository.save(cpClose);
+
+        IncidentResponseDTO created = incidentService.createIncident(incidentDTO);
+        assertNotNull(created);
+
+        CollectionPoint deactivatedCp = collectionPointRepository.findById(cpClose.getId()).orElseThrow();
+        assertFalse(deactivatedCp.isActive(), "Collection point should be deactivated after incident creation");
+
+        IncidentResponseDTO resolved = incidentService.resolveIncident(created.getId());
+        assertEquals("RESOLVED", resolved.getStatus().name());
+
+        CollectionPoint reactivated = collectionPointRepository.findById(cpClose.getId()).orElseThrow();
+        assertTrue(reactivated.isActive(), "Collection point should be reactivated after incident resolution");
+        assertNotNull(resolved.getResolvedAt(), "Resolved date should be set");
     }
 }

@@ -5,15 +5,15 @@ import com.wastemanagement.backend.dto.collection.incident.IncidentRequestDTO;
 import com.wastemanagement.backend.dto.collection.incident.IncidentResponseDTO;
 import com.wastemanagement.backend.mapper.collection.incident.IncidentMapper;
 import com.wastemanagement.backend.model.collection.incident.Incident;
-import com.wastemanagement.backend.model.collection.Bin;
+import com.wastemanagement.backend.model.collection.incident.IncidentStatus;
 import com.wastemanagement.backend.model.collection.CollectionPoint;
 import com.wastemanagement.backend.repository.collection.incident.IncidentRepository;
 import com.wastemanagement.backend.repository.CollectionPointRepository;
-import com.wastemanagement.backend.repository.collection.BinRepository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,7 +23,6 @@ public class IncidentServiceImpl implements IncidentService {
 
     private final IncidentRepository incidentRepository;
     private final CollectionPointRepository collectionPointRepository;
-    private final BinRepository binRepository;
 
     // Configurable impact radius in meters (default: 500m)
     private static final long INCIDENT_IMPACT_RADIUS_METERS = 500;
@@ -65,6 +64,20 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     @Override
+    public IncidentResponseDTO resolveIncident(String id) {
+        Incident incident = incidentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Incident not found: " + id));
+
+        incident.setStatus(IncidentStatus.RESOLVED);
+        incident.setResolvedAt(Instant.now());
+        incidentRepository.save(incident);
+
+        reactivateImpactedCollectionPoints(incident);
+
+        return IncidentMapper.toResponse(incident);
+    }
+
+    @Override
     public void deleteIncident(String id) {
         if (!incidentRepository.existsById(id)) {
             throw new RuntimeException("Incident not found: " + id);
@@ -73,13 +86,11 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     /**
-     * Handles incident impact propagation by deactivating affected bins.
-     * 
+     * Handles incident impact propagation by deactivating affected collection points.
+     *
      * Process:
      * 1. Find all collection points within the incident's impact radius
-     * 2. For each affected collection point, find all its bins
-     * 3. Set each bin's active flag to false and save
-     * 
+     * 2. Set each impacted collection point's active flag to false and persist
      */
     private void handleIncidentImpact(Incident incident) {
         try {
@@ -92,9 +103,10 @@ public class IncidentServiceImpl implements IncidentService {
             List<CollectionPoint> impactedPoints = collectionPointRepository
                     .findNearby(incident.getLocation(), INCIDENT_IMPACT_RADIUS_METERS);
 
-            // For each impacted collection point, deactivate its bins
+            // For each impacted collection point, deactivate it
             for (CollectionPoint collectionPoint : impactedPoints) {
-                deactivateBinsForCollectionPoint(collectionPoint.getId());
+                collectionPoint.setActive(false);
+                collectionPointRepository.save(collectionPoint);
             }
 
         } catch (Exception e) {
@@ -106,17 +118,19 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     /**
-     * Deactivates all bins associated with a collection point.
-     * 
+     * Reactivates collection points within the incident's impact radius (used when incident is resolved).
      */
-    private void deactivateBinsForCollectionPoint(String collectionPointId) {
-        // Fetch all bins for this collection point
-        List<Bin> bins = binRepository.findByCollectionPointId(collectionPointId);
+    private void reactivateImpactedCollectionPoints(Incident incident) {
+        if (incident.getLocation() == null) {
+            return;
+        }
 
-        // Deactivate each bin and save
-        for (Bin bin : bins) {
-            bin.setActive(false);
-            binRepository.save(bin);
+        List<CollectionPoint> impactedPoints = collectionPointRepository
+                .findNearby(incident.getLocation(), INCIDENT_IMPACT_RADIUS_METERS);
+
+        for (CollectionPoint collectionPoint : impactedPoints) {
+            collectionPoint.setActive(true);
+            collectionPointRepository.save(collectionPoint);
         }
     }
 }

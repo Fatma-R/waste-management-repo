@@ -14,5 +14,7 @@ public interface IncidentService {
 
     IncidentResponseDTO updateIncident(String id, IncidentRequestDTO dto);
 
+    IncidentResponseDTO resolveIncident(String id);
+
     void deleteIncident(String id);
 }
