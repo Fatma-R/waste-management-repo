@@ -18,7 +18,7 @@ public interface CollectionPointRepository extends MongoRepository<CollectionPoi
     $nearSphere: {
       $geometry: ?0,
       $maxDistance: ?1
-    }
+    }   
   }
 }
 """)
