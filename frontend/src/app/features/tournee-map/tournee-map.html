@@ -13,16 +13,29 @@
   <div class="map-container">
     <!-- Filter Bar -->
     <div class="filter-bar">
-      <div class="filter-group">
-        <label for="filter-type" class="filter-label">Waste type:</label>
-        <select
-          id="filter-type"
-          [(ngModel)]="selectedType"
-          class="filter-select">
-          <option *ngFor="let type of trashTypes" [ngValue]="type">
-            {{ type | titlecase }}
-          </option>
-        </select>
+      <!-- Waste types: pretty pill checkboxes -->
+      <div class="filter-group waste-type-group">
+        <span class="filter-label">Waste types:</span>
+        <div class="filter-checkboxes">
+          <label
+            class="filter-checkbox"
+            *ngFor="let type of trashTypes"
+            [ngClass]="'filter-checkbox--' + type">
+
+            <input
+              type="checkbox"
+              class="filter-checkbox-input"
+              [value]="type"
+              [checked]="isTypeSelected(type)"
+              (change)="onWasteTypeToggle(type, $event.target.checked)" />
+
+            <span class="filter-checkbox-box"></span>
+
+            <span class="filter-checkbox-label">
+              {{ type | titlecase }}
+            </span>
+          </label>
+        </div>
       </div>
 
       <div class="filter-group">
@@ -47,7 +60,7 @@
         variant="outline"
         [disabled]="!tours.length || isAssigning"
         (click)="assignResourcesForAll()">
-        {{ isAssigning ? 'Assigning...' : 'Assign crew to all tours' }}
+        {{ isAssigning ? 'Assigning...' : 'Assign crews to all' }}
       </app-button>
     </div>
 
@@ -63,7 +76,7 @@
           </app-loading-spinner>
         </div>
 
-                <!-- Placeholder when no tours AND no initial points -->
+        <!-- Placeholder when no tours AND no initial points -->
         <div
           *ngIf="!isLoading && !tours.length && !hasInitialPoints"
           class="map-overlay">
@@ -71,9 +84,9 @@
             <p class="map-placeholder-icon">🗺️</p>
             <h3 class="map-placeholder-title">Plan collection tours</h3>
             <p class="map-placeholder-text">
-              Select a waste type and threshold, then click "Plan tours" to generate
-              optimized routes from the depot to the collection points that need
-              service.
+              Select one or more waste types and a threshold, then click "Plan tours"
+              to generate optimized routes from the depot to the collection points
+              that need service.
             </p>
           </div>
         </div>
@@ -92,14 +105,17 @@
             <div
               *ngFor="let tourView of tours; let ti = index"
               class="tour-card"
-              [class.tour-active]="ti === activeTourIndex">
-              
+              [class.tour-active]="ti === activeTourIndex"
+              (click)="focusTour(ti, $event)">
+
               <!-- Tour header -->
               <div class="tour-card-header">
                 <div class="tour-main-info">
                   <div class="tour-title">
                     Tour #{{ ti + 1 }}
-                    <span class="tour-type-pill">
+                    <span
+                      class="tour-type-pill"
+                      [ngClass]="'tour-type-pill--' + tourView.tournee.tourneeType">
                       {{ tourView.tournee.tourneeType | titlecase }}
                     </span>
                   </div>
@@ -107,8 +123,19 @@
                     <span>
                       {{ tourView.tournee.plannedKm | number:'1.2-2' }} km
                     </span>
-                    <span *ngIf="tourView.tournee.plannedVehicleId">
-                      · Vehicle: {{ tourView.tournee.plannedVehicleId }}
+                    <span *ngIf="tourView.stops.length">
+                      · {{ tourView.stops.length }} stops
+                    </span>
+                    <span *ngIf="tourView.tournee.status">
+                      · {{ tourView.tournee.status }}
+                    </span>
+                  </div>
+                  <div class="tour-meta" *ngIf="tourView.vehicleDisplay">
+                    <span>
+                      Vehicle: {{ tourView.vehicleDisplay?.plateNumber }}
+                    </span>
+                    <span>
+                      · {{ tourView.vehicleDisplay?.capacityVolumeL | number:'1.0-0' }} L
                     </span>
                   </div>
                 </div>
@@ -116,21 +143,15 @@
                 <div class="tour-card-actions">
                   <app-button
                     size="sm"
-                    variant="ghost"
-                    (click)="focusTour(ti)">
-                    View on map
-                  </app-button>
-                  <app-button
-                    size="sm"
                     variant="outline"
                     [disabled]="tourView.isAssigning"
-                    (click)="assignResourcesForTour(tourView)">
+                    (click)="assignResourcesForTour(tourView, $event)">
                     {{ tourView.isAssigning ? 'Assigning...' : 'Assign crew' }}
                   </app-button>
                   <app-button
                     size="sm"
                     variant="ghost"
-                    (click)="discardTour(tourView, ti)">
+                    (click)="discardTour(tourView, ti); $event.stopPropagation()">
                     Discard
                   </app-button>
                 </div>
@@ -141,7 +162,7 @@
                 <div
                   *ngFor="let stop of tourView.stops"
                   class="bin-item"
-                  (click)="selectStop(ti, stop)"
+                  (click)="selectStop(ti, stop); $event.stopPropagation()"
                   [class.bin-selected]="selectedStop && selectedStop.step.id === stop.step.id && ti === activeTourIndex">
                   <div class="bin-item-header">
                     <span class="bin-icon" aria-hidden="true">
@@ -242,6 +263,12 @@
         <span class="detail-label">Planned distance:</span>
         <span class="detail-value">
           {{ activeTour.tournee.plannedKm | number: '1.2-2' }} km
+        </span>
+      </div>
+      <div class="detail-row" *ngIf="activeTour.tournee.status">
+        <span class="detail-label">Status:</span>
+        <span class="detail-value">
+          {{ activeTour.tournee.status }}
         </span>
       </div>
     </div>

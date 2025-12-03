@@ -31,6 +31,11 @@ public class BinReadingController {
         return service.getById(id);
     }
 
+    @GetMapping("/bin/{binId}/latest")
+    public BinReadingResponseDTO getLatestByBinId(@PathVariable String binId) {
+        return service.findTopByBinIdOrderByTsDesc(binId);
+    }
+
     @DeleteMapping("/{id}")
     public void delete(@PathVariable String id) {
         service.delete(id);
