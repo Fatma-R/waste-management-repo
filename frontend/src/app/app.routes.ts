@@ -17,7 +17,6 @@ import { AdminsComponent } from './features/admins/admins';
 import { VehiclesComponent } from './features/vehicle/vehicle';
 import { IncidentsComponent } from './features/incident/incident';
 import { AlertsComponent } from './features/alert/alert';
-
 // --- From main branch ---
 import { BinComponent } from './features/bin/bin';
 import { CollectionPointComponent } from './features/collection-point/collection-point';
@@ -65,6 +64,7 @@ export const routes: Routes = [
           { path: 'incidents', component: IncidentsComponent },
           { path: 'vehicles', component: VehiclesComponent },
           { path: 'alerts', component: AlertsComponent },
+          { path: 'tournee', component: AlertsComponent },
 
           // ---- Existing MAIN branch routes ----
           { path: 'bins', component: BinComponent },
