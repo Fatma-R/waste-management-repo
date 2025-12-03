@@ -85,18 +85,15 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
 
     @Override
     public List<TourneeAssignmentResponseDTO> autoAssignForTournee(String tourneeId) {
-        log.info("=== Auto-assign crew & vehicle for tournee {} ===", tourneeId);
+        log.info("=== Auto-assign crew (no vehicle) for tournee {} ===", tourneeId);
 
         // 1) Charger la tournée
-        Tournee tournee = tourneeRepository.findById(tourneeId)
-                .orElseThrow(() -> new IllegalArgumentException("Tournee not found"));
+        Tournee tournee = tourneeRepository.findById(tourneeId).orElseThrow(() -> new IllegalArgumentException("Tournee not found"));
 
-        log.info("Loaded tournee id={}, status={}, plannedKm={}",
-                tournee.getId(), tournee.getStatus(), tournee.getPlannedKm());
+        log.info("Loaded tournee id={}, status={}, plannedKm={}", tournee.getId(), tournee.getStatus(), tournee.getPlannedKm());
 
         if (tournee.getStatus() != TourneeStatus.PLANNED) {
-            log.warn("Tournee {} has status {} (expected PLANNED) – aborting auto-assign",
-                    tourneeId, tournee.getStatus());
+            log.warn("Tournee {} has status {} (expected PLANNED) – aborting auto-assign", tourneeId, tournee.getStatus());
             throw new IllegalStateException("Only PLANNED tournees can be assigned");
         }
 
@@ -108,32 +105,29 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
         log.info("Shift window for tournee {} -> start={}, end={} (≈ {} minutes)",
                 tourneeId, shiftStart, shiftEnd, estimatedMillis / 60000);
 
-        // 3) Choisir un véhicule
-        Vehicle vehicle = pickVehicleForTournee(tournee);
-        log.info("Selected vehicle id={} for tournee {}", vehicle.getId(), tourneeId);
-
-        // 4) Choisir 3 employés
+        // 3) Choisir l’équipe
         List<Employee> crew = pickCrewForTournee();
         log.info("Selected crew for tournee {}: {} employees", tourneeId, crew.size());
 
-        // 5) Construire les assignments
+        // 4) Construire les assignments (vehicleId laissé à null)
         List<TourneeAssignment> assignments = new ArrayList<>();
         for (Employee e : crew) {
             TourneeAssignment a = new TourneeAssignment();
             a.setTourneeId(tournee.getId());
-            a.setVehicleId(vehicle.getId());
+            // PAS de véhicule ici. Refactoré dans Tournee.
+            // a.setVehicleId(null); // inutile si le champ est nullable, on laisse tel quel
             a.setEmployeeId(e.getId());
             a.setShiftStart(shiftStart);
             a.setShiftEnd(shiftEnd);
             assignments.add(a);
 
-            log.info("Creating assignment: tourneeId={}, vehicleId={}, employeeId={}, shiftStart={}, shiftEnd={}",
-                    tournee.getId(), vehicle.getId(), e.getId(), shiftStart, shiftEnd);
+            log.info("Creating assignment: tourneeId={}, employeeId={}, shiftStart={}, shiftEnd={}",
+                    tournee.getId(), e.getId(), shiftStart, shiftEnd);
         }
 
-        // 6) Sauvegarder et mapper
+        // 5) Sauvegarder et mapper
         List<TourneeAssignment> saved = repo.saveAll(assignments);
-        log.info("Saved {} assignments for tournee {}", saved.size(), tourneeId);
+        log.info("Saved {} assignments (crew only, no vehicle) for tournee {}", saved.size(), tourneeId);
 
         return saved.stream()
                 .map(TourneeAssignmentMapper::toResponseDTO)
@@ -141,8 +135,8 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
     }
 
     // ---------------------------------------------------------
-    // Helpers internes
-    // ---------------------------------------------------------
+// Helpers internes
+// ---------------------------------------------------------
     private long estimateDurationMillis(Tournee tournee) {
         double plannedKm = tournee.getPlannedKm(); // primitive double
 
@@ -162,19 +156,6 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
         return millis;
     }
 
-    private Vehicle pickVehicleForTournee(Tournee tournee) {
-        log.info("Picking vehicle for tournee {}", tournee.getId());
-        return vehicleRepository.findFirstByStatus(VehicleStatus.AVAILABLE)
-                .map(v -> {
-                    log.info("Found AVAILABLE vehicle: id={}, plate={}", v.getId(), v.getPlateNumber());
-                    return v;
-                })
-                .orElseThrow(() -> {
-                    log.error("No AVAILABLE vehicle for tournee {}", tournee.getId());
-                    return new IllegalStateException("No AVAILABLE vehicle");
-                });
-    }
-
     private List<Employee> pickCrewForTournee() {
         log.info("Picking crew (3 employees) for tournee");
 
@@ -183,7 +164,6 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
 
         log.info("Total employees found in DB = {}", active.size());
         for (Employee e : active) {
-            // toString() de Employee (Lombok @Data ou autre) donnera déjà des infos utiles
             log.info("Candidate employee: {}", e);
         }
 
@@ -200,4 +180,5 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
 
         return crew;
     }
+
 }

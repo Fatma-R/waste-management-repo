@@ -10,7 +10,7 @@ import java.util.List;
 @Repository
 public interface BinRepository extends MongoRepository<Bin, String> {
     List<Bin> findByActiveTrueAndType(TrashType type);
-    
+
     /**
      * Find all bins associated with a specific collection point.
      * 
@@ -18,4 +18,6 @@ public interface BinRepository extends MongoRepository<Bin, String> {
      * @return list of bins for that collection point
      */
     List<Bin> findByCollectionPointId(String collectionPointId);
+
+    Object findByActiveTrue();
 }

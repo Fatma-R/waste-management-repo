@@ -99,5 +99,13 @@ public class BinReadingServiceImpl implements BinReadingService {
         
         alertService.createAlert(alertDTO);
     }
-}
 
+    @Override
+    public BinReadingResponseDTO findTopByBinIdOrderByTsDesc(String binId) {
+        BinReading entity = repository.findTopByBinIdOrderByTsDesc(binId);
+        if (entity == null) {
+            throw new RuntimeException("BinReading not found");
+        }
+        return BinReadingMapper.toResponseDTO(entity);
+    }
+}

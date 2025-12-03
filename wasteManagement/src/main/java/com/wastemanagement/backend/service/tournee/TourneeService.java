@@ -5,6 +5,7 @@ import com.wastemanagement.backend.dto.tournee.TourneeResponseDTO;
 import com.wastemanagement.backend.model.collection.TrashType;
 
 import java.util.List;
+import java.util.Set;
 
 public interface TourneeService {
 
@@ -18,5 +19,11 @@ public interface TourneeService {
 
     void deleteTournee(String id);
 
-    TourneeResponseDTO planTourneeWithVroom(TrashType type, double fillThreshold);
+    List<TourneeResponseDTO> planTourneesWithVroom(TrashType type, double fillThreshold);
+
+    List<TourneeResponseDTO> planTourneesWithVroom(List<TrashType> type, double fillThreshold);
+
+    List<TourneeResponseDTO> planTourneesWithVroom(TrashType type,
+                                                   double fillThreshold,
+                                                   Set<String> forcedCollectionPointIds);
 }

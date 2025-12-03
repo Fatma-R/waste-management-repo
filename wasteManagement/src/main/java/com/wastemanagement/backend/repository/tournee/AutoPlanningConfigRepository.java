@@ -1,9 +1,9 @@
 package com.wastemanagement.backend.repository.tournee;
 
-import com.wastemanagement.backend.model.tournee.TourneeAssignment;
+import com.wastemanagement.backend.model.tournee.auto.AutoPlanningConfig;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface TourneeAssignmentRepository extends MongoRepository<TourneeAssignment, String> {
+public interface AutoPlanningConfigRepository extends MongoRepository<AutoPlanningConfig, String> {
 }

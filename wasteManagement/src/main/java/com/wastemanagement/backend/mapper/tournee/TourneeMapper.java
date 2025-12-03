@@ -22,6 +22,7 @@ public class TourneeMapper {
         tournee.setPlannedCO2(dto.getPlannedCO2());
         tournee.setStartedAt(dto.getStartedAt());
         tournee.setFinishedAt(dto.getFinishedAt());
+        tournee.setPlannedVehicleId(dto.getPlannedVehicleId());
 
         // Map steps
         if (dto.getSteps() != null) {
@@ -55,6 +56,7 @@ public class TourneeMapper {
         // Always update primitives
         existing.setPlannedKm(dto.getPlannedKm());
         existing.setPlannedCO2(dto.getPlannedCO2());
+        existing.setPlannedVehicleId(dto.getPlannedVehicleId());
     }
 
     public static TourneeResponseDTO toResponse(Tournee tournee) {
@@ -69,6 +71,7 @@ public class TourneeMapper {
         dto.setStartedAt(tournee.getStartedAt());
         dto.setFinishedAt(tournee.getFinishedAt());
         dto.setGeometry(tournee.getGeometry());
+        dto.setPlannedVehicleId(tournee.getPlannedVehicleId());
 
 
         // Map steps to response DTOs

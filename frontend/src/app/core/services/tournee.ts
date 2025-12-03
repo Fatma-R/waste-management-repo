@@ -18,13 +18,17 @@ export class TourneeService {
     return this.api.get<Tournee>(`/tournees/${id}`);
   }
 
-  /**
-   * Planifie une tournée via VROOM.
-   * Correspond à POST /api/v1/tournees/plan?type=...&threshold=...
-   */
-  planTournee(type: TrashType, threshold: number): Observable<Tournee> {
-    const url = `/tournees/plan?type=${type}&threshold=${threshold}`;
-    // body vide, on passe tout en query params
-    return this.api.post<Tournee>(url, {});
+  planTournees(types: TrashType[], threshold: number): Observable<Tournee[]> {
+    // Build query string with repeated ?types=...
+    const params = new URLSearchParams();
+    types.forEach(t => params.append('types', t)); // PLASTIC, ORGANIC, ...
+    params.append('threshold', String(threshold));
+    const url = `/tournees/plan?${params.toString()}`;
+    // Body is still empty, everything is in query params
+    return this.api.post<Tournee[]>(url, {});
+  }
+
+  deleteTournee(id: string): Observable<void> {
+    return this.api.delete<void>(`/tournees/${id}`);
   }
 }

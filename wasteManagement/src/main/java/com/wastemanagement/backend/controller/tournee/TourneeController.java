@@ -5,9 +5,12 @@ import com.wastemanagement.backend.dto.tournee.TourneeResponseDTO;
 import com.wastemanagement.backend.model.collection.TrashType;
 import com.wastemanagement.backend.service.tournee.TourneeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/v1/tournees")
@@ -45,18 +48,43 @@ public class TourneeController {
     // planifier une tournée à partir de VROOM
 
     /**
-     * Planifie une tournée pour un type de déchet donné,
+     * Planifie des tournées pour un ou plusieurs types de déchet donné(s),
      * en fonction d’un seuil de remplissage (fillPct),
-     * crée la Tournee en base et retourne le TourneeResponseDTO.
+     * crée les Tournees et retourne les TourneeResponseDTOs.
      *
      * Exemple:
-     * POST /api/v1/tournees/plan?type=PLASTIC&threshold=80
+     * POST /api/v1/tournees/plan?type=PLASTIC&threshold=80 or POST api/v1/tournees/plan?types=ORGANIC&types=PLASTIC&threshold=60
      */
     @PostMapping("/plan")
-    public TourneeResponseDTO planWithVroom(
-            @RequestParam TrashType type,
-            @RequestParam(defaultValue = "80") double threshold
+    public ResponseEntity<List<TourneeResponseDTO>> planTournees(
+            @RequestParam(name = "type", required = false) TrashType type,
+            @RequestParam(name = "types", required = false) List<TrashType> types,
+            @RequestParam(name = "threshold") double threshold
     ) {
-        return tourneeService.planTourneeWithVroom(type, threshold);
+        // 1) Resolve list of types from either `type` or `types`
+        List<TrashType> resolvedTypes = new ArrayList<>();
+
+        if (types != null) {
+            resolvedTypes.addAll(types);
+        }
+        if (type != null) {
+            resolvedTypes.add(type);
+        }
+
+        // Remove nulls & duplicates, just in case
+        resolvedTypes = resolvedTypes.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        if (resolvedTypes.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // 2) Call the new multi-type service method
+        List<TourneeResponseDTO> planned =
+                tourneeService.planTourneesWithVroom(resolvedTypes, threshold);
+
+        return ResponseEntity.ok(planned);
     }
 }

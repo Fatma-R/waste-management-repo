@@ -1,17 +1,41 @@
-<main class="map-page">
+<!-- Toasts --> 
+<div *ngIf="assignSuccessMessage" class="toast toast-success">
+  <span class="toast-icon">✅</span>
+  <span class="toast-text">{{ assignSuccessMessage }}</span>
+</div>
+
+<div *ngIf="assignErrorMessage" class="toast toast-error">
+  <span class="toast-icon">⚠️</span>
+  <span class="toast-text">{{ assignErrorMessage }}</span>
+</div>
+
+<main class="map-page" [class.with-details]="selectedStop">
   <div class="map-container">
     <!-- Filter Bar -->
     <div class="filter-bar">
-      <div class="filter-group">
-        <label for="filter-type" class="filter-label">Waste type:</label>
-        <select
-          id="filter-type"
-          [(ngModel)]="selectedType"
-          class="filter-select">
-          <option *ngFor="let type of trashTypes" [ngValue]="type">
-            {{ type | titlecase }}
-          </option>
-        </select>
+      <!-- Waste types: pretty pill checkboxes -->
+      <div class="filter-group waste-type-group">
+        <span class="filter-label">Waste types:</span>
+        <div class="filter-checkboxes">
+          <label
+            class="filter-checkbox"
+            *ngFor="let type of trashTypes"
+            [ngClass]="'filter-checkbox--' + type">
+            
+            <input
+              type="checkbox"
+              class="filter-checkbox-input"
+              [value]="type"
+              [checked]="isTypeSelected(type)"
+              (change)="onWasteTypeToggle(type, $event.target.checked)" />
+
+            <span class="filter-checkbox-box"></span>
+
+            <span class="filter-checkbox-label">
+              {{ type | titlecase }}
+            </span>
+          </label>
+        </div>
       </div>
 
       <div class="filter-group">
@@ -26,15 +50,17 @@
           step="5" />
       </div>
 
-      <app-button variant="primary" (click)="planTour()">
-        Plan tour
+      <!-- Plan / Discard all -->
+      <app-button variant="primary" (click)="onPlanOrDiscardClick()">
+        {{ tours.length ? 'Discard all tours' : 'Plan tours' }}
       </app-button>
 
+      <!-- Assign crew to all tours -->
       <app-button
         variant="outline"
-        [disabled]="!tournee || isAssigning"
-        (click)="assignResources()">
-        {{ isAssigning ? 'Assigning...' : 'Assign crew' }}
+        [disabled]="!tours.length || isAssigning"
+        (click)="assignResourcesForAll()">
+        {{ isAssigning ? 'Assigning...' : 'Assign crews to all' }}
       </app-button>
     </div>
 
@@ -42,77 +68,132 @@
     <div class="map-content">
       <!-- Map View -->
       <div class="map-view">
-        <!-- Leaflet map ALWAYS present -->
-        <div
-          id="tourneeMap"
-          class="map-canvas">
-        </div>
+        <div id="tourneeMap" class="map-canvas"></div>
 
         <!-- Loading overlay -->
         <div *ngIf="isLoading" class="map-overlay">
-          <app-loading-spinner message="Planning tour and loading map...">
+          <app-loading-spinner message="Planning tours and loading map...">
           </app-loading-spinner>
         </div>
 
-        <!-- Text placeholder when no tour yet -->
+        <!-- Placeholder when no tours AND no initial points -->
         <div
-          *ngIf="!isLoading && !tournee"
+          *ngIf="!isLoading && !tours.length && !hasInitialPoints"
           class="map-overlay">
           <div class="map-placeholder-content">
             <p class="map-placeholder-icon">🗺️</p>
-            <h3 class="map-placeholder-title">Plan a collection tour</h3>
+            <h3 class="map-placeholder-title">Plan collection tours</h3>
             <p class="map-placeholder-text">
-              Select a waste type and threshold, then click "Plan tour" to generate
-              an optimized route from the depot to the collection points that need
-              service.
+              Select one or more waste types and a threshold, then click "Plan tours"
+              to generate optimized routes from the depot to the collection points
+              that need service.
             </p>
           </div>
         </div>
       </div>
 
-      <!-- Stops Sidebar -->
+      <!-- Tours + Stops Sidebar -->
       <div class="bins-sidebar">
         <app-card padding="md" class="bins-list-card">
           <h2 class="sidebar-title">
-            Stops
-            <span *ngIf="tournee">({{ stops.length }})</span>
+            Planned tours
+            <span *ngIf="tours.length">({{ tours.length }})</span>
           </h2>
 
-          <div class="bins-list" *ngIf="tournee">
+          <div *ngIf="tours.length; else noTours" class="tours-list">
             <div
-              *ngFor="let stop of stops"
-              class="bin-item"
-              (click)="selectStop(stop)"
-              [class.bin-selected]="selectedStop && selectedStop.step.id === stop.step.id">
-              <div class="bin-item-header">
-                <span
-                  class="bin-icon"
-                  aria-hidden="true">
-                  {{ getTrashTypeIcon(tournee.tourneeType) }}
-                </span>
-                <div class="bin-info">
-                  <span class="bin-id">
-                    Stop #{{ stop.step.order }}
-                  </span>
-                  <span class="bin-type">
-                    {{ stop.collectionPoint.adresse || stop.collectionPoint.id }}
-                  </span>
+              *ngFor="let tourView of tours; let ti = index"
+              class="tour-card"
+              [class.tour-active]="ti === activeTourIndex"
+              (click)="focusTour(ti, $event)">
+              
+              <!-- Tour header -->
+              <div class="tour-card-header">
+                <div class="tour-main-info">
+                  <div class="tour-title">
+                    Tour #{{ ti + 1 }}
+                    <span
+                      class="tour-type-pill"
+                      [ngClass]="'tour-type-pill--' + tourView.tournee.tourneeType">
+                      {{ tourView.tournee.tourneeType | titlecase }}
+                    </span>
+                  </div>
+                  <div class="tour-meta">
+                    <span>
+                      {{ tourView.tournee.plannedKm | number:'1.2-2' }} km
+                    </span>
+                    <span *ngIf="tourView.stops.length">
+                      · {{ tourView.stops.length }} stops
+                    </span>
+                    <span *ngIf="tourView.tournee.status">
+                      · {{ tourView.tournee.status }}
+                    </span>
+                  </div>
+                  <div class="tour-meta" *ngIf="tourView.vehicleDisplay">
+                    <span>
+                      Vehicle: {{ tourView.vehicleDisplay?.plateNumber }}
+                    </span>
+                    <span>
+                      · {{ tourView.vehicleDisplay?.capacityVolumeL | number:'1.0-0' }} L
+                    </span>
+                  </div>
+                </div>
+
+                <div class="tour-card-actions">
+                  <app-button
+                    size="sm"
+                    variant="outline"
+                    [disabled]="tourView.isAssigning"
+                    (click)="assignResourcesForTour(tourView, $event)">
+                    {{ tourView.isAssigning ? 'Assigning...' : 'Assign crew' }}
+                  </app-button>
+                  <app-button
+                    size="sm"
+                    variant="ghost"
+                    (click)="discardTour(tourView, ti); $event.stopPropagation()">
+                    Discard
+                  </app-button>
                 </div>
               </div>
 
-              <span [class]="getStatusBadgeClass(stop.step.status)">
-                {{ stop.step.status }}
-              </span>
-            </div>
+              <!-- Steps for this tour -->
+              <div class="tour-steps">
+                <div
+                  *ngFor="let stop of tourView.stops"
+                  class="bin-item"
+                  (click)="selectStop(ti, stop); $event.stopPropagation()"
+                  [class.bin-selected]="selectedStop && selectedStop.step.id === stop.step.id && ti === activeTourIndex">
+                  <div class="bin-item-header">
+                    <span class="bin-icon" aria-hidden="true">
+                      {{ getTrashTypeIcon(tourView.tournee.tourneeType) }}
+                    </span>
+                    <div class="bin-info">
+                      <span class="bin-id">
+                        Stop #{{ stop.step.order }}
+                      </span>
+                      <span class="bin-type">
+                        {{ stop.collectionPoint.adresse || stop.collectionPoint.id }}
+                      </span>
+                    </div>
+                  </div>
 
-            <div *ngIf="stops.length === 0" class="no-bins">
-              <p>No collection points in this tour.</p>
+                  <span [class]="getStatusBadgeClass(stop.step.status)">
+                    {{ stop.step.status }}
+                  </span>
+                </div>
+
+                <div *ngIf="!tourView.stops.length" class="no-bins">
+                  <p>No collection points in this tour.</p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div *ngIf="!tournee" class="no-bins">
-            <p>No tour planned yet.</p>
-          </div>
+          <ng-template #noTours>
+            <div class="no-bins">
+              <p>No tours planned yet.</p>
+            </div>
+          </ng-template>
         </app-card>
       </div>
     </div>
@@ -123,7 +204,7 @@
 <div
   class="details-panel"
   [class.panel-open]="selectedStop"
-  *ngIf="selectedStop">
+  *ngIf="selectedStop && activeTour">
   <div class="panel-header">
     <h2 class="panel-title">Collection point details</h2>
     <button
@@ -137,7 +218,7 @@
   <div class="panel-content">
     <div class="detail-section">
       <div class="detail-icon">
-        {{ tournee ? getTrashTypeIcon(tournee.tourneeType) : '🗑️' }}
+        {{ activeTour ? getTrashTypeIcon(activeTour.tournee.tourneeType) : '🗑️' }}
       </div>
       <h3 class="detail-heading">
         Stop #{{ selectedStop.step.order }}
@@ -171,46 +252,72 @@
 
     <div class="detail-section">
       <h4 class="detail-subheading">Tour info</h4>
-      <div class="detail-row" *ngIf="tournee">
+      <div class="detail-row">
         <span class="detail-label">Tour type:</span>
         <span class="detail-value">
-          {{ tournee.tourneeType | titlecase }}
+          {{ activeTour.tournee.tourneeType | titlecase }}
         </span>
       </div>
-      <div class="detail-row" *ngIf="tournee">
+      <div class="detail-row">
         <span class="detail-label">Planned distance:</span>
         <span class="detail-value">
-          {{ tournee.plannedKm | number: '1.2-2' }} km
+          {{ activeTour.tournee.plannedKm | number: '1.2-2' }} km
+        </span>
+      </div>
+      <div class="detail-row" *ngIf="activeTour.tournee.status">
+        <span class="detail-label">Status:</span>
+        <span class="detail-value">
+          {{ activeTour.tournee.status }}
         </span>
       </div>
     </div>
 
     <!-- Assigned resources -->
-    <div class="detail-section" *ngIf="assignments.length">
+    <div
+      class="detail-section"
+      *ngIf="activeTour.assignments && activeTour.assignments.length">
       <h4 class="detail-subheading">Assigned resources</h4>
 
+      <!-- Vehicle info -->
       <div class="detail-row">
         <span class="detail-label">Vehicle:</span>
-        <span class="detail-value">
-          {{ assignments[0]?.vehicleId }}
+        <span class="detail-value" *ngIf="activeTour.vehicleDisplay; else vehicleIdOnly">
+          {{ activeTour.vehicleDisplay?.plateNumber }}
+          ·
+          {{ activeTour.vehicleDisplay?.capacityVolumeL | number:'1.0-0' }} L
         </span>
+        <ng-template #vehicleIdOnly>
+          <span class="detail-value">
+            {{ activeTour.assignments[0]?.vehicleId }}
+          </span>
+        </ng-template>
       </div>
 
+      <!-- Crew list -->
       <div class="detail-row">
         <span class="detail-label">Crew:</span>
         <span class="detail-value">
-          <ng-container *ngFor="let a of assignments; let i = index">
-            {{ a.employeeId }}<span *ngIf="i < assignments.length - 1">, </span>
-          </ng-container>
+          <div class="crew-list">
+            <div class="crew-chip" *ngFor="let c of activeTour.crewDisplay">
+              <div class="crew-avatar">
+                {{ c.fullName ? (c.fullName | slice:0:1) : '👤' }}
+              </div>
+              <div class="crew-info">
+                <div class="crew-name">{{ c.fullName }}</div>
+                <div class="crew-role">{{ c.role }}</div>
+              </div>
+            </div>
+          </div>
         </span>
       </div>
 
+      <!-- Shift -->
       <div class="detail-row">
         <span class="detail-label">Shift:</span>
         <span class="detail-value">
-          {{ assignments[0]?.shiftStart | date:'short' }}
+          {{ activeTour.assignments[0]?.shiftStart | date:'short' }}
           –
-          {{ assignments[0]?.shiftEnd | date:'short' }}
+          {{ activeTour.assignments[0]?.shiftEnd | date:'short' }}
         </span>
       </div>
     </div>

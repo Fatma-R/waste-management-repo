@@ -28,4 +28,8 @@ export class BinReadingService {
   deleteBinReading(id: string): Observable<void> {
     return this.api.delete<void>(`/bin-readings/${id}`);
   }
+
+  getLatestBinReadingForBin(binId: string): Observable<BinReading> {
+    return this.api.get<BinReading>(`/bin-readings/bin/${binId}/latest`);
+  }
 }

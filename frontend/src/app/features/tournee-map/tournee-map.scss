@@ -4,6 +4,17 @@
   background: var(--color-off-white);
 }
 
+/* Quand le panneau de détails est ouvert, on laisse de l'espace à droite */
+.map-page.with-details .map-content {
+  margin-right: 400px;
+}
+
+@media (max-width: 768px) {
+  .map-page.with-details .map-content {
+    margin-right: 0;
+  }
+}
+
 .map-container {
   height: calc(100vh - 70px);
   display: flex;
@@ -54,6 +65,129 @@
   }
 }
 
+/* --- Pretty pill checkboxes for waste types --- */
+
+.waste-type-group {
+  align-items: flex-start;
+}
+
+.filter-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+/* One pill */
+.filter-checkbox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.8rem 0.25rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-sand);
+  background: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease,
+    transform 0.05s ease;
+
+  &:hover {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+  }
+}
+
+/* Real checkbox – invisible but accessible */
+.filter-checkbox-input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  cursor: pointer;
+}
+
+/* Small colored circle before label */
+.filter-checkbox-box {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid var(--color-sand);
+  background: white;
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+/* Label text */
+.filter-checkbox-label {
+  cursor: pointer;
+  color: var(--color-grey-dark);
+  text-transform: capitalize;
+  font-weight: 500;
+}
+
+/* Checked state generic */
+.filter-checkbox-input:checked + .filter-checkbox-box {
+  transform: scale(1.05);
+}
+
+.filter-checkbox-input:checked ~ .filter-checkbox-label {
+  font-weight: 600;
+}
+
+/* Per-type colors */
+
+/* PLASTIC – flashy yellow */
+.filter-checkbox--PLASTIC .filter-checkbox-input:checked + .filter-checkbox-box {
+  background: #efff00;
+  border-color: #efff00;
+}
+
+.filter-checkbox--PLASTIC .filter-checkbox-input:checked ~ .filter-checkbox-label {
+  color: #854d0e;
+}
+
+/* ORGANIC – brown */
+.filter-checkbox--ORGANIC .filter-checkbox-input:checked + .filter-checkbox-box {
+  background: #92400e;
+  border-color: #92400e;
+}
+
+.filter-checkbox--ORGANIC .filter-checkbox-input:checked ~ .filter-checkbox-label {
+  color: #78350f;
+}
+
+/* PAPER – blue */
+.filter-checkbox--PAPER .filter-checkbox-input:checked + .filter-checkbox-box {
+  background: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.filter-checkbox--PAPER .filter-checkbox-input:checked ~ .filter-checkbox-label {
+  color: #1d4ed8;
+}
+
+/* GLASS – green */
+.filter-checkbox--GLASS .filter-checkbox-input:checked + .filter-checkbox-box {
+  background: #22c55e;
+  border-color: #22c55e;
+}
+
+.filter-checkbox--GLASS .filter-checkbox-input:checked ~ .filter-checkbox-label {
+  color: #15803d;
+}
+
+/* Mobile tweaks */
+@media (max-width: 768px) {
+  .filter-checkboxes {
+    gap: 0.25rem;
+  }
+
+  .filter-checkbox {
+    padding: 0.2rem 0.6rem 0.2rem 0.45rem;
+    font-size: 0.8rem;
+  }
+}
+
 // Map Content
 .map-content {
   flex: 1;
@@ -82,24 +216,16 @@
 /* Common overlay (loading + placeholder text) */
 .map-overlay {
   position: absolute;
-  inset: 0; // top, right, bottom, left: 0;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: $spacing-lg;
-  pointer-events: none; // let map interactions through
+  pointer-events: none;
 
   .map-placeholder-content {
-    pointer-events: auto; // allow selection / buttons if needed
+    pointer-events: auto;
   }
-}
-
-/* You can keep this if reused elsewhere, but not needed for the map container now */
-.map-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
 }
 
 .map-placeholder-content {
@@ -125,57 +251,7 @@
   line-height: 1.6;
 }
 
-.map-markers-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: $spacing-sm;
-  margin-top: $spacing-lg;
-  max-width: 500px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.map-marker {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: $spacing-sm;
-  background: white;
-  border-radius: $radius-sm;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 2px solid transparent;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: $shadow-md;
-  }
-  
-  &.marker-green {
-    border-color: var(--color-green);
-  }
-  
-  &.marker-amber {
-    border-color: var(--color-amber);
-  }
-  
-  &.marker-red {
-    border-color: var(--color-red);
-  }
-}
-
-.marker-icon {
-  font-size: 2rem;
-  margin-bottom: 0.25rem;
-}
-
-.marker-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-grey-dark);
-}
-
-// Bins Sidebar
+// Sidebar
 .bins-sidebar {
   background: white;
   border-left: 1px solid var(--color-sand);
@@ -201,6 +277,106 @@
   margin-bottom: $spacing-md;
 }
 
+// Tours list
+.tours-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.tour-card {
+  border-radius: $radius-md;
+  padding: $spacing-sm;
+  background: var(--color-sand-light);
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--color-green);
+    background: white;
+  }
+
+  &.tour-active {
+    background: white;
+    border-color: var(--color-green);
+    box-shadow: $shadow-sm;
+  }
+}
+
+.tour-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-sm;
+}
+
+.tour-main-info {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.tour-title {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-weight: 600;
+  color: var(--color-grey-dark);
+}
+
+.tour-type-pill {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Couleurs par type de tournée */
+.tour-type-pill--PLASTIC {
+  background: rgba(250, 204, 21, 0.16); // jaune
+  color: #854d0e;
+}
+
+.tour-type-pill--ORGANIC {
+  background: rgba(132, 76, 19, 0.16); // brun
+  color: #78350f;
+}
+
+.tour-type-pill--PAPER {
+  background: rgba(59, 130, 246, 0.16); // bleu
+  color: #1d4ed8;
+}
+
+.tour-type-pill--GLASS {
+  background: rgba(34, 197, 94, 0.16); // vert
+  color: #15803d;
+}
+
+.tour-meta {
+  font-size: 0.75rem;
+  color: var(--color-grey);
+  display: flex;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
+}
+
+.tour-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  align-items: flex-end;
+}
+
+.tour-steps {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+// Stops / bins
 .bins-list {
   display: flex;
   flex-direction: column;
@@ -289,23 +465,25 @@
 // Details Panel
 .details-panel {
   position: fixed;
-  top: 0;
+  top: 61px; // same height as your navbar
   right: -400px;
   width: 400px;
-  height: 100vh;
+  height: calc(100vh - 61px); // panel fits exactly under the navbar
   background: white;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
   transition: right 0.3s ease;
-  z-index: 200;
+  z-index: 1500; // above map/sidebar, below/to match navbar
   overflow-y: auto;
-  
+
   &.panel-open {
     right: 0;
   }
-  
+
   @media (max-width: 768px) {
-    width: 100%;
+    top: 70px;
     right: -100%;
+    width: 100%;
+    height: calc(100vh - 70px);
   }
 }
 
@@ -402,48 +580,134 @@
   text-transform: capitalize;
 }
 
-.detail-actions {
+// Toasts
+.toast {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  z-index: 500;
   display: flex;
-  gap: $spacing-sm;
-  margin-top: $spacing-lg;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  background: white;
+  box-shadow: $shadow-md;
+  font-size: 0.875rem;
 }
 
-// Add Bin Form (kept for later if you reuse it)
-.add-bin-form {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-md;
+.toast-icon {
+  font-size: 1.1rem;
 }
 
-.form-group {
+.toast-text {
+  font-weight: 500;
+  color: var(--color-grey-dark);
+}
+
+.toast-success {
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.toast-error {
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+// Crew chips
+.crew-list {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: $spacing-xs;
 }
 
-.form-label {
-  font-weight: 500;
-  color: var(--color-grey-dark);
-  font-size: 0.938rem;
-}
-
-.form-input {
-  padding: 0.75rem 1rem;
-  border: 2px solid var(--color-sand);
-  border-radius: $radius-md;
-  font-size: 1rem;
-  transition: border-color 0.2s ease;
-  font-family: 'Open Sans', sans-serif;
-  
-  &:focus {
-    outline: none;
-    border-color: var(--color-green);
-  }
-}
-
-.modal-actions {
+.crew-chip {
   display: flex;
-  justify-content: flex-end;
-  gap: $spacing-sm;
-  margin-top: $spacing-md;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  background: var(--color-sand-light);
+}
+
+.crew-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--color-green);
+  color: white;
+}
+
+.crew-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.crew-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.crew-role {
+  font-size: 0.7rem;
+  color: var(--color-grey);
+}
+
+/* Popup collection point (Leaflet) */
+.cp-popup {
+  font-size: 0.8rem;
+  max-width: 220px;
+}
+
+.cp-popup-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--color-grey-dark);
+}
+
+.cp-popup-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.35rem;
+}
+
+.cp-popup-status-badge {
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.cp-popup-status-active {
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
+}
+
+.cp-popup-status-inactive {
+  background: rgba(107, 114, 128, 0.15);
+  color: #374151;
+}
+
+.cp-popup-status-intour {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1d4ed8;
+}
+
+.cp-popup-bins-title {
+  margin-top: 0.25rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--color-grey-dark);
+}
+
+.cp-popup-bins-list {
+  margin: 0.1rem 0 0;
+  padding-left: 1rem;
+  list-style: disc;
+  color: var(--color-grey-dark);
 }
