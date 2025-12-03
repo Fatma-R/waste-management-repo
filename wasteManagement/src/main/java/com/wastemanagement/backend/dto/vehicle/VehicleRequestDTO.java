@@ -1,5 +1,6 @@
 package com.wastemanagement.backend.dto.vehicle;
 
+import com.wastemanagement.backend.model.GeoJSONPoint;
 import com.wastemanagement.backend.model.vehicle.FuelType;
 import com.wastemanagement.backend.model.vehicle.VehicleStatus;
 import lombok.AllArgsConstructor;
@@ -12,7 +13,7 @@ import lombok.NoArgsConstructor;
 public class VehicleRequestDTO {
     private String plateNumber;
     private double capacityVolumeL;
-    private double[] coordinates;
+    private GeoJSONPoint currentLocation;
     private FuelType fuelType;
     private VehicleStatus status;
 }

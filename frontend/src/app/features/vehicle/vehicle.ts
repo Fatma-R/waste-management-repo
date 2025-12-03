@@ -7,7 +7,7 @@ import { ModalComponent } from '../../shared/components/modal/modal';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner';
 import { VehicleService } from '../../core/services/vehicle';
 import { NotificationService } from '../../core/services/notification';
-import { Vehicle, CreateVehicleDto, UpdateVehicleDto, VehicleStatus, FuelType, Coordinates, GeoJSONPoint } from '../../shared/models/vehicle.model';
+import { Vehicle, CreateVehicleDto, UpdateVehicleDto, VehicleStatus, FuelType} from '../../shared/models/vehicle.model';
 
 @Component({
   selector: 'app-vehicles',
@@ -36,7 +36,7 @@ export class VehiclesComponent implements OnInit {
   vehicleForm: CreateVehicleDto = {
     plateNumber: '',
     capacityVolumeL: 0,
-    coordinates: { longitude: 0, latitude: 0 }, // <-- utilisé pour formulaire
+    currentLocation: { coordinates: [0, 0], type: 'Point' }, // <-- utilisé pour formulaire
     fuelType: 'DIESEL',
     status: 'AVAILABLE'
   };
@@ -88,9 +88,9 @@ export class VehiclesComponent implements OnInit {
     this.vehicleForm = {
       plateNumber: vehicle.plateNumber,
       capacityVolumeL: vehicle.capacityVolumeL,
-      coordinates: {
-        longitude: vehicle.coordinates?.coordinates[0] || 0,
-        latitude: vehicle.coordinates?.coordinates[1] || 0
+      currentLocation: {
+        coordinates: [vehicle.currentLocation?.coordinates[0] || 0, vehicle.currentLocation?.coordinates[1] || 0],
+        type: 'Point'
       },
       fuelType: vehicle.fuelType,
       status: vehicle.status
@@ -110,7 +110,7 @@ export class VehiclesComponent implements OnInit {
     this.vehicleForm = {
       plateNumber: '',
       capacityVolumeL: 0,
-      coordinates: { longitude: 0, latitude: 0 },
+      currentLocation: { coordinates: [0, 0], type: 'Point' },
       fuelType: 'DIESEL',
       status: 'AVAILABLE'
     };
@@ -199,13 +199,13 @@ export class VehiclesComponent implements OnInit {
     return new Date(iso).toLocaleString();
   }
   getLatitude(vehicle: Vehicle | null): number | null {
-    if (!vehicle || !vehicle.coordinates || !vehicle.coordinates.coordinates) return null;
-    return vehicle.coordinates.coordinates[1]; // Latitude est à l'index 1
+    if (!vehicle || !vehicle.currentLocation || !vehicle.currentLocation.coordinates) return null;
+    return vehicle.currentLocation.coordinates[1]; // Latitude est à l'index 1
   }
 
   getLongitude(vehicle: Vehicle | null): number | null {
-    if (!vehicle || !vehicle.coordinates || !vehicle.coordinates.coordinates) return null;
-    return vehicle.coordinates.coordinates[0]; // Longitude est à l'index 0
+    if (!vehicle || !vehicle.currentLocation || !vehicle.currentLocation.coordinates) return null;
+    return vehicle.currentLocation.coordinates[0]; // Longitude est à l'index 0
   }
 
 }
