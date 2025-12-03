@@ -1,4 +1,4 @@
-<!-- Toasts --> 
+<!-- Toasts -->
 <div *ngIf="assignSuccessMessage" class="toast toast-success">
   <span class="toast-icon">✅</span>
   <span class="toast-text">{{ assignSuccessMessage }}</span>
@@ -21,7 +21,7 @@
             class="filter-checkbox"
             *ngFor="let type of trashTypes"
             [ngClass]="'filter-checkbox--' + type">
-            
+
             <input
               type="checkbox"
               class="filter-checkbox-input"
@@ -90,6 +90,7 @@
             </p>
           </div>
         </div>
+
       </div>
 
       <!-- Tours + Stops Sidebar -->
@@ -106,7 +107,7 @@
               class="tour-card"
               [class.tour-active]="ti === activeTourIndex"
               (click)="focusTour(ti, $event)">
-              
+
               <!-- Tour header -->
               <div class="tour-card-header">
                 <div class="tour-main-info">

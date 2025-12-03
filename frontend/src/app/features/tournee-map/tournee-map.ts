@@ -93,6 +93,7 @@ interface TourView {
     CommonModule,
     FormsModule,
     CardComponent,
+    Input,
     ButtonComponent,
     LoadingSpinnerComponent
   ],
@@ -103,6 +104,9 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private map!: L.Map;
   private layerGroup!: L.LayerGroup;
   private depotCoords: [number, number] | null = null;
+
+  @Input() tournees: Tournee[] | null = null;
+  @Input() collectionPoints: CollectionPoint[] | null = null;
 
   /** All collection points (active + inactive), always rendered on map */
   allCollectionPoints: CollectionPoint[] = [];
@@ -572,24 +576,29 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   ): void {
     // Vehicle now comes from the Tournee itself (plannedVehicleId),
     // NOT from assignments (we don't set vehicleId there anymore).
-    const plannedVehicleId = (tour.tournee as any).plannedVehicleId as string | undefined;
+    const plannedVehicleId = (tour.tournee as any)
+      .plannedVehicleId as string | undefined;
 
-    const employeeIds = Array.from(new Set(assignments.map((a) => a.employeeId)));
+    const employeeIds = Array.from(
+      new Set(assignments.map((a) => a.employeeId))
+    );
     const employees$ = forkJoin(
       employeeIds.map((id) => this.employeeService.getEmployeeById(id))
     );
 
     // If there is no planned vehicle, just return null in the forkJoin
     const vehicle$ = plannedVehicleId
-      ? this.vehicleService.getVehicleById(plannedVehicleId).pipe(
-          catchError((err) => {
-            console.error('Failed to load planned vehicle', err);
-            return of(null as unknown as Vehicle);
-          })
-        )
+      ? this.vehicleService
+          .getVehicleById(plannedVehicleId)
+          .pipe(
+            catchError((err) => {
+              console.error('Failed to load planned vehicle', err);
+              return of(null as unknown as Vehicle);
+            })
+          )
       : of(null as unknown as Vehicle);
 
-    forkJoin({ vehicle: vehicle$, employees: employees$ }).subscribe({
+    forkJoin({ vehicle: vehicle$ , employees: employees$ }).subscribe({
       next: ({ vehicle, employees }) => {
         if (vehicle && (vehicle as any).id) {
           const v = vehicle as Vehicle;
@@ -611,7 +620,10 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
         );
       },
       error: (err) => {
-        console.error('Failed to load assignment details (employees/vehicle)', err);
+        console.error(
+          'Failed to load assignment details (employees/vehicle)',
+          err
+        );
       }
     });
   }
@@ -657,7 +669,10 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
         return;
       }
 
-      const marker = this.createCollectionPointMarker(cp, activeCpIds.has(cp.id));
+      const marker = this.createCollectionPointMarker(
+        cp,
+        activeCpIds.has(cp.id)
+      );
       marker.addTo(this.layerGroup);
     });
 
@@ -783,145 +798,145 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private createCollectionPointMarker(
-  cp: CollectionPoint,
-  isInActiveTour: boolean
-): L.Marker {
-  const isActive = (cp as any).active !== false; // par défaut true si pas défini
-  const icon = isActive ? binIcon : inactiveBinIcon;
+    cp: CollectionPoint,
+    isInActiveTour: boolean
+  ): L.Marker {
+    const isActive = (cp as any).active !== false; // par défaut true si pas défini
+    const icon = isActive ? binIcon : inactiveBinIcon;
 
-  const [lon, lat] = cp.location.coordinates;
-  const latLng = L.latLng(lat, lon);
+    const [lon, lat] = cp.location.coordinates;
+    const latLng = L.latLng(lat, lon);
 
-  const marker = L.marker(latLng, {
-    title: cp.adresse || cp.id || 'Collection point',
-    icon
-  });
+    const marker = L.marker(latLng, {
+      title: cp.adresse || cp.id || 'Collection point',
+      icon
+    });
 
-  // Set a temporary popup while we load latest bin readings
-  marker.bindPopup('<div class="cp-popup">Loading bins...</div>');
+    // Set a temporary popup while we load latest bin readings
+    marker.bindPopup('<div class="cp-popup">Loading bins...</div>');
 
-  // Build the real popup asynchronously using BinReadingService
-  this.buildCollectionPointPopup(cp, isInActiveTour, isActive, marker);
+    // Build the real popup asynchronously using BinReadingService
+    this.buildCollectionPointPopup(cp, isInActiveTour, isActive, marker);
 
-  return marker;
-}
-
+    return marker;
+  }
 
   private buildCollectionPointPopup(
-  cp: CollectionPoint,
-  isInActiveTour: boolean,
-  isActive: boolean,
-  marker: L.Marker
-): void {
-  const label = cp.adresse || cp.id || 'Collection point';
+    cp: CollectionPoint,
+    isInActiveTour: boolean,
+    isActive: boolean,
+    marker: L.Marker
+  ): void {
+    const label = cp.adresse || cp.id || 'Collection point';
 
-  // Base container (card style)
-  let baseHtml = `<div style="
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 12px;
-    line-height: 1.4;
-    max-width: 240px;
-    padding: 6px 8px;
-  ">`;
+    // Base container (card style)
+    let baseHtml = `<div style="
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 12px;
+      line-height: 1.4;
+      max-width: 240px;
+      padding: 6px 8px;
+    ">`;
 
-  // Title
-  baseHtml += `<div style="font-weight: 600; margin-bottom: 4px;">${label}</div>`;
+    // Title
+    baseHtml += `<div style="font-weight: 600; margin-bottom: 4px;">${label}</div>`;
 
-  // Status badges row
-  baseHtml += `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px;">`;
+    // Status badges row
+    baseHtml += `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px;">`;
 
-  const statusBg = isActive ? '#DCFCE7' : '#FEE2E2';
-  const statusColor = isActive ? '#166534' : '#991B1B';
+    const statusBg = isActive ? '#DCFCE7' : '#FEE2E2';
+    const statusColor = isActive ? '#166534' : '#991B1B';
 
-  baseHtml += `<span style="
-    padding: 2px 6px;
-    border-radius: 999px;
-    font-size: 11px;
-    background: ${statusBg};
-    color: ${statusColor};
-    border: 1px solid rgba(0,0,0,0.06);
-  ">Status: ${isActive ? 'Active' : 'Inactive'}</span>`;
-
-  if (isInActiveTour) {
     baseHtml += `<span style="
       padding: 2px 6px;
       border-radius: 999px;
       font-size: 11px;
-      background: #DBEAFE;
-      color: #1D4ED8;
+      background: ${statusBg};
+      color: ${statusColor};
       border: 1px solid rgba(0,0,0,0.06);
-    ">In active tour</span>`;
-  }
+    ">Status: ${isActive ? 'Active' : 'Inactive'}</span>`;
 
-  baseHtml += `</div>`; // end status row
+    if (isInActiveTour) {
+      baseHtml += `<span style="
+        padding: 2px 6px;
+        border-radius: 999px;
+        font-size: 11px;
+        background: #DBEAFE;
+        color: #1D4ED8;
+        border: 1px solid rgba(0,0,0,0.06);
+      ">In active tour</span>`;
+    }
 
-  const bins = ((cp as any).bins || []) as any[];
+    baseHtml += `</div>`; // end status row
 
-  // No bins at this CP
-  if (!bins.length) {
-    const html =
-      baseHtml +
-      `<div style="margin-top: 4px; font-size: 11px; color: #6B7280;">No bins</div>` +
-      `</div>`;
-    marker.setPopupContent(html);
-    return;
-  }
+    const bins = ((cp as any).bins || []) as any[];
 
-  // One request per bin to fetch latest reading
-  const readingRequests = bins.map((b) =>
-    this.binReadingService.getLatestBinReadingForBin(b.id).pipe(
-      catchError((err) => {
-        console.error('Error loading latest bin reading for bin', b.id, err);
-        return of(null);
-      })
-    )
-  );
+    // No bins at this CP
+    if (!bins.length) {
+      const html =
+        baseHtml +
+        `<div style="margin-top: 4px; font-size: 11px; color: #6B7280;">No bins</div>` +
+        `</div>`;
+      marker.setPopupContent(html);
+      return;
+    }
 
-  forkJoin(readingRequests).subscribe((readings) => {
-    const rows: string[] = [];
+    // One request per bin to fetch latest reading
+    const readingRequests = bins.map((b) =>
+      this.binReadingService.getLatestBinReadingForBin(b.id).pipe(
+        catchError((err) => {
+          console.error(
+            'Error loading latest bin reading for bin',
+            b.id,
+            err
+          );
+          return of(null);
+        })
+      )
+    );
 
-    bins.forEach((b, index) => {
-      const rawType = b.type || b.trashType || b.binType;
-      if (!rawType) {
-        return;
-      }
+    forkJoin(readingRequests).subscribe((readings) => {
+      const rows: string[] = [];
 
-      const displayType = this.formatTrashTypeLabel(String(rawType));
-      const reading = readings[index] as any;
+      bins.forEach((b, index) => {
+        const rawType = b.type || b.trashType || b.binType;
+        if (!rawType) {
+          return;
+        }
 
-      let fill: number | null = null;
-      if (reading != null && reading.fillPct != null) {
-        const parsed = Number(reading.fillPct);
-        fill = isNaN(parsed) ? null : parsed;
-      }
+        const displayType = this.formatTrashTypeLabel(String(rawType));
+        const reading = readings[index] as any;
 
-      const value = fill != null ? `${fill.toFixed(0)}%` : 'N/A';
+        let fill: number | null = null;
+        if (reading != null && reading.fillPct != null) {
+          const parsed = Number(reading.fillPct);
+          fill = isNaN(parsed) ? null : parsed;
+        }
 
-      rows.push(`
-        <tr>
-          <td style="padding: 2px 4px; white-space: nowrap; color: #374151;">
-            ${displayType}
-          </td>
-          <td style="padding: 2px 4px; text-align: right; font-weight: 500; color: #111827;">
-            ${value}
-          </td>
-        </tr>
-      `);
+        const value = fill != null ? `${fill.toFixed(0)}%` : 'N/A';
+
+        rows.push(`
+          <tr>
+            <td style="padding: 2px 4px; white-space: nowrap; color: #374151;">
+              ${displayType}
+            </td>
+            <td style="padding: 2px 4px; text-align: right; font-weight: 500; color: #111827;">
+              ${value}
+            </td>
+          </tr>
+        `);
+      });
+
+      let html = baseHtml;
+      html += `<div style="margin-top: 4px; font-weight: 600;">Bins</div>`;
+      html += `<table style="width: 100%; border-collapse: collapse; margin-top: 2px;">`;
+      html += rows.join('');
+      html += `</table>`;
+      html += `</div>`; // close container
+
+      marker.setPopupContent(html);
     });
-
-    let html = baseHtml;
-    html += `<div style="margin-top: 4px; font-weight: 600;">Bins</div>`;
-    html += `<table style="width: 100%; border-collapse: collapse; margin-top: 2px;">`;
-    html += rows.join('');
-    html += `</table>`;
-    html += `</div>`; // close container
-
-    marker.setPopupContent(html);
-  });
-}
-
-
-
+  }
 
   private formatTrashTypeLabel(raw: string): string {
     if (!raw) {

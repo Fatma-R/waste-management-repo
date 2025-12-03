@@ -1,18 +1,22 @@
 @use '../../shared/styles/variables' as *;
 
+/* ==========================
+   PAGE ADMIN
+========================== */
 .admin-page {
   min-height: calc(100vh - 200px);
   padding: $spacing-lg 0;
   background: var(--color-off-white);
 }
 
+/* ----- PAGE HEADER ----- */
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: $spacing-lg;
   gap: $spacing-md;
-  
+
   @media (max-width: 768px) {
     flex-direction: column;
   }
@@ -30,6 +34,7 @@
   font-size: 1rem;
 }
 
+/* ----- BADGE ----- */
 .admin-badge {
   display: flex;
   align-items: center;
@@ -42,14 +47,10 @@
   box-shadow: $shadow-md;
 }
 
-.badge-icon {
-  font-size: 1.25rem;
-}
+.badge-icon { font-size: 1.25rem; }
+.badge-text { font-size: 0.938rem; }
 
-.badge-text {
-  font-size: 0.938rem;
-}
-
+/* ----- LOADING ----- */
 .loading-container {
   display: flex;
   justify-content: center;
@@ -57,7 +58,10 @@
   min-height: 400px;
 }
 
-// KPI Section
+
+/* ==========================
+   KPI SECTION
+========================== */
 .kpi-section {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -65,65 +69,97 @@
   margin-bottom: $spacing-lg;
 }
 
-// Admin Grid
+/* ==========================
+   ADMIN GRID
+========================== */
 .admin-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: $spacing-lg;
-  
+
   @media (max-width: 968px) {
     grid-template-columns: 1fr;
   }
 }
-
-.management-card {
-  grid-column: span 1;
+.admin-grid app-card {
+  min-height: 260px;
 }
 
-.activity-card {
-  grid-column: span 1;
-  
-  @media (max-width: 968px) {
-    grid-column: span 1;
-  }
+.management-card { grid-column: span 1; }
+.activity-card { grid-column: span 1; }
+.controls-card { grid-column: span 2; }
+
+@media (max-width: 968px) {
+  .activity-card, .controls-card { grid-column: span 1; }
 }
 
-.controls-card {
-  grid-column: span 2;
-  
-  @media (max-width: 968px) {
-    grid-column: span 1;
-  }
-}
-
-// Card Common Styles
+/* ==========================
+   CARD COMMON STYLES
+========================== */
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: $spacing-md;
-}
 
-.card-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--color-grey-dark);
-  margin: 0;
-}
+  h3, h2, .card-title {
+    margin: 0;
+    font-weight: 600;
+    color: var(--color-grey-dark);
+  }
 
-.card-link {
-  font-size: 0.875rem;
-  color: var(--color-green);
-  font-weight: 500;
-  text-decoration: none;
-  
-  &:hover {
-    color: var(--color-green-dark);
-    text-decoration: underline;
+  .badge {
+    background: #0080ff;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+  }
+
+  .card-link {
+    font-size: 0.875rem;
+    color: var(--color-green);
+    font-weight: 500;
+    text-decoration: none;
+
+    &:hover {
+      color: var(--color-green-dark);
+      text-decoration: underline;
+    }
   }
 }
 
-// Management Lists
+.card-content {
+  margin-top: 16px;
+}
+
+.card-footer {
+  margin-top: 12px;
+  text-align: right;
+
+  button {
+    border: none;
+    background: #0080ff;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+  }
+}
+.management-card {
+  display: flex;
+  flex-direction: column;
+  height: 500px;   // même hauteur pour les deux sections
+}
+
+
+.empty-msg {
+  text-align: center;
+  color: #888;
+  padding: 20px 0;
+}
+
+/* ==========================
+   MANAGEMENT LIST
+========================== */
 .management-list {
   display: flex;
   flex-direction: column;
@@ -140,11 +176,22 @@
   background: var(--color-sand-light);
   border-radius: $radius-sm;
   transition: background-color 0.2s ease;
-  
-  &:hover {
-    background: white;
-  }
+
+  &:hover { background: white; }
 }
+.management-card {
+  display: flex;
+  flex-direction: column;
+  height: 500px;   // même hauteur pour les deux sections
+}
+
+
+.management-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px; // évite que le scroll recouvre le contenu
+}
+
 
 .item-info {
   display: flex;
@@ -154,10 +201,7 @@
   min-width: 0;
 }
 
-.item-icon {
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
+.item-icon { font-size: 1.5rem; flex-shrink: 0; }
 
 .item-details {
   display: flex;
@@ -198,43 +242,46 @@
   padding: 0.5rem;
   border-radius: $radius-sm;
   transition: all 0.2s ease;
-  
-  &:hover {
-    background: rgba(239, 68, 68, 0.1);
-  }
-  
-  &:focus-visible {
-    outline: 2px solid var(--color-green);
-    outline-offset: 2px;
-  }
+
+  &:hover { background: rgba(239, 68, 68, 0.1); }
+  &:focus-visible { outline: 2px solid var(--color-green); outline-offset: 2px; }
 }
 
+/* ==========================
+   STATUS BADGES
+========================== */
 .status-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.25rem 0.5rem;
   border-radius: $radius-sm;
   font-size: 0.75rem;
   font-weight: 500;
   text-transform: capitalize;
   white-space: nowrap;
-  
-  &.status-active {
-    background: rgba(95, 167, 119, 0.1);
-    color: var(--color-green-dark);
-  }
-  
-  &.status-inactive, &.status-offline {
-    background: rgba(107, 114, 128, 0.1);
-    color: var(--color-grey-dark);
-  }
-  
-  &.status-maintenance, &.status-on-route {
-    background: rgba(245, 158, 11, 0.1);
-    color: var(--color-amber);
+
+  &.status-in-service { background-color: rgba(40, 167, 69, 0.1); color: #28a745; }
+  &.status-maintenance { background-color: rgba(220, 53, 69, 0.1); color: #dc3545; }
+  &.status-available { background-color: rgba(0, 123, 255, 0.1); color: #007bff; }
+  &.status-low { background-color: rgba(40, 167, 69, 0.1); color: #28a745; }
+  &.status-medium { background-color: rgba(255, 193, 7, 0.1); color: #ffc107; }
+  &.status-high { background-color: rgba(220, 53, 69, 0.1); color: #dc3545; }
+  &.status-critical { background-color: rgba(220, 53, 69, 0.2); color: #a71d2a; }
+  &.status-resolved { background-color: rgba(108, 117, 125, 0.1); color: #6c757d; }
+  &.status-open { background-color: rgba(220, 53, 69, 0.1); color: #dc3545; }
+
+  .status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
   }
 }
 
-// Activity Logs
+/* ==========================
+   ACTIVITY LOGS
+========================== */
 .activity-list {
   display: flex;
   flex-direction: column;
@@ -252,10 +299,7 @@
   border-radius: $radius-sm;
 }
 
-.activity-icon {
-  font-size: 1.25rem;
-  flex-shrink: 0;
-}
+.activity-icon { font-size: 1.25rem; flex-shrink: 0; }
 
 .activity-content {
   flex: 1;
@@ -271,31 +315,78 @@
   margin-bottom: 0.25rem;
 }
 
-.activity-user {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-grey-dark);
+.activity-user { font-size: 0.875rem; font-weight: 600; color: var(--color-grey-dark); }
+.activity-time { font-size: 0.75rem; color: var(--color-grey-light); }
+.activity-action { font-size: 0.875rem; font-weight: 500; color: var(--color-grey-dark); margin: 0; }
+.activity-details { font-size: 0.813rem; color: var(--color-grey); margin: 0; }
+
+/* ==========================
+   DASHBOARD CARD
+========================== */
+.dashboard-card {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  max-height: 400px; // Limite la hauteur des sections
+  overflow-y: auto; // Active le défilement vertical
 }
 
-.activity-time {
-  font-size: 0.75rem;
-  color: var(--color-grey-light);
+/* ==========================
+   MAP CARD
+========================== */
+.map-preview-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  .map-body {
+    width: 100%;
+    max-height: 600px;
+    overflow: hidden;
+    border-radius: $radius-md;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.8rem;
+
+    .map-preview-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: $radius-sm;
+    }
+  }
+
+  .card-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0.5rem 0;
+
+    .action-btn {
+      font-size: 0.875rem;
+      background: var(--color-green);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: $radius-sm;
+      cursor: pointer;
+      transition: background 0.2s ease;
+
+      &:hover {
+        background: #218838;
+      }
+    }
+  }
 }
 
-.activity-action {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-grey-dark);
-  margin: 0;
-}
 
-.activity-details {
-  font-size: 0.813rem;
-  color: var(--color-grey);
-  margin: 0;
-}
-
-// System Controls
+/* ==========================
+   SYSTEM CONTROLS
+========================== */
 .controls-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -313,24 +404,21 @@
   border-radius: $radius-md;
   cursor: pointer;
   transition: all 0.2s ease;
-  
+
   &:hover {
     background: white;
     border-color: var(--color-green);
     transform: translateY(-2px);
     box-shadow: $shadow-md;
   }
-  
+
   &:focus-visible {
     outline: 2px solid var(--color-green);
     outline-offset: 2px;
   }
 }
 
-.control-icon {
-  font-size: 2rem;
-}
-
+.control-icon { font-size: 2rem; }
 .control-label {
   font-size: 0.875rem;
   font-weight: 500;
@@ -338,7 +426,9 @@
   text-align: center;
 }
 
-// Confirmation Modal
+/* ==========================
+   MODALS
+========================== */
 .confirm-modal {
   display: flex;
   flex-direction: column;
@@ -356,4 +446,17 @@
   justify-content: flex-end;
   gap: $spacing-sm;
   margin-top: $spacing-md;
+}
+
+.list-container,
+.activity-card,
+.incident-card {
+  margin: 0;     /* important */
+  padding-bottom: 16px; /* padding seulement, pas de margin */
+}
+.empty-card {
+  min-height: 160px;    /* carte plus petite si vide */
+}
+.admin-grid app-card:not(.empty-card) {
+  min-height: 260px;    /* carte normale si elle contient des données */
 }

@@ -16,7 +16,16 @@ import { NotificationService } from '../../core/services/notification';
 import { Employee } from '../../shared/models/employee.model';
 import { Bin } from '../../shared/models/bin.model';
 import { Router, RouterModule } from '@angular/router';
+import { VehicleService } from '../../core/services/vehicle';
+import { IncidentService } from '../../core/services/incident';
+import { Incident } from '../../shared/models/incident.model';
+import { AlertService } from '../../core/services/alert';
+import { Alert , AlertType } from '../../shared/models/alert.model';
 
+import { TourneeMapComponent } from '../tournee-map/tournee-map';
+
+// type alias réutilisable
+type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 interface ActivityLog {
   id: string;
   timestamp: Date;
@@ -50,20 +59,23 @@ interface TourneeView {
 }
 
 type VehicleStatus = 'AVAILABLE' | 'IN_SERVICE' | 'MAINTENANCE';
-
+type VehicleFuelType = 'DIESEL' | 'GASOLINE' | 'ELECTRIC' | 'HYBRID';
 interface VehicleView {
   id: string;
   plateNumber: string;
   capacityVolumeL: number;
-  type: string;
   status: VehicleStatus;
-  zoneLabel: string;
+  fuelType : VehicleFuelType
 }
 
 type IncidentType =
-  | 'VEHICLE_BREAKDOWN'
   | 'BLOCKED_STREET'
-  | 'BIN_DAMAGED'
+  | 'TRAFFIC_ACCIDENT'
+  | 'POLICE_ACTIVITY'
+  | 'ROAD_MAINTENANCE'
+  | 'PUBLIC_EVENT'
+  | 'NATURAL_OBSTRUCTION'
+  | 'FIRE_BLOCKAGE'
   | 'OTHER';
 
 type IncidentSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -78,8 +90,17 @@ interface IncidentView {
   reportedAt: Date;
   description: string;
   contextLabel: string;
-  reportedBy?: string;
+  //reportedBy?: string;
 }
+
+export interface AlertView {
+  id: string;
+  message: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  createdAt: Date;
+  resolved: boolean;
+}
+
 
 @Component({
   selector: 'app-admin',
@@ -92,12 +113,15 @@ interface IncidentView {
     KpiComponent,
     LoadingSpinnerComponent,
     ModalComponent,
-    RouterModule
+    RouterModule,
+    TourneeMapComponent  
   ],
   templateUrl: './admin-dashboard.html',
   styleUrls: ['./admin-dashboard.scss']
 })
 export class AdminDashboardComponent implements OnInit {
+
+
   isLoading = true;
 
   employees: Employee[] = [];
@@ -108,6 +132,12 @@ export class AdminDashboardComponent implements OnInit {
   vehicles: VehicleView[] = [];
   recentIncidents: IncidentView[] = [];
   activityLogs: ActivityLog[] = [];
+  
+  incidents: Incident[] = [];
+  alerts: AlertView[] = [];
+
+
+
 
   // KPI values
   totalEmployees = 0;
@@ -117,6 +147,7 @@ export class AdminDashboardComponent implements OnInit {
   activeTournees = 0;
   openIncidentsCount = 0;
   avgNetworkFillPct = 0;
+  totalAlerts = 0;
 
   // Modals
   isDeleteEmployeeModalOpen = false;
@@ -128,17 +159,24 @@ export class AdminDashboardComponent implements OnInit {
   private employeesLoaded = false;
   private binsLoaded = false;
   private collectionPointsLoaded = false;
+tournees: any;
 
   constructor(
     private employeeService: EmployeeService,
     private binService: BinService,
     private collectionPointService: CollectionPointService,
     private notificationService: NotificationService,
-    private router: Router
+    private router: Router,
+    private vehicleService: VehicleService,
+    private incidentService : IncidentService,
+    private alertService : AlertService
+
+    
   ) {}
 
   ngOnInit(): void {
     this.loadDashboardData();
+
   }
 
   loadDashboardData(): void {
@@ -161,6 +199,83 @@ export class AdminDashboardComponent implements OnInit {
         this.checkLoadingComplete();
       }
     });
+    //Vehicle from backend 
+    this.vehicleService.getVehicles().subscribe({
+      next: (vehicles) => {
+        this.vehicles = vehicles.map(v => ({
+          id: v.id,
+          plateNumber: v.plateNumber,
+          capacityVolumeL: v.capacityVolumeL,
+          fuelType: v.fuelType,
+          status: v.status
+        }));
+      this.totalVehicles = this.vehicles.length;
+      },
+      error: (err) => {
+        console.error(err);
+        this.notificationService.showToast(
+          'Erreur lors du chargement des véhicules',
+          'error'
+        );
+      }
+    });
+    // Incidents from backend
+    this.incidentService.getIncidents().subscribe({
+      next: (incidents) => {
+        this.recentIncidents = incidents
+          .map((i) => ({
+            id: i.id,
+            type: i.type,
+            severity: i.severity,
+            status: i.status,
+            reportedAt: i.reportedAt ? new Date(i.reportedAt) : new Date(),
+            description: i.description || 'Aucune description',
+            contextLabel: i.location
+              ? `Lat: ${i.location.coordinates[1]}, Lng: ${i.location.coordinates[0]}`
+              : 'Localisation inconnue',
+            //reportedBy: i.reportedBy || 'Inconnu',
+          }))
+          .sort(
+            (a, b) => b.reportedAt.getTime() - a.reportedAt.getTime()
+          )
+          .slice(0, 6); // garder seulement les 6 plus récents
+
+          // KPI : incidents ouverts ou en cours
+        this.openIncidentsCount = this.recentIncidents.filter(
+          (i) => i.status === 'OPEN' || i.status === 'IN_PROGRESS'
+        ).length;
+      },
+      error: (err: any) => {
+        console.error('Erreur lors du chargement des incidents', err);
+        this.notificationService.showToast(
+          'Erreur lors du chargement des incidents',
+          'error'
+        );
+      }
+    });
+    // 👉 Charge les ALERTS POUR DE VRAI
+    this.alertService.getAlerts().subscribe({
+      next: (alerts: Alert[]) => {
+        this.alerts = alerts
+          .map((a) => this.mapAlertToView(a))
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+          .slice(0, 6);
+
+        this.totalAlerts = alerts.length;
+      },
+      error: () => {
+        this.notificationService.showToast("Erreur chargement Alertes", "error");
+      }
+    });
+
+    
+
+
+
+
+
+
+
 
     // Bins from service
     this.binService.getBins().subscribe({
@@ -202,12 +317,13 @@ export class AdminDashboardComponent implements OnInit {
     });
 
     // Local mock data for other features
-    this.loadMockTournees();
-    this.loadMockVehicles();
-    this.loadMockIncidents();
+    //this.loadMockTournees();
+    //this.loadMockVehicles();
+    //this.loadMockIncidents();
     this.loadActivityLogs();
   }
 
+  
   private checkLoadingComplete(): void {
     if (this.employeesLoaded && this.binsLoaded && this.collectionPointsLoaded) {
       this.isLoading = false;
@@ -216,9 +332,8 @@ export class AdminDashboardComponent implements OnInit {
 
   // ========= MOCK DATA (pure frontend for now) =========
 
-  private loadMockCollectionPoints(): void {
-    // No longer needed - data loaded from API in loadDashboardData()
-  }
+  //private loadMockCollectionPoints(): void {
+    // No longer needed - data loaded from API in loadDashboardData()}
 
   private calculateAvgFillForCP(bins: Bin[]): number {
     if (bins.length === 0) return 0;
@@ -233,140 +348,10 @@ export class AdminDashboardComponent implements OnInit {
     this.avgNetworkFillPct = Math.round(totalFill / this.collectionPoints.length);
   }
 
-  private loadMockTournees(): void {
-    const now = new Date();
-    this.todayTournees = [
-      {
-        id: 't1',
-        label: 'Morning Tour · Zone A (PLASTIC)',
-        tourneeType: 'PLASTIC',
-        status: 'IN_PROGRESS',
-        plannedKm: 18.5,
-        plannedCO2: 24.2,
-        zoneLabel: 'Zone A',
-        stepsCount: 12,
-        plannedDate: now
-      },
-      {
-        id: 't2',
-        label: 'Midday Tour · Zone B (ORGANIC)',
-        tourneeType: 'ORGANIC',
-        status: 'PLANNED',
-        plannedKm: 14.0,
-        plannedCO2: 19.5,
-        zoneLabel: 'Zone B',
-        stepsCount: 9,
-        plannedDate: new Date(now.getTime() + 2 * 60 * 60 * 1000)
-      },
-      {
-        id: 't3',
-        label: 'Evening Tour · Zone C (GLASS)',
-        tourneeType: 'GLASS',
-        status: 'PLANNED',
-        plannedKm: 11.3,
-        plannedCO2: 15.0,
-        zoneLabel: 'Zone C',
-        stepsCount: 7,
-        plannedDate: new Date(now.getTime() + 6 * 60 * 60 * 1000)
-      },
-      {
-        id: 't4',
-        label: 'Night Tour · Mixed (PAPER)',
-        tourneeType: 'PAPER',
-        status: 'COMPLETED',
-        plannedKm: 9.2,
-        plannedCO2: 11.8,
-        zoneLabel: 'Mixed zones',
-        stepsCount: 5,
-        plannedDate: new Date(now.getTime() - 8 * 60 * 60 * 1000)
-      }
-    ];
+ 
 
-    this.activeTournees = this.todayTournees.filter((t) =>
-      ['PLANNED', 'IN_PROGRESS'].includes(t.status)
-    ).length;
-  }
+  
 
-  private loadMockVehicles(): void {
-    this.vehicles = [
-      {
-        id: 'v1',
-        plateNumber: 'TUN-123-AB',
-        capacityVolumeL: 8000,
-        type: 'Compactor Truck',
-        status: 'IN_SERVICE',
-        zoneLabel: 'Assigned to Zone A'
-      },
-      {
-        id: 'v2',
-        plateNumber: 'TUN-456-CD',
-        capacityVolumeL: 10000,
-        type: 'Compactor Truck',
-        status: 'MAINTENANCE',
-        zoneLabel: 'Depot · Maintenance'
-      },
-      {
-        id: 'v3',
-        plateNumber: 'TUN-789-EF',
-        capacityVolumeL: 4000,
-        type: 'Support Vehicle',
-        status: 'AVAILABLE',
-        zoneLabel: 'Unassigned'
-      }
-    ];
-
-    this.totalVehicles = this.vehicles.length;
-  }
-
-  private loadMockIncidents(): void {
-    const now = new Date();
-    this.recentIncidents = [
-      {
-        id: 'i1',
-        type: 'BIN_DAMAGED',
-        severity: 'HIGH',
-        status: 'OPEN',
-        reportedAt: new Date(now.getTime() - 30 * 60 * 1000),
-        description: 'Damaged lid on Bin #105 (PLASTIC).',
-        contextLabel: 'Bin #105 · Avenue Habib Bourguiba',
-        reportedBy: 'sensor'
-      },
-      {
-        id: 'i2',
-        type: 'VEHICLE_BREAKDOWN',
-        severity: 'CRITICAL',
-        status: 'IN_PROGRESS',
-        reportedAt: new Date(now.getTime() - 90 * 60 * 1000),
-        description: 'Truck TUN-456-CD breakdown during organic tour.',
-        contextLabel: 'Tournée ORGANIC · Zone B',
-        reportedBy: 'driver'
-      },
-      {
-        id: 'i3',
-        type: 'BLOCKED_STREET',
-        severity: 'MEDIUM',
-        status: 'OPEN',
-        reportedAt: new Date(now.getTime() - 2 * 60 * 60 * 1000),
-        description: 'Street blocked, route step must be skipped or re-routed.',
-        contextLabel: 'Rue de la Liberté · Zone B',
-        reportedBy: 'planning system'
-      },
-      {
-        id: 'i4',
-        type: 'OTHER',
-        severity: 'LOW',
-        status: 'RESOLVED',
-        reportedAt: new Date(now.getTime() - 4 * 60 * 60 * 1000),
-        description: 'Low battery on sensor for Bin #54.',
-        contextLabel: 'Bin #54 · Zone C',
-        reportedBy: 'technician'
-      }
-    ];
-
-    this.openIncidentsCount = this.recentIncidents.filter((i) =>
-      ['OPEN', 'IN_PROGRESS'].includes(i.status)
-    ).length;
-  }
 
   private loadActivityLogs(): void {
     this.activityLogs = [
@@ -422,6 +407,8 @@ export class AdminDashboardComponent implements OnInit {
 
   // ========= EMPLOYEE ACTIONS =========
 
+  selectedVehicleId: string | null = null;
+  isDeleteVehicleModalOpen: boolean = false;
   openDeleteEmployeeModal(employeeId: string): void {
     this.selectedEmployeeId = employeeId;
     this.isDeleteEmployeeModalOpen = true;
@@ -523,6 +510,37 @@ export class AdminDashboardComponent implements OnInit {
       'info'
     );
   }
+ 
+  openDeleteVahicleModal(vehicleId: string): void {
+    this.selectedVehicleId = vehicleId;
+    this.isDeleteVehicleModalOpen = true;
+  }
+  openDeleteVehicleModal(vehicleId: string): void {
+    this.selectedVehicleId = vehicleId;
+    this.isDeleteVehicleModalOpen = true;
+  }
+  confirmDeleteVehicle(): void {
+    if (!this.selectedVehicleId) return;
+
+      // Appel à ton service pour supprimer le véhicule
+      this.vehicleService.deleteVehicle(this.selectedVehicleId).subscribe({
+        next: () => {
+        // Supprime le véhicule de la liste locale
+        this.vehicles = this.vehicles.filter(v => v.id !== this.selectedVehicleId);
+        this.isDeleteVehicleModalOpen = false;
+        this.selectedVehicleId = null;
+      },
+      error: (err) => {
+        console.error('Error deleting vehicle:', err);
+      }
+    });
+  }
+
+
+
+ 
+  
+
 
   // ========= ACTIVITY LOG HELPERS =========
 
@@ -569,6 +587,7 @@ export class AdminDashboardComponent implements OnInit {
     };
     return icons[type];
   }
+  
 
   // ========= BADGE / STATUS HELPERS =========
 
@@ -588,14 +607,15 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
+
   getVehicleStatusClass(status: VehicleStatus): string {
     switch (status) {
-      case 'AVAILABLE':
-        return 'status-available';
       case 'IN_SERVICE':
-        return 'status-active';
+        return 'status-in-service'; // vert
       case 'MAINTENANCE':
-        return 'status-warning';
+        return 'status-maintenance'; // rouge
+      case 'AVAILABLE':
+        return 'status-available'; // bleu
       default:
         return '';
     }
@@ -633,17 +653,66 @@ export class AdminDashboardComponent implements OnInit {
 
   getIncidentTypeIcon(type: IncidentType): string {
     switch (type) {
-      case 'BIN_DAMAGED':
-        return '🗑️';
-      case 'VEHICLE_BREAKDOWN':
-        return '🚚';
+      case 'TRAFFIC_ACCIDENT':
+        return '🚧'; // accident / route bloquée
       case 'BLOCKED_STREET':
-        return '🚧';
+        return '⛔'; // rue bloquée
+      case 'POLICE_ACTIVITY':
+        return '🚓'; // police
+      case 'ROAD_MAINTENANCE':
+        return '🛠️';
+      case 'PUBLIC_EVENT':
+        return '🎉';
+      case 'NATURAL_OBSTRUCTION':
+        return '🌳';
+      case 'FIRE_BLOCKAGE':
+        return '🔥';
       case 'OTHER':
-      default:
-        return '❓';
+    default:
+      return '❓';
     }
   }
+  private mapAlertToView(alert: Alert): AlertView {
+    return {
+      id: alert.id,
+      message: this.getAlertMessage(alert),
+      severity: this.getSeverity(alert.type),
+      createdAt: new Date(alert.ts),
+      resolved: alert.cleared
+    };
+  }
+
+  private getAlertMessage(alert: Alert): string {
+    switch (alert.type) {
+      case 'LEVEL_HIGH':
+        return `Niveau élevé détecté dans la poubelle ${alert.binId}`;
+      case 'LEVEL_LOW':
+        return `Niveau bas détecté dans la poubelle ${alert.binId}`;
+      case 'LEVEL_CRITICAL':
+        return `⚠️ Niveau critique dans la poubelle ${alert.binId}`;
+      case 'BATTERY_LOW':
+        return `Batterie faible pour le capteur de la poubelle ${alert.binId}`;
+      case 'SENSOR_ANOMALY':
+        return `Anomalie détectée sur un capteur (poubelle ${alert.binId})`;
+      case 'THRESHOLD':
+        return `Seuil dépassé dans la poubelle ${alert.binId}`;
+      default:
+        return `Alerte détectée (poubelle ${alert.binId})`;
+    }
+  }
+
+  private getSeverity(type: AlertType): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' {
+    switch (type) {
+      case 'LEVEL_LOW': return 'LOW';
+      case 'BATTERY_LOW': return 'MEDIUM';
+      case 'LEVEL_HIGH': return 'HIGH';
+      case 'LEVEL_CRITICAL':
+      case 'SENSOR_ANOMALY': return 'CRITICAL';
+      default: return 'MEDIUM';
+    }
+  }
+
+
 
   // ========= CONTROL BUTTON HANDLERS =========
 
@@ -690,4 +759,19 @@ export class AdminDashboardComponent implements OnInit {
   onOpenSystemSettings(): void {
     this.router.navigate(['/admin/admins']);
   }
+  goToVehicles(): void {
+  this.router.navigate(['/admin/vehicles']);}
+  goToIncidents() {
+  this.router.navigate(['/admin/incidents']);}
+  goToTourneeMap(): void {
+    this.router.navigate(['/admin/tournee-map']);
+  }
+
+  goToPlanning() {
+  this.router.navigate(['/admin/tournees']);
+}
+
+
+
+
 }

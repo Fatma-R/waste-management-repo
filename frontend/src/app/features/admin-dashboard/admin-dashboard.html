@@ -59,16 +59,81 @@
           color="sage">
         </app-kpi>
 
+      
+
         <app-kpi
-          label="Avg Fill Level"
-          [value]="avgNetworkFillPct + '%'"
-          icon="🗑️"
-          color="green">
+          label="Alerts"
+          [value]="totalAlerts"
+          icon="🚨"
+          color="red">
         </app-kpi>
       </section>
 
       <!-- Grid -->
       <div class="admin-grid">
+        
+        <!-- Map Preview -->
+        <app-card padding="lg" class="map-preview-card">
+
+          <div class="card-header">
+            <h2 class="card-title">Tournee Map Preview</h2>
+          </div>
+
+          <div class="map-body">
+            <img src="assets/map/map-preview.png" alt="Map Preview" class="map-preview-img" />
+          </div>
+
+          <div class="card-footer">
+            <a routerLink="/admin/tournee-map" class="card-link">View Full Map →</a>
+          </div>
+
+        </app-card>
+
+        <!-- Alerts -->
+        <app-card padding="lg" class="management-card">
+          <div class="card-header">
+            <h2 class="card-title">Recent Alerts</h2>
+            <a routerLink="/admin/alerts" class="card-link">View All →</a>
+          </div>
+
+          <div class="management-list">
+            <div *ngFor="let alert of alerts.slice(0, 3)" class="management-item">
+      
+              <!-- INFO SECTION -->
+              <div class="item-info">
+                <span class="item-icon" aria-hidden="true">🚨</span>
+                <div class="item-details">
+                  <span class="item-name">{{ alert.message }}</span>
+                  <span class="item-meta">
+                    {{ formatTimestamp(alert.createdAt) }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- ACTIONS SECTION -->
+              <div class="item-actions">
+                <span class="status-badge" [ngClass]="{
+                  'status-low': alert.severity === 'LOW',
+                  'status-medium': alert.severity === 'MEDIUM',
+                  'status-high': alert.severity === 'HIGH',
+                  'status-critical': alert.severity === 'CRITICAL'
+                  }">
+                   {{ alert.severity }}
+                </span>
+                <span class="status-badge" [ngClass]="alert.resolved ? 'status-resolved' : 'status-open'">
+                  {{ alert.resolved ? 'Resolved' : 'Open' }}
+                </span>
+              </div>
+
+            </div>
+
+            <div *ngIf="alerts.length === 0" class="no-activity">
+              <p>No recent alerts</p>
+            </div>
+          </div>
+       </app-card>
+
+
         <!-- Employee Management -->
         <app-card padding="lg" class="management-card">
           <div class="card-header">
@@ -78,7 +143,7 @@
 
           <div class="management-list">
             <div
-              *ngFor="let employee of employees.slice(0, 5)"
+              *ngFor="let employee of employees.slice(0, 3)"
               class="management-item">
               <div class="item-info">
                 <span class="item-icon" aria-hidden="true">👤</span>
@@ -107,6 +172,10 @@
                 </button>
               </div>
             </div>
+            <!-- AUCUN employee -->
+            <div *ngIf="employees.length === 0" class="no-employees">
+              <p>No employee available</p>
+            </div>
           </div>
         </app-card>
 
@@ -114,187 +183,143 @@
         <app-card padding="lg" class="management-card">
           <div class="card-header">
             <h2 class="card-title">Collection Points & Bins</h2>
-            <a routerLink="/admin/collection-points" class="card-link">See All Collection Points →</a>
+            <a routerLink="/admin/collection-points" class="card-link">
+              View All →
+            </a>
           </div>
 
           <div class="management-list">
             <div
-              *ngFor="let cp of collectionPoints.slice(0, 5)"
+              *ngFor="let cp of collectionPoints.slice(0, 3)"
               class="management-item">
+
+              <!-- INFO SECTION -->
               <div class="item-info">
                 <span class="item-icon" aria-hidden="true">📍</span>
+
                 <div class="item-details">
                   <span class="item-name">
-                    {{ cp.adresse }}
+                    {{ cp.adresse || 'Unknown location' }}
                   </span>
                   <span class="item-meta">
-                    Bins: {{ cp.binsCount }}
-                    · Alerts: {{ cp.alertsCount }}
-                    · Avg fill: {{ cp.avgFillPct }}%
+                     Bins: {{ cp.binsCount }} · Alerts: {{ cp.alertsCount }} · Avg fill: {{ cp.avgFillPct }}%
                   </span>
                 </div>
               </div>
+
+              <!-- ACTIONS SECTION -->
               <div class="item-actions">
                 <span
                   class="status-badge"
                   [ngClass]="cp.active ? 'status-active' : 'status-inactive'">
                   {{ cp.active ? 'Active' : 'Inactive' }}
                 </span>
+
                 <button
                   class="action-btn"
                   (click)="navigateToBins(cp.id)"
                   aria-label="View bins for this collection point">
                   🔎
                 </button>
+
               </div>
             </div>
+            <!-- AUCUN Collection Points -->
+            <div *ngIf="collectionPoints.length === 0" class="no-collection-points">
+              <p>No collection points available</p>
+            </div>
+          
           </div>
         </app-card>
 
-        <!-- Today's Tournées -->
-        <app-card padding="lg" class="management-card">
-          <div class="card-header">
-            <h2 class="card-title">Today’s Tournées</h2>
-            <a routerLink="/tournees" class="card-link">Planning →</a>
-          </div>
-
-          <div class="management-list">
-            <div
-              *ngFor="let t of todayTournees.slice(0, 5)"
-              class="management-item">
-              <div class="item-info">
-                <span class="item-icon" aria-hidden="true">🗺️</span>
-                <div class="item-details">
-                  <span class="item-name">
-                    {{ t.label }}
-                  </span>
-                  <span class="item-meta">
-                    {{ t.tourneeType }} · {{ t.zoneLabel }}
-                    · Km: {{ t.plannedKm }}
-                    · CO₂: {{ t.plannedCO2 }} kg
-                    · Stops: {{ t.stepsCount }}
-                  </span>
-                </div>
-              </div>
-              <div class="item-actions">
-                <span
-                  class="status-badge"
-                  [ngClass]="getTourneeStatusClass(t.status)">
-                  {{ t.status }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </app-card>
 
         <!-- Vehicles -->
         <app-card padding="lg" class="management-card">
           <div class="card-header">
             <h2 class="card-title">Vehicles</h2>
-            <a routerLink="/vehicles" class="card-link">Manage →</a>
+            <a routerLink="/admin/vehicles" class="card-link">Manage →</a>
           </div>
 
           <div class="management-list">
             <div
-              *ngFor="let v of vehicles.slice(0, 5)"
-              class="management-item">
+              *ngFor="let v of vehicles.slice(0, 3)"
+              class="management-item"
+            >
               <div class="item-info">
                 <span class="item-icon" aria-hidden="true">🚚</span>
                 <div class="item-details">
                   <span class="item-name">
-                    {{ v.plateNumber }} · {{ v.type }}
+                    {{ v.plateNumber }}
                   </span>
                   <span class="item-meta">
-                    Capacity: {{ v.capacityVolumeL }} L
-                    · {{ v.zoneLabel }}
+                    {{ v.fuelType }}
+                    · {{ v.capacityVolumeL }} L
                   </span>
                 </div>
               </div>
+
               <div class="item-actions">
-                <span
-                  class="status-badge"
-                  [ngClass]="getVehicleStatusClass(v.status)">
+                <span class="status-badge" [ngClass]="getVehicleStatusClass(v.status)">
                   {{ v.status }}
                 </span>
+
                 <button
-                  class="action-btn"
-                  (click)="openVehicleMaintenanceModal(v)"
-                  aria-label="Register maintenance">
-                  🛠️
+                  class="action-btn action-delete"
+                  (click)="openDeleteVehicleModal(v.id)"
+                  aria-label="Delete vehicle">
+                  🗑️
                 </button>
+
               </div>
+            </div>
+
+            <!-- AUCUN véhicule -->
+            <div *ngIf="vehicles.length === 0" class="no-vehicles">
+              <p>No vehicles available</p>
             </div>
           </div>
         </app-card>
 
         <!-- Incidents -->
-        <app-card padding="lg" class="activity-card">
+        <app-card padding="lg" class="management-card">
           <div class="card-header">
             <h2 class="card-title">Recent Incidents</h2>
-            <a routerLink="/incidents" class="card-link">View All →</a>
+            <a routerLink="/admin/incidents" class="card-link">View All →</a>
           </div>
 
-          <div class="activity-list">
-            <div
-              *ngFor="let incident of recentIncidents.slice(0, 6)"
-              class="activity-item">
-              <span class="activity-icon" aria-hidden="true">
-                {{ getIncidentTypeIcon(incident.type) }}
-              </span>
-              <div class="activity-content">
-                <div class="activity-header">
-                  <span class="activity-user">
-                    {{ incident.contextLabel }}
-                  </span>
-                  <span class="activity-time">
-                    {{ formatTimestamp(incident.reportedAt) }}
-                  </span>
+          <div class="management-list">
+            <div *ngFor="let incident of recentIncidents.slice(0, 3)" class="management-item">
+      
+              <!-- INFO SECTION -->
+                <div class="item-info">
+                  <span class="item-icon" aria-hidden="true">{{ getIncidentTypeIcon(incident.type) }}</span>
+                  <div class="item-details">
+                    <span class="item-name">{{ incident.contextLabel }}</span>
+                    <span class="item-meta">
+                      {{ formatTimestamp(incident.reportedAt) }} · {{ incident.description }}
+                    </span>
+                  </div>
                 </div>
-                <p class="activity-action">
-                  {{ incident.description }}
-                </p>
-                <p class="activity-details">
-                  <span class="status-badge" [ngClass]="getIncidentSeverityClass(incident.severity)">
-                    {{ incident.severity }}
-                  </span>
-                  <span class="status-badge" [ngClass]="getIncidentStatusClass(incident.status)">
-                    {{ incident.status }}
-                  </span>
-                  <span *ngIf="incident.reportedBy">
-                    · Reported by: {{ incident.reportedBy }}
-                  </span>
-                </p>
+
+              <!-- ACTIONS SECTION -->
+              <div class="item-actions">
+                <span class="status-badge" [ngClass]="getIncidentSeverityClass(incident.severity)">
+                  {{ incident.severity }}
+                </span>
+                <span class="status-badge" [ngClass]="getIncidentStatusClass(incident.status)">
+                  {{ incident.status }}
+                </span>
               </div>
+
+            </div>
+
+            <div *ngIf="recentIncidents.length === 0" class="no-activity">
+              <p>No recent incidents</p>
             </div>
           </div>
         </app-card>
 
-        <!-- Activity Logs -->
-        <app-card padding="lg" class="activity-card">
-          <div class="card-header">
-            <h2 class="card-title">Activity Logs</h2>
-          </div>
 
-          <div class="activity-list">
-            <div
-              *ngFor="let log of activityLogs"
-              class="activity-item">
-              <span class="activity-icon" aria-hidden="true">
-                {{ getActivityIcon(log.type) }}
-              </span>
-              <div class="activity-content">
-                <div class="activity-header">
-                  <span class="activity-user">{{ log.user }}</span>
-                  <span class="activity-time">
-                    {{ formatTimestamp(log.timestamp) }}
-                  </span>
-                </div>
-                <p class="activity-action">{{ log.action }}</p>
-                <p class="activity-details">{{ log.details }}</p>
-              </div>
-            </div>
-          </div>
-        </app-card>
 
         <!-- System Controls -->
         <app-card padding="lg" class="controls-card">
@@ -334,6 +359,7 @@
             </button>
           </div>
         </app-card>
+        <app-card [ngClass]="{ 'empty-card': alerts.length === 0 }"></app-card>
       </div>
     </div>
   </div>
@@ -385,6 +411,21 @@
         (click)="confirmDeleteBin()">
         Delete Bin
       </app-button>
+    </div>
+  </div>
+</app-modal>
+<app-modal
+  [isOpen]="isDeleteVehicleModalOpen"
+  title="Delete Vehicle"
+  size="sm"
+  (close)="isDeleteVehicleModalOpen = false">
+  <div class="confirm-modal">
+    <p class="modal-description">
+      Are you sure you want to delete this vehicle? This action cannot be undone.
+    </p>
+    <div class="modal-actions">
+      <app-button variant="outline" (click)="isDeleteVehicleModalOpen = false">Cancel</app-button>
+      <app-button variant="primary" (click)="confirmDeleteVehicle()">Delete Vehicle</app-button>
     </div>
   </div>
 </app-modal>

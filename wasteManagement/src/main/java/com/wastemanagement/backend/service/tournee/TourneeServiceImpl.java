@@ -122,7 +122,7 @@ public class TourneeServiceImpl implements TourneeService {
         if (depotLoc == null || depotLoc.getCoordinates() == null) {
             throw new IllegalStateException("Depot location not configured");
         }
-        double[] depotCoords = depotLoc.getCoordinates(); // [lon, lat]
+        double[] depotCoords = depotLoc.getCoordinates(); // [lon, lat] (GeoJSON)
 
         // 2) Vehicles pool (AVAILABLE + valid capacity)
         List<Vehicle> initialAvailableVehicles =

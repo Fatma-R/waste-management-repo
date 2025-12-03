@@ -12,29 +12,28 @@ import { DashboardComponent } from './features/dashboard/dashboard';
 import { AdminDashboardComponent } from './features/admin-dashboard/admin-dashboard';
 import { EmployeesComponent } from './features/employees/employees';
 import { AdminsComponent } from './features/admins/admins';
+
+// --- From your feature/frontend branch ---
+import { VehiclesComponent } from './features/vehicle/vehicle';
+import { IncidentsComponent } from './features/incident/incident';
+import { AlertsComponent } from './features/alert/alert';
+// --- From main branch ---
 import { BinComponent } from './features/bin/bin';
 import { CollectionPointComponent } from './features/collection-point/collection-point';
 import { BinReadingComponent } from './features/bin-reading/bin-reading';
 import { TourneeMapComponent } from './features/tournee-map/tournee-map';
 
-
 export const routes: Routes = [
 
-  // ====== REDIRECT ROOT ======
-  {
-    path: '',
-    pathMatch: 'full',
-    redirectTo: 'redirector'
-  },
+  { path: '', pathMatch: 'full', redirectTo: 'redirector' },
 
-  // ====== EMPTY ROUTE DECIDER ======
   {
     path: 'redirector',
     canActivate: [AuthGuard],
     children: [],
   },
 
-  // AUTH ROUTES (no layout)
+  // AUTH (no layout)
   {
     path: '',
     component: AuthLayout,
@@ -44,13 +43,12 @@ export const routes: Routes = [
     ]
   },
 
-  // MAIN ROUTES
+  // MAIN LAYOUT
   {
     path: '',
     component: MainLayout,
     children: [
       { path: 'landing', component: Landing },
-
       { path: 'home', component: HelloPage, canActivate: [AuthGuard] },
 
       {
@@ -61,13 +59,19 @@ export const routes: Routes = [
           { path: 'dashboard', component: AdminDashboardComponent },
           { path: 'employees', component: EmployeesComponent },
           { path: 'admins', component: AdminsComponent },
+
+          // ---- YOUR NEW FRONTEND MODULES ----
+          { path: 'incidents', component: IncidentsComponent },
+          { path: 'vehicles', component: VehiclesComponent },
+          { path: 'alerts', component: AlertsComponent },
+          { path: 'tournee', component: AlertsComponent },
+
+          // ---- Existing MAIN branch routes ----
           { path: 'bins', component: BinComponent },
           { path: 'collection-points', component: CollectionPointComponent },
           { path: 'collection-points/:cpId/bins', component: BinComponent },
           { path: 'collection-points/:cpId/bins/:binId/readings', component: BinReadingComponent },
           { path: 'tournee-map', component: TourneeMapComponent }
-
-
         ]
       },
 
