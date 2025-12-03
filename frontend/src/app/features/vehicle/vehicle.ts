@@ -80,6 +80,8 @@ export class VehiclesComponent implements OnInit {
 
   openEditVehicleModal(vehicle: Vehicle): void {
     if (!vehicle) return;
+    console.log('Editing vehicle:', vehicle); // Debugging vehicle data
+
     this.formMode = 'edit';
     this.editingVehicleId = vehicle.id;
 
@@ -87,11 +89,11 @@ export class VehiclesComponent implements OnInit {
       plateNumber: vehicle.plateNumber,
       capacityVolumeL: vehicle.capacityVolumeL,
       coordinates: {
-        longitude: vehicle.coordinates.coordinates[0],
-        latitude: vehicle.coordinates.coordinates[1]
+        longitude: vehicle.coordinates?.coordinates[0] || 0,
+        latitude: vehicle.coordinates?.coordinates[1] || 0
       },
-    fuelType: vehicle.fuelType,
-    status: vehicle.status
+      fuelType: vehicle.fuelType,
+      status: vehicle.status
     };
 
     this.deselectVehicle();
@@ -114,10 +116,13 @@ export class VehiclesComponent implements OnInit {
     };
   }
   onSubmitVehicleForm(): void {
+    console.log('Submitting vehicle form:', this.vehicleForm); // Debugging form data
+
     if (this.formMode === 'create') {
       this.vehicleService.createVehicle(this.vehicleForm).subscribe({
         next: (v) => {
-          this.vehicles.push(v); // GeoJSON vient du backend, pas du form
+          console.log('Vehicle created successfully:', v); // Debugging success response
+          this.vehicles.push(v);
           this.notificationService.showToast('Vehicle added successfully', 'success');
           this.closeVehicleFormModal();
         },
@@ -133,6 +138,7 @@ export class VehiclesComponent implements OnInit {
 
     this.vehicleService.updateVehicle(this.editingVehicleId, this.vehicleForm).subscribe({
       next: (updated) => {
+        console.log('Vehicle updated successfully:', updated); // Debugging success response
         this.vehicles = this.vehicles.map(v =>
           v.id === this.editingVehicleId ? updated : v
         );
@@ -145,10 +151,6 @@ export class VehiclesComponent implements OnInit {
       }
     });
   }
-
-  
-
-
 
   selectVehicle(vehicle: Vehicle): void {
     this.selectedVehicle = vehicle;

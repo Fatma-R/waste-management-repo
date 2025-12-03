@@ -2,6 +2,7 @@
 import {
   AfterViewInit,
   Component,
+  Input,
   OnDestroy,
   OnInit
 } from '@angular/core';
@@ -93,6 +94,8 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private map!: L.Map;
   private layerGroup!: L.LayerGroup;
   private depotCoords: [number, number] | null = null;
+  @Input() tournees: any[] = [];
+  @Input() collectionPoints: any[] = [];
 
   // Global state
   isLoading = false;

@@ -22,6 +22,8 @@ import { Incident } from '../../shared/models/incident.model';
 import { AlertService } from '../../core/services/alert';
 import { Alert , AlertType } from '../../shared/models/alert.model';
 
+import { TourneeMapComponent } from '../tournee-map/tournee-map';
+
 // type alias réutilisable
 type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 interface ActivityLog {
@@ -111,12 +113,15 @@ export interface AlertView {
     KpiComponent,
     LoadingSpinnerComponent,
     ModalComponent,
-    RouterModule
+    RouterModule,
+    TourneeMapComponent  
   ],
   templateUrl: './admin-dashboard.html',
   styleUrls: ['./admin-dashboard.scss']
 })
 export class AdminDashboardComponent implements OnInit {
+
+
   isLoading = true;
 
   employees: Employee[] = [];
@@ -154,6 +159,7 @@ export class AdminDashboardComponent implements OnInit {
   private employeesLoaded = false;
   private binsLoaded = false;
   private collectionPointsLoaded = false;
+tournees: any;
 
   constructor(
     private employeeService: EmployeeService,
@@ -311,7 +317,7 @@ export class AdminDashboardComponent implements OnInit {
     });
 
     // Local mock data for other features
-    this.loadMockTournees();
+    //this.loadMockTournees();
     //this.loadMockVehicles();
     //this.loadMockIncidents();
     this.loadActivityLogs();
@@ -326,9 +332,8 @@ export class AdminDashboardComponent implements OnInit {
 
   // ========= MOCK DATA (pure frontend for now) =========
 
-  private loadMockCollectionPoints(): void {
-    // No longer needed - data loaded from API in loadDashboardData()
-  }
+  //private loadMockCollectionPoints(): void {
+    // No longer needed - data loaded from API in loadDashboardData()}
 
   private calculateAvgFillForCP(bins: Bin[]): number {
     if (bins.length === 0) return 0;
@@ -343,87 +348,7 @@ export class AdminDashboardComponent implements OnInit {
     this.avgNetworkFillPct = Math.round(totalFill / this.collectionPoints.length);
   }
 
-  private loadMockTournees(): void {
-    const now = new Date();
-    this.todayTournees = [
-      {
-        id: 't1',
-        label: 'Morning Tour · Zone A (PLASTIC)',
-        tourneeType: 'PLASTIC',
-        status: 'IN_PROGRESS',
-        plannedKm: 18.5,
-        plannedCO2: 24.2,
-        zoneLabel: 'Zone A',
-        stepsCount: 12,
-        plannedDate: now
-      },
-      {
-        id: 't2',
-        label: 'Midday Tour · Zone B (ORGANIC)',
-        tourneeType: 'ORGANIC',
-        status: 'PLANNED',
-        plannedKm: 14.0,
-        plannedCO2: 19.5,
-        zoneLabel: 'Zone B',
-        stepsCount: 9,
-        plannedDate: new Date(now.getTime() + 2 * 60 * 60 * 1000)
-      },
-      {
-        id: 't3',
-        label: 'Evening Tour · Zone C (GLASS)',
-        tourneeType: 'GLASS',
-        status: 'PLANNED',
-        plannedKm: 11.3,
-        plannedCO2: 15.0,
-        zoneLabel: 'Zone C',
-        stepsCount: 7,
-        plannedDate: new Date(now.getTime() + 6 * 60 * 60 * 1000)
-      },
-      {
-        id: 't4',
-        label: 'Night Tour · Mixed (PAPER)',
-        tourneeType: 'PAPER',
-        status: 'COMPLETED',
-        plannedKm: 9.2,
-        plannedCO2: 11.8,
-        zoneLabel: 'Mixed zones',
-        stepsCount: 5,
-        plannedDate: new Date(now.getTime() - 8 * 60 * 60 * 1000)
-      }
-    ];
-
-    this.activeTournees = this.todayTournees.filter((t) =>
-      ['PLANNED', 'IN_PROGRESS'].includes(t.status)
-    ).length;
-  }
-  // Charger les alertes (mock pour l'instant)
-  private loadAlerts(): void {
-    const now = new Date();
-    this.alerts = [
-      {
-        id: 'a1',
-        message: 'Bin #12 is almost full (92%)',
-        severity: 'HIGH',
-        createdAt: new Date(now.getTime() - 5 * 60 * 1000),
-        resolved: false
-      },
-      {
-        id: 'a2',
-        message: 'Vehicle V-23 requires maintenance',
-        severity: 'MEDIUM',
-        createdAt: new Date(now.getTime() - 45 * 60 * 1000),
-        resolved: false
-      },
-      {
-        id: 'a3',
-        message: 'Incident BLOCKED_STREET reported in Zone B',
-        severity: 'CRITICAL',
-        createdAt: new Date(now.getTime() - 120 * 60 * 1000),
-        resolved: false
-      }
-    ];
-    this.totalAlerts = this.alerts.length;
-  }
+ 
 
   
 
@@ -482,6 +407,8 @@ export class AdminDashboardComponent implements OnInit {
 
   // ========= EMPLOYEE ACTIONS =========
 
+  selectedVehicleId: string | null = null;
+  isDeleteVehicleModalOpen: boolean = false;
   openDeleteEmployeeModal(employeeId: string): void {
     this.selectedEmployeeId = employeeId;
     this.isDeleteEmployeeModalOpen = true;
@@ -583,7 +510,37 @@ export class AdminDashboardComponent implements OnInit {
       'info'
     );
   }
+ 
+  openDeleteVahicleModal(vehicleId: string): void {
+    this.selectedVehicleId = vehicleId;
+    this.isDeleteVehicleModalOpen = true;
+  }
+  openDeleteVehicleModal(vehicleId: string): void {
+    this.selectedVehicleId = vehicleId;
+    this.isDeleteVehicleModalOpen = true;
+  }
+  confirmDeleteVehicle(): void {
+    if (!this.selectedVehicleId) return;
+
+      // Appel à ton service pour supprimer le véhicule
+      this.vehicleService.deleteVehicle(this.selectedVehicleId).subscribe({
+        next: () => {
+        // Supprime le véhicule de la liste locale
+        this.vehicles = this.vehicles.filter(v => v.id !== this.selectedVehicleId);
+        this.isDeleteVehicleModalOpen = false;
+        this.selectedVehicleId = null;
+      },
+      error: (err) => {
+        console.error('Error deleting vehicle:', err);
+      }
+    });
+  }
+
+
+
+ 
   
+
 
   // ========= ACTIVITY LOG HELPERS =========
 
@@ -806,7 +763,15 @@ export class AdminDashboardComponent implements OnInit {
   this.router.navigate(['/admin/vehicles']);}
   goToIncidents() {
   this.router.navigate(['/admin/incidents']);}
-  
+  goToTourneeMap(): void {
+    this.router.navigate(['/admin/tournee-map']);
+  }
+
+  goToPlanning() {
+  this.router.navigate(['/admin/tournees']);
+}
+
+
 
 
 }
