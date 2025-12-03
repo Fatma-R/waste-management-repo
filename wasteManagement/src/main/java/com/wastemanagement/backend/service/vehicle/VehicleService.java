@@ -1,6 +1,7 @@
 package com.wastemanagement.backend.service.vehicle;
 
 
+import com.wastemanagement.backend.dto.tournee.TourneeResponseDTO;
 import com.wastemanagement.backend.dto.vehicle.VehicleResponseDTO;
 import com.wastemanagement.backend.dto.vehicle.VehicleRequestDTO;
 import com.wastemanagement.backend.model.vehicle.FuelType;
@@ -16,5 +17,7 @@ public interface VehicleService {
     boolean deleteVehicle(String id);
     List<VehicleResponseDTO> getVehiclesByStatus(String status);
     List<VehicleResponseDTO> getVehiclesByFuelType(FuelType fuelType);
+
+    List<VehicleResponseDTO> getAvailableVehiclesForTournee(TourneeResponseDTO plannedTournee);
 }
 

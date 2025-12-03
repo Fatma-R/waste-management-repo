@@ -77,43 +77,5 @@ public class DatabaseInitializer {
                 adminRepository.save(admin);
                 System.out.println("Initial admin created: admin@example.com / admin123");
             }
-            // --- Initialize Collection Point ---
-            if (collectionPointRepository.count() == 0) {
-
-                CollectionPoint cp = new CollectionPoint();
-                cp.setActive(true);
-                cp.setAdresse("Test Address");
-
-                GeoJSONPoint point = new GeoJSONPoint(10.0, 20.0);
-                cp.setLocation(point);
-
-                cp.setBins(new ArrayList<>());
-                collectionPointRepository.save(cp);
-
-                // --- Initialize Bin ---
-                Bin bin = new Bin();
-                bin.setActive(true);
-                bin.setCollectionPointId(cp.getId());
-                bin.setType(TrashType.PLASTIC);
-                bin = binRepository.save(bin);
-
-                // attach bin to cp
-                cp.getBins().add(bin);
-                collectionPointRepository.save(cp);
-
-                // --- Init BinReading ---
-                BinReading reading = new BinReading();
-                reading.setBinId(bin.getId());
-                reading.setTs(new Date());
-                reading.setFillPct(42);
-                reading.setBatteryPct(90);
-                reading.setTemperatureC(27);
-                reading.setSignalDbm(-65);
-
-                binReadingRepository.save(reading);
-
-                System.out.println("Initialized CP + Bin + BinReading for testing");
-            }
-        };
-    }
+    };}
 }
