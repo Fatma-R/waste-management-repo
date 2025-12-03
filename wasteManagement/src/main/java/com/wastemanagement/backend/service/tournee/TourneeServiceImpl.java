@@ -421,7 +421,7 @@ public class TourneeServiceImpl implements TourneeService {
     private List<CollectionPoint> findCollectionPointsNeedingCollection(TrashType type,
                                                                         double threshold,
                                                                         Map<String, Double> cpIdToVolumeLiters) {
-
+        Set<String> cpAlreadyCovered = getCollectionPointIdsAlreadyCoveredForType(type);
         // a) Tous les bacs actifs de ce type
         List<Bin> bins = binRepository.findByActiveTrueAndType(type);
         System.out.println("Found bins for type " + type + " = " + bins.size());
@@ -436,6 +436,15 @@ public class TourneeServiceImpl implements TourneeService {
         Set<String> cpIdsOverThreshold = new HashSet<>();
 
         for (Bin bin : bins) {
+            String cpId = bin.getCollectionPointId();
+            if (cpId == null) { continue; }
+            // ignore bins whose CP is already planned/assigned
+            if (cpAlreadyCovered.contains(cpId)) {
+                System.out.println("Skipping bin " + bin.getId()
+                        + " because CP " + cpId + " is already covered (PLANNED/ASSIGNED) for type " + type);
+                continue;
+            }
+
             BinReading latest = binReadingRepository.findTopByBinIdOrderByTsDesc(bin.getId());
 
             System.out.println("Bin " + bin.getId() + " latest reading = "
@@ -450,7 +459,6 @@ public class TourneeServiceImpl implements TourneeService {
             // volume de CE bac
             double volumeL = (fillPct / 100.0) * BIN_CAPACITY_L;
 
-            String cpId = bin.getCollectionPointId();
             // On additionne TOUS les volumes dans cpTotalVolume
             cpTotalVolume.merge(cpId, volumeL, Double::sum);
 
@@ -491,6 +499,17 @@ public class TourneeServiceImpl implements TourneeService {
                                                                     Set<String> cpIdsFilter,
                                                                     Map<String, Double> cpIdToVolumeLiters) {
         if (cpIdsFilter == null || cpIdsFilter.isEmpty()) {
+            return List.of();
+        }
+
+        Set<String> cpAlreadyCovered = getCollectionPointIdsAlreadyCoveredForType(type);
+        Set<String> effectiveFilter = cpIdsFilter.stream()
+                .filter(cpId -> !cpAlreadyCovered.contains(cpId))
+                .collect(Collectors.toSet());
+
+        if (effectiveFilter.isEmpty()) {
+            System.out.println("All forced CPs are already covered (PLANNED/ASSIGNED) for type "
+                    + type + " → nothing to plan.");
             return List.of();
         }
 
@@ -699,5 +718,25 @@ public class TourneeServiceImpl implements TourneeService {
 
         tournee.setSteps(steps);
         return tournee;
+    }
+
+    /**
+     * Returns collectionPointIds that already belong to an ASSIGNED tour
+     * for the given trash type. Those CPs must NOT be considered again when
+     * selecting bins needing collection.
+     */
+    private Set<String> getCollectionPointIdsAlreadyCoveredForType(TrashType type) {
+        Set<String> cpIds = new HashSet<>();
+        List<Tournee> assignedTours = tourneeRepository.findByTourneeTypeAndStatus(type, TourneeStatus.ASSIGNED);
+        for (Tournee t : assignedTours) {
+            if (t.getSteps() == null) continue;
+            for (RouteStep step : t.getSteps()) {
+                if (step.getCollectionPointId() != null) {
+                    cpIds.add(step.getCollectionPointId());
+                }
+            }
+        }
+        System.out.println("Already covered CPs for type " + type + " (ASSIGNED) = " + cpIds.size());
+        return cpIds;
     }
 }
