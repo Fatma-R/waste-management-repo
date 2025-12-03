@@ -2,6 +2,7 @@
 import {
   AfterViewInit,
   Component,
+  Input,
   OnDestroy,
   OnInit
 } from '@angular/core';
@@ -93,7 +94,6 @@ interface TourView {
     CommonModule,
     FormsModule,
     CardComponent,
-    Input,
     ButtonComponent,
     LoadingSpinnerComponent
   ],
