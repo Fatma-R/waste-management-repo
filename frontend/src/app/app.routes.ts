@@ -81,7 +81,8 @@ export const routes: Routes = [
         data: { roles: ['ROLE_USER', 'ROLE_ADMIN'] },
         children: [
           { path: 'dashboard', component: DashboardComponent },
-          { path: 'home', component: HelloPage }
+          { path: 'home', component: HelloPage },
+          { path: 'tournee-map', component: TourneeMapComponent }
         ]
       },
 

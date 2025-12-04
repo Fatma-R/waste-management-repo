@@ -1,5 +1,6 @@
 package com.wastemanagement.backend.dto.user;
 
+import com.wastemanagement.backend.model.GeoJSONPoint;
 import com.wastemanagement.backend.model.user.Skill;
 import lombok.Data;
 
@@ -9,4 +10,5 @@ public class EmployeeResponseDTO {
     private String fullName;
     private String email;
     private Skill skill;
+    private GeoJSONPoint location;
 }

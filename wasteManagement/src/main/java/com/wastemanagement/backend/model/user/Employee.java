@@ -1,6 +1,7 @@
 // java
 package com.wastemanagement.backend.model.user;
 
+import com.wastemanagement.backend.model.GeoJSONPoint;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -21,4 +22,8 @@ public class Employee {
     private User user;
 
     private Skill skill;
+
+    private GeoJSONPoint location;
+
+    private EmployeeStatus status;
 }

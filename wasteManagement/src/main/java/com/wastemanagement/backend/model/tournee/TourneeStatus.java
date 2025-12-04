@@ -4,5 +4,5 @@ public enum TourneeStatus {
     PLANNED,
     IN_PROGRESS,
     COMPLETED,
-    ASSIGNED, CANCELED
+    CANCELED
 }

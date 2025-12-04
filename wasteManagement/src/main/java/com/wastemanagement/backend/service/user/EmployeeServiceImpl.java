@@ -88,6 +88,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             userRepo.deleteById(user.getId());
         }
     }
+
     // ======================== Nouvelle méthode ========================
     @Override
     public List<EmployeeResponseDTO> getAvailableEmployeeForTournee(TourneeResponseDTO plannedTournee) {
@@ -112,6 +113,17 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .filter(e -> !busyEmployeesIds.contains(e.getId()))
                 .map(EmployeeMapper::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public EmployeeResponseDTO getEmployeeByEmail(String email) {
+        User user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+
+        Employee emp = employeeRepo.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Employee not found for user: " + email));
+
+        return EmployeeMapper.toResponse(emp);
     }
 
     /**

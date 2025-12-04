@@ -34,6 +34,11 @@ public class EmployeeController {
         return employeeService.getAllEmployees();
     }
 
+    @GetMapping("/by-email/{email}")
+    public EmployeeResponseDTO getByEmail(@PathVariable String email) {
+        return employeeService.getEmployeeByEmail(email);
+    }
+
     @PutMapping("/{id}")
     public EmployeeResponseDTO update(
             @PathVariable String id,

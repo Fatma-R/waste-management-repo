@@ -120,25 +120,25 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/depots/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/depots/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/depots/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/depots/**").hasRole("ADMIN")
+                        //.requestMatchers(HttpMethod.GET, "/api/v1/depots/**").hasRole("ADMIN")
 
                         // Collection point CRUD -> Admin ONLY
                         .requestMatchers(HttpMethod.POST, "/api/v1/collectionPoints/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/collectionPoints/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/collectionPoints/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/collectionPoints/**").hasRole("ADMIN")
+                        //.requestMatchers(HttpMethod.GET, "/api/v1/collectionPoints/**").hasRole("ADMIN")
 
                         // Bins CRUD -> Admin ONLY
                         .requestMatchers(HttpMethod.POST, "/api/v1/bins/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/bins/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/bins/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/bins/**").hasRole("ADMIN")
+                        //.requestMatchers(HttpMethod.GET, "/api/v1/bins/**").hasRole("ADMIN")
 
                         // Bins CRUD -> Admin ONLY
                         .requestMatchers(HttpMethod.POST, "/api/v1/bin-readings/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/bin-readings/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/bin-readings/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/bin-readings/**").hasRole("ADMIN")
+                        //.requestMatchers(HttpMethod.GET, "/api/v1/bin-readings/**").hasRole("ADMIN")
 
                         // Admin CRUD -> Admin ONLY
                         .requestMatchers(HttpMethod.POST, "/api/v1/admins/**").hasRole("ADMIN")
@@ -150,13 +150,15 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/tournee-assignments/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/tournee-assignments/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/tournee-assignments/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/tournee-assignments/**").hasRole("ADMIN")
+                        //.requestMatchers(HttpMethod.GET, "/api/v1/tournee-assignments/**").hasRole("ADMIN")
 
                         // Tournee CRUD -> Admin ONLY
                         .requestMatchers(HttpMethod.POST, "/api/v1/tournees/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/tournees/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/tournees/**").hasRole("ADMIN")
                         //.requestMatchers(HttpMethod.GET, "/api/v1/tournees/**").hasRole("ADMIN")
+                        //.requestMatchers(HttpMethod.GET, "/api/v1/tournee-assignments/employee/**").hasRole("USER")
+
                         // Vehicle CRUD -> Admin ONLY
                         .requestMatchers(HttpMethod.POST, "/api/v1/vehicles/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/vehicles/**").hasRole("ADMIN")
@@ -182,7 +184,7 @@ public class WebSecurityConfig {
                         //.requestMatchers(HttpMethod.GET, "/api/v1/route-steps/**").hasRole("ADMIN")
 
                         // Employee READ -> Admin ONLY (employees cannot view other employees)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/employees/**").hasRole("ADMIN")
+                        //.requestMatchers(HttpMethod.GET, "/api/v1/employees/**").hasRole("ADMIN")
 
                         //When employee wants to view his own profile. To be created later.
                         //.requestMatchers(HttpMethod.GET, "/api/v1/employees/me").hasAnyRole("ADMIN","USER")

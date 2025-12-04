@@ -33,6 +33,7 @@ import { Vehicle } from '../../shared/models/vehicle.model';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { BinReadingService } from '../../core/services/bin-reading';
+import { AuthService } from '../../core/auth/auth.service';
 
 // -----------------------------------------------------
 // Custom Leaflet icons
@@ -101,6 +102,8 @@ interface TourView {
   styleUrls: ['./tournee-map.scss']
 })
 export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
+  isAdmin: boolean = false;
+
   private map!: L.Map;
   private layerGroup!: L.LayerGroup;
   private depotCoords: [number, number] | null = null;
@@ -113,7 +116,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // Global state
   isLoading = false;
-  isAssigning = false; // pour le bouton "Assign crew to all tours"
+  isAssigning = false; // for "Assign crew to all tours"
   hasInitialPoints = false;
 
   tours: TourView[] = [];
@@ -124,9 +127,9 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   assignSuccessMessage: string | null = null;
   assignErrorMessage: string | null = null;
 
-  // Filters / planning params
+  // Admin-only planning params (trash types are NOT filters for employee)
   trashTypes = Object.values(TrashType);
-  selectedTypes: TrashType[] = [TrashType.PLASTIC]; // multi-select
+  selectedTypes: TrashType[] = [TrashType.PLASTIC];
   threshold = 80;
 
   constructor(
@@ -136,10 +139,13 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     private tourneeAssignmentService: TourneeAssignmentService,
     private employeeService: EmployeeService,
     private vehicleService: VehicleService,
-    private binReadingService: BinReadingService
+    private binReadingService: BinReadingService,
+    private authService: AuthService
   ) {}
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.isAdmin = this.authService.isAdmin();
+  }
 
   ngAfterViewInit(): void {
     this.initMap();
@@ -152,7 +158,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  // Convenience getter: tournée active
+  // Convenience getter: active tour
   get activeTour(): TourView | null {
     if (this.activeTourIndex == null) {
       return null;
@@ -160,12 +166,12 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.tours[this.activeTourIndex] || null;
   }
 
-  // Check if a type is currently selected
+  // Admin-only: check if a type is currently selected
   isTypeSelected(type: TrashType): boolean {
     return this.selectedTypes.includes(type);
   }
 
-  // Toggle a type on checkbox change
+  // Admin-only: toggle type when clicking chip
   onWasteTypeToggle(type: TrashType, checked: boolean): void {
     if (checked) {
       if (!this.selectedTypes.includes(type)) {
@@ -219,11 +225,17 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
         }
 
         this.isLoading = false;
+
+        // 🔹 Employee mode: after base map & collection points are loaded,
+        // automatically load his in-progress tour (at most one).
+        if (!this.isAdmin) {
+          this.loadInProgressToursForCurrentEmployee();
+        }
       },
       error: (err) => {
         console.error('Error loading initial depot/collection points', err);
         this.isLoading = false;
-        // Pas bloquant : la page reste utilisable, mais sans points initiaux
+        // Page remains usable, but without initial points
       }
     });
   }
@@ -241,7 +253,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     const [depotLon, depotLat] = depotCoords;
     const depotLatLng = L.latLng(depotLat, depotLon);
 
-    // Dépôt
+    // Depot
     const depotMarker = L.marker(depotLatLng, {
       title: 'Depot',
       icon: depotIcon
@@ -250,7 +262,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const latLngs: L.LatLngExpression[] = [depotLatLng];
 
-    // Tous les points de collecte (actifs + inactifs)
+    // All collection points (active + inactive)
     cps.forEach((cp) => {
       if (
         !cp.location ||
@@ -268,7 +280,6 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       latLngs.push(latLng);
     });
 
-    // Fit bounds sur tout
     if (latLngs.length > 1) {
       const bounds = L.latLngBounds(latLngs);
       this.map.fitBounds(bounds, { padding: [30, 30] });
@@ -299,7 +310,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ------------------------------------------------------------------
-  // Plan / discard button handler
+  // Admin: Plan / discard button handler
   // ------------------------------------------------------------------
   onPlanOrDiscardClick(): void {
     if (this.tours.length) {
@@ -310,7 +321,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ------------------------------------------------------------------
-  // Planning multiple tours (VROOM) – backend multi-types API
+  // Admin: planning tours (VROOM)
   // ------------------------------------------------------------------
   private planTours(): void {
     // no type selected at all
@@ -320,7 +331,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     this.isLoading = true;
-    this.resetPlanningState(false); // ne touche pas encore à la map
+    this.resetPlanningState(false); // do not clear map yet
 
     this.tourneeService
       .planTournees(this.selectedTypes, this.threshold)
@@ -347,8 +358,72 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       });
   }
 
+  // ------------------------------------------------------------------
+  // Employee: load his in-progress tour(s)
+  // ------------------------------------------------------------------
+  private loadInProgressToursForCurrentEmployee(): void {
+    const email = this.authService.getUserEmail();
+
+    if (!email) {
+      console.warn(
+        'No user email found for current user, skipping in-progress tours load.'
+      );
+      return;
+    }
+
+    // keep the base map (all collection points), just reset tours state
+    this.isLoading = true;
+    this.resetPlanningState(false);
+
+    // 1) Get the Employee by email (Observable<Employee>)
+    this.employeeService.getEmployeeByEmail(email).subscribe({
+      next: (employee: Employee) => {
+        if (!employee || !employee.id) {
+          console.warn(
+            'No employee found for email',
+            email,
+            '— skipping in-progress tours load.'
+          );
+          this.isLoading = false;
+          return;
+        }
+
+        const employeeId = employee.id;
+
+        // 2) Now that we have the id, load in-progress tours for this employee
+        this.tourneeAssignmentService
+          .getInProgressTourneesForEmployee(employeeId)
+          .pipe(
+            catchError((err) => {
+              console.error(
+                'Error loading in-progress tours for employee',
+                err
+              );
+              this.isLoading = false;
+              return of([] as Tournee[]);
+            })
+          )
+          .subscribe((employeeTours: Tournee[]) => {
+            if (!employeeTours || !employeeTours.length) {
+              // No current assignment, keep the base map only
+              this.isLoading = false;
+              return;
+            }
+
+            // Reuse your existing logic to build TourView + render map
+            this.loadDepotAndCollectionPointsForTours(employeeTours);
+          });
+      },
+      error: (err) => {
+        console.error('Error loading employee by email', err);
+        this.isLoading = false;
+      }
+    });
+  }
+
+
   private loadDepotAndCollectionPointsForTours(tournees: Tournee[]): void {
-    // Récupérer tous les CP uniques sur toutes les tournées
+    // Collect all CP ids used in these tours
     const cpIdSet = new Set<string>();
     tournees.forEach((t) => {
       t.steps.forEach((s) => {
@@ -373,7 +448,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
     forkJoin({ depot: depot$, cpsInTours: cpsInTours$ }).subscribe({
       next: ({ depot, cpsInTours }) => {
-        // Map id -> CP pour ceux qui sont dans les tournées
+        // Map id -> CP for CPs used in tours
         const cpMap = new Map<string, CollectionPoint>();
         cpsInTours.forEach((cp) => {
           if (cp && cp.id) {
@@ -381,7 +456,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
           }
         });
 
-        // Construire TourView pour chaque tournée
+        // Build TourView for each tour
         this.tours = tournees.map((tour) => {
           const stops: StopView[] = tour.steps
             .slice()
@@ -400,10 +475,20 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
             vehicleDisplay: null,
             isAssigning: false
           };
+
+          // If backend already sends assignments (employee in-progress case),
+          // hydrate them and load display data.
+          const incomingAssignments = (tour as any)
+            .assignments as TourneeAssignment[] | undefined;
+          if (incomingAssignments && incomingAssignments.length) {
+            tv.assignments = incomingAssignments;
+            this.loadAssignmentDetailsForTour(tv, incomingAssignments);
+          }
+
           return tv;
         });
 
-        // Dépôt
+        // Depot
         if (
           depot.location &&
           depot.location.coordinates &&
@@ -418,6 +503,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
         this.selectedStop = null;
 
         if (this.tours.length && this.depotCoords) {
+          // For employee: at most one tour; for admin: first planned tour
           this.activeTourIndex = 0;
           this.renderMap(this.depotCoords, this.tours[0]);
         }
@@ -431,7 +517,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ------------------------------------------------------------------
-  // Discard tours
+  // Discard tours (admin)
   // ------------------------------------------------------------------
   private discardAllTours(): void {
     if (!this.tours.length) {
@@ -464,7 +550,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
 
-        // Ajuster activeTourIndex
+        // Adjust activeTourIndex
         if (this.activeTourIndex === index) {
           this.selectedStop = null;
           this.activeTourIndex = 0;
@@ -493,7 +579,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (clearMap && this.layerGroup) {
       this.layerGroup.clearLayers();
-      // Revenir à la vue "tous les points" si on a les données
+      // Back to "all points" view if we have data
       if (this.depotCoords && this.allCollectionPoints.length) {
         this.renderInitialMap(this.depotCoords, this.allCollectionPoints);
       }
@@ -501,7 +587,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ------------------------------------------------------------------
-  // Auto-assign resources (crew only, vehicle comes from Tournee)
+  // Auto-assign resources (admin)
   // ------------------------------------------------------------------
   assignResourcesForAll(): void {
     if (!this.tours.length) {
@@ -532,7 +618,6 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   assignResourcesForTour(tour: TourView, event?: MouseEvent): void {
-    // éviter que le clic sur le bouton déclenche aussi le clic sur la carte
     if (event) {
       event.stopPropagation();
     }
@@ -574,8 +659,6 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     tour: TourView,
     assignments: TourneeAssignment[]
   ): void {
-    // Vehicle now comes from the Tournee itself (plannedVehicleId),
-    // NOT from assignments (we don't set vehicleId there anymore).
     const plannedVehicleId = (tour.tournee as any)
       .plannedVehicleId as string | undefined;
 
@@ -586,7 +669,6 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       employeeIds.map((id) => this.employeeService.getEmployeeById(id))
     );
 
-    // If there is no planned vehicle, just return null in the forkJoin
     const vehicle$ = plannedVehicleId
       ? this.vehicleService
           .getVehicleById(plannedVehicleId)
@@ -598,7 +680,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
           )
       : of(null as unknown as Vehicle);
 
-    forkJoin({ vehicle: vehicle$ , employees: employees$ }).subscribe({
+    forkJoin({ vehicle: vehicle$, employees: employees$ }).subscribe({
       next: ({ vehicle, employees }) => {
         if (vehicle && (vehicle as any).id) {
           const v = vehicle as Vehicle;
@@ -629,7 +711,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ------------------------------------------------------------------
-  // Map rendering (markers + route) pour la tournée active
+  // Map rendering (markers + route) for active tour
   // ------------------------------------------------------------------
   private renderMap(
     depotCoords: [number, number],
@@ -641,7 +723,6 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.layerGroup.clearLayers();
 
-    // Dépôt
     const [depotLon, depotLat] = depotCoords;
     const depotLatLng = L.latLng(depotLat, depotLon);
 
@@ -653,7 +734,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const routeColor = this.getRouteColor(tour.tournee.tourneeType);
 
-    // Marqueurs pour TOUS les points de collecte (actifs + inactifs)
+    // Markers for ALL collection points (active + inactive)
     const activeCpIds = new Set<string>(
       tour.stops.map((s) => s.collectionPoint.id)
     );
@@ -676,7 +757,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       marker.addTo(this.layerGroup);
     });
 
-    // Points de la tournée active pour la route fallback
+    // Points of active tour for fallback route
     tour.stops.forEach((stop) => {
       const loc = stop.collectionPoint.location;
       if (!loc || !loc.coordinates || loc.coordinates.length !== 2) {
@@ -691,7 +772,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       fallbackLatLngs.push(depotLatLng);
     }
 
-    // 1) Route géométrique VROOM (polyline) si dispo
+    // 1) Geometric route from VROOM if available
     if (tour.tournee.geometry) {
       try {
         const decoded = polyline.decode(
@@ -718,7 +799,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }
 
-    // 2) Fallback: lignes droites dépôt -> stops -> dépôt
+    // 2) Fallback: straight lines depot -> stops -> depot
     const routeLine = L.polyline(fallbackLatLngs, {
       weight: 4,
       color: routeColor
@@ -772,7 +853,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getStatusBadgeClass(status: string): string {
-    // Tu peux ajuster selon les statuts possibles (PENDING, DONE, etc.)
+    // Adjust according to actual statuses if needed
     switch (status) {
       default:
         return 'status-badge status-active';
@@ -780,20 +861,20 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ------------------------------------------------------------------
-  // Helpers pour popups / couleurs / marqueurs
+  // Helpers for popups / colors / markers
   // ------------------------------------------------------------------
   private getRouteColor(type: TrashType): string {
     switch (type) {
       case TrashType.PLASTIC:
-        return '#EFFF00'; // jaune flashy (recyclage plastique)
+        return '#EFFF00';
       case TrashType.ORGANIC:
-        return '#854d0e'; // brun/orange (organique)
+        return '#854d0e';
       case TrashType.PAPER:
-        return '#3b82f6'; // bleu (papier/carton)
+        return '#3b82f6';
       case TrashType.GLASS:
-        return '#22c55e'; // vert (verre)
+        return '#22c55e';
       default:
-        return '#4b5563'; // gris
+        return '#4b5563';
     }
   }
 
@@ -801,7 +882,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     cp: CollectionPoint,
     isInActiveTour: boolean
   ): L.Marker {
-    const isActive = (cp as any).active !== false; // par défaut true si pas défini
+    const isActive = (cp as any).active !== false;
     const icon = isActive ? binIcon : inactiveBinIcon;
 
     const [lon, lat] = cp.location.coordinates;
@@ -812,10 +893,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       icon
     });
 
-    // Set a temporary popup while we load latest bin readings
     marker.bindPopup('<div class="cp-popup">Loading bins...</div>');
-
-    // Build the real popup asynchronously using BinReadingService
     this.buildCollectionPointPopup(cp, isInActiveTour, isActive, marker);
 
     return marker;
@@ -829,7 +907,6 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   ): void {
     const label = cp.adresse || cp.id || 'Collection point';
 
-    // Base container (card style)
     let baseHtml = `<div style="
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       font-size: 12px;
@@ -838,10 +915,8 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       padding: 6px 8px;
     ">`;
 
-    // Title
     baseHtml += `<div style="font-weight: 600; margin-bottom: 4px;">${label}</div>`;
 
-    // Status badges row
     baseHtml += `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px;">`;
 
     const statusBg = isActive ? '#DCFCE7' : '#FEE2E2';
@@ -867,11 +942,10 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       ">In active tour</span>`;
     }
 
-    baseHtml += `</div>`; // end status row
+    baseHtml += `</div>`;
 
     const bins = ((cp as any).bins || []) as any[];
 
-    // No bins at this CP
     if (!bins.length) {
       const html =
         baseHtml +
@@ -881,7 +955,6 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
-    // One request per bin to fetch latest reading
     const readingRequests = bins.map((b) =>
       this.binReadingService.getLatestBinReadingForBin(b.id).pipe(
         catchError((err) => {
@@ -932,7 +1005,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       html += `<table style="width: 100%; border-collapse: collapse; margin-top: 2px;">`;
       html += rows.join('');
       html += `</table>`;
-      html += `</div>`; // close container
+      html += `</div>`;
 
       marker.setPopupContent(html);
     });
@@ -953,7 +1026,6 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       case 'PAPER':
         return 'Paper';
       default:
-        // Fallback: capitalize first letter, lower the rest
         return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
     }
   }

@@ -2,7 +2,9 @@ package com.wastemanagement.backend.service.tournee;
 
 import com.wastemanagement.backend.dto.tournee.TourneeAssignmentRequestDTO;
 import com.wastemanagement.backend.dto.tournee.TourneeAssignmentResponseDTO;
+import com.wastemanagement.backend.dto.tournee.TourneeResponseDTO;
 import com.wastemanagement.backend.mapper.tournee.TourneeAssignmentMapper;
+import com.wastemanagement.backend.mapper.tournee.TourneeMapper;
 import com.wastemanagement.backend.model.user.Employee;
 import com.wastemanagement.backend.model.tournee.Tournee;
 import com.wastemanagement.backend.model.tournee.TourneeAssignment;
@@ -145,12 +147,30 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
                 tourneeId
         );
 
-        tournee.setStatus(TourneeStatus.ASSIGNED);
+        tournee.setStatus(TourneeStatus.IN_PROGRESS);
+        tourneeRepository.save(tournee);
 
         return saved.stream()
                 .map(TourneeAssignmentMapper::toResponseDTO)
                 .toList();
     }
+
+    @Override
+    public List<TourneeResponseDTO> getInProgressTourneesForEmployee(String employeeId) {
+        List<String> tourneeIds = repo.findByEmployeeId(employeeId).stream()
+                .map(TourneeAssignment::getTourneeId)
+                .toList();
+
+        if (tourneeIds.isEmpty()) {
+            return List.of();
+        }
+
+        return tourneeRepository.findByStatusAndIdIn(TourneeStatus.IN_PROGRESS, tourneeIds)
+                .stream()
+                .map(TourneeMapper::toResponse)
+                .toList();
+    }
+
 
     // ---------------------------------------------------------
     // Helpers internes
