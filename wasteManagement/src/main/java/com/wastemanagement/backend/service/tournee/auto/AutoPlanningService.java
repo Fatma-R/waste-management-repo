@@ -1,6 +1,8 @@
 package com.wastemanagement.backend.service.tournee.auto;
 
+import com.wastemanagement.backend.dto.tournee.TourneeResponseDTO;
 import com.wastemanagement.backend.model.collection.TrashType;
+import com.wastemanagement.backend.model.tournee.Tournee;
 import com.wastemanagement.backend.model.tournee.auto.AutoMode;
 import com.wastemanagement.backend.model.tournee.auto.BinSnapshot;
 import com.wastemanagement.backend.service.tournee.TourneeService;
@@ -71,8 +73,9 @@ public class AutoPlanningService {
      * Scheduled "full" cycles, e.g. once per day at 3am.
      * - OFF / EMERGENCY_ONLY -> skip
      * - FULL                 -> run your normal daily planning
+     * Second minute hour day-of-month month day-of-week
      */
-    @Scheduled(cron = "0 0 3 * * *") // every day at 03:00
+    @Scheduled(cron = "0 0 6 * * *")
     public void runScheduledCycle() {
         AutoMode mode = autoModeService.getAutoMode();
         if (mode != AutoMode.FULL) {
@@ -80,16 +83,21 @@ public class AutoPlanningService {
         }
 
         log.info("Running FULL scheduled cycle for all trash types");
-
-        // Example: loop over all types and call your multi-type planning
         List<TrashType> allTypes = List.of(TrashType.PLASTIC, TrashType.ORGANIC,
                 TrashType.GLASS, TrashType.PAPER);
 
         try {
-            // Use your existing multi-type planning method (with some default threshold)
-            tourneeService.planTourneesWithVroom(allTypes, 80.0);
+            while (true) {
+                List<TourneeResponseDTO> planned = tourneeService.planTourneesWithVroom(allTypes, 80.0);
+                if (planned == null || planned.isEmpty()) {
+                    log.info("No more bins over threshold; stopping scheduled cycle.");
+                    break;
+                }
+                log.info("Planned {} tours; re-running to catch remaining bins", planned.size());
+            }
         } catch (Exception e) {
             log.error("Error in FULL scheduled cycle", e);
         }
     }
+
 }
