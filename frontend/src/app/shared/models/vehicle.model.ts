@@ -1,14 +1,4 @@
-// GEOJSON format from backend
-export interface GeoJSONPoint {
-  type: 'Point';
-  coordinates: [number, number]; // [longitude, latitude]
-}
-
-// Friendly frontend structure
-export interface Coordinates {
-  longitude: number;
-  latitude: number;
-}
+import { GeoJSONPoint } from "./collection-point.model";
 
 export type VehicleStatus = 'AVAILABLE' | 'IN_SERVICE' | 'MAINTENANCE';
 export type FuelType = 'DIESEL' | 'GASOLINE' | 'ELECTRIC' | 'HYBRID';
@@ -23,7 +13,7 @@ export interface Vehicle {
   zoneLabel?: string;
 
   // Backend format
-  coordinates: GeoJSONPoint;
+  currentLocation: GeoJSONPoint;
 
   createdAt?: string;
   updatedAt?: string;
@@ -33,7 +23,7 @@ export interface Vehicle {
 export interface CreateVehicleDto {
   plateNumber: string;
   capacityVolumeL: number;
-  coordinates: Coordinates; // frontend format
+  currentLocation: GeoJSONPoint;
   fuelType: FuelType;
   status: VehicleStatus;
 }
@@ -41,7 +31,7 @@ export interface CreateVehicleDto {
 export interface UpdateVehicleDto {
   plateNumber?: string;
   capacityVolumeL?: number;
-  coordinates?: Coordinates; // frontend format
+  currentLocation?: GeoJSONPoint;
   fuelType?: FuelType;
   status?: VehicleStatus;
 }

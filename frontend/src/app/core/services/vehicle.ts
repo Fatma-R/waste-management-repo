@@ -21,9 +21,9 @@ export class VehicleService {
   createVehicle(payload: CreateVehicleDto): Observable<Vehicle> {
     const body = {
       ...payload,
-      coordinates: {
+      currentLocation: {
         type: 'Point',
-        coordinates: [payload.coordinates.longitude, payload.coordinates.latitude]
+        coordinates: [payload.currentLocation.coordinates[0], payload.currentLocation.coordinates[1]]
       }
     };
     return this.api.post<Vehicle>('/vehicles', body);
@@ -32,9 +32,9 @@ export class VehicleService {
   updateVehicle(id: string, payload: UpdateVehicleDto): Observable<Vehicle> {
     const body = {
       ...payload,
-      coordinates: payload.coordinates ? {
+      currentLocation: payload.currentLocation ? {
         type: 'Point',
-        coordinates: [payload.coordinates.longitude, payload.coordinates.latitude]
+        coordinates: [payload.currentLocation.coordinates[0], payload.currentLocation.coordinates[1]]
       } : undefined
     };
     return this.api.put<Vehicle>(`/vehicles/${id}`, body);
@@ -51,7 +51,7 @@ export class VehicleService {
       id: '1',
       plateNumber: 'TN-1234',
       capacityVolumeL: 5000,
-      coordinates: { type: 'Point', coordinates: [10.123, 36.456] },
+      currentLocation: { type: 'Point', coordinates: [10.123, 36.456] },
       fuelType: 'DIESEL',
       status: 'AVAILABLE'
     },
@@ -59,7 +59,7 @@ export class VehicleService {
       id: '2',
       plateNumber: 'TN-5678',
       capacityVolumeL: 3000,
-      coordinates: { type: 'Point', coordinates: [10.789, 36.789] },
+      currentLocation: { type: 'Point', coordinates: [10.789, 36.789] },
       fuelType: 'GASOLINE',
       status: 'IN_SERVICE'
     }
@@ -68,5 +68,4 @@ export class VehicleService {
 }
 
 }
-
   

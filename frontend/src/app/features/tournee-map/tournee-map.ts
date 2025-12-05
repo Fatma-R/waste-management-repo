@@ -30,7 +30,10 @@ import { VehicleService } from '../../core/services/vehicle';
 import { Employee } from '../../shared/models/employee.model';
 import { Vehicle } from '../../shared/models/vehicle.model';
 
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { BinReadingService } from '../../core/services/bin-reading';
+import { AuthService } from '../../core/auth/auth.service';
 
 // -----------------------------------------------------
 // Custom Leaflet icons
@@ -38,6 +41,14 @@ import { forkJoin } from 'rxjs';
 const binIcon = L.icon({
   iconUrl: 'assets/map/marker-bin.png',
   iconRetinaUrl: 'assets/map/marker-bin.png',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -32]
+});
+
+const inactiveBinIcon = L.icon({
+  iconUrl: 'assets/map/marker-bin-inactive.png',
+  iconRetinaUrl: 'assets/map/marker-bin-inactive.png',
   iconSize: [32, 32],
   iconAnchor: [16, 32],
   popupAnchor: [0, -32]
@@ -91,15 +102,21 @@ interface TourView {
   styleUrls: ['./tournee-map.scss']
 })
 export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
+  isAdmin: boolean = false;
+
   private map!: L.Map;
   private layerGroup!: L.LayerGroup;
   private depotCoords: [number, number] | null = null;
-  @Input() tournees: any[] = [];
-  @Input() collectionPoints: any[] = [];
+
+  @Input() tournees: Tournee[] | null = null;
+  @Input() collectionPoints: CollectionPoint[] | null = null;
+
+  /** All collection points (active + inactive), always rendered on map */
+  allCollectionPoints: CollectionPoint[] = [];
 
   // Global state
   isLoading = false;
-  isAssigning = false; // pour le bouton "Assign crew to all tours"
+  isAssigning = false; // for "Assign crew to all tours"
   hasInitialPoints = false;
 
   tours: TourView[] = [];
@@ -110,9 +127,9 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   assignSuccessMessage: string | null = null;
   assignErrorMessage: string | null = null;
 
-  // Filters / planning params
+  // Admin-only planning params (trash types are NOT filters for employee)
   trashTypes = Object.values(TrashType);
-  selectedType: TrashType = TrashType.PLASTIC;
+  selectedTypes: TrashType[] = [TrashType.PLASTIC];
   threshold = 80;
 
   constructor(
@@ -121,10 +138,14 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     private collectionPointService: CollectionPointService,
     private tourneeAssignmentService: TourneeAssignmentService,
     private employeeService: EmployeeService,
-    private vehicleService: VehicleService
+    private vehicleService: VehicleService,
+    private binReadingService: BinReadingService,
+    private authService: AuthService
   ) {}
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.isAdmin = this.authService.isAdmin();
+  }
 
   ngAfterViewInit(): void {
     this.initMap();
@@ -137,12 +158,28 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  // Convenience getter: tournée active
+  // Convenience getter: active tour
   get activeTour(): TourView | null {
     if (this.activeTourIndex == null) {
       return null;
     }
     return this.tours[this.activeTourIndex] || null;
+  }
+
+  // Admin-only: check if a type is currently selected
+  isTypeSelected(type: TrashType): boolean {
+    return this.selectedTypes.includes(type);
+  }
+
+  // Admin-only: toggle type when clicking chip
+  onWasteTypeToggle(type: TrashType, checked: boolean): void {
+    if (checked) {
+      if (!this.selectedTypes.includes(type)) {
+        this.selectedTypes = [...this.selectedTypes, type];
+      }
+    } else {
+      this.selectedTypes = this.selectedTypes.filter((t) => t !== type);
+    }
   }
 
   // ------------------------------------------------------------------
@@ -160,93 +197,96 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private loadInitialPoints(): void {
-  this.isLoading = true;
+    this.isLoading = true;
 
-  const depot$ = this.depotService.getMainDepot();
-  // ⚠️ Adapte le nom de la méthode au service réel (getAll, list, etc.)
-  const cps$ = this.collectionPointService.getCollectionPoints();
+    const depot$ = this.depotService.getMainDepot();
+    const cps$ = this.collectionPointService.getCollectionPoints();
 
-  forkJoin({ depot: depot$, cps: cps$ }).subscribe({
-    next: ({ depot, cps }) => {
-      if (
-        depot.location &&
-        depot.location.coordinates &&
-        depot.location.coordinates.length === 2
-      ) {
-        this.depotCoords = depot.location.coordinates as [number, number];
+    forkJoin({ depot: depot$, cps: cps$ }).subscribe({
+      next: ({ depot, cps }) => {
+        if (
+          depot.location &&
+          depot.location.coordinates &&
+          depot.location.coordinates.length === 2
+        ) {
+          this.depotCoords = depot.location.coordinates as [number, number];
+        }
+
+        this.allCollectionPoints = cps || [];
+        this.hasInitialPoints = !!(
+          this.allCollectionPoints && this.allCollectionPoints.length
+        );
+
+        if (this.depotCoords && this.hasInitialPoints) {
+          this.renderInitialMap(this.depotCoords, this.allCollectionPoints);
+        } else if (this.depotCoords) {
+          const [lon, lat] = this.depotCoords;
+          this.map.setView([lat, lon], 12);
+        }
+
+        this.isLoading = false;
+
+        // 🔹 Employee mode: after base map & collection points are loaded,
+        // automatically load his in-progress tour (at most one).
+        if (!this.isAdmin) {
+          this.loadInProgressToursForCurrentEmployee();
+        }
+      },
+      error: (err) => {
+        console.error('Error loading initial depot/collection points', err);
+        this.isLoading = false;
+        // Page remains usable, but without initial points
       }
-
-      this.hasInitialPoints = !!(cps && cps.length);
-
-      if (this.depotCoords && this.hasInitialPoints) {
-        this.renderInitialMap(this.depotCoords, cps);
-      } else if (this.depotCoords) {
-        // Juste centrer sur le dépôt si pas de points
-        const [lon, lat] = this.depotCoords;
-        this.map.setView([lat, lon], 12);
-      }
-
-      this.isLoading = false;
-    },
-    error: (err) => {
-      console.error('Error loading initial depot/collection points', err);
-      this.isLoading = false;
-      // On ne montre pas d’erreur bloquante ici, c’est juste du confort
-    }
-  });
-}
-  private renderInitialMap(
-  depotCoords: [number, number],
-  cps: CollectionPoint[]
-): void {
-  if (!this.layerGroup || !this.map) {
-    return;
+    });
   }
 
-  this.layerGroup.clearLayers();
-
-  const [depotLon, depotLat] = depotCoords;
-  const depotLatLng = L.latLng(depotLat, depotLon);
-
-  // Dépôt
-  const depotMarker = L.marker(depotLatLng, {
-    title: 'Depot',
-    icon: depotIcon
-  }).bindPopup('<b>Depot</b>');
-  depotMarker.addTo(this.layerGroup);
-
-  const latLngs: L.LatLngExpression[] = [depotLatLng];
-
-  // Tous les points de collecte
-  cps.forEach((cp) => {
-    if (!cp.location || !cp.location.coordinates || cp.location.coordinates.length !== 2) {
+  private renderInitialMap(
+    depotCoords: [number, number],
+    cps: CollectionPoint[]
+  ): void {
+    if (!this.layerGroup || !this.map) {
       return;
     }
 
-    const [lon, lat] = cp.location.coordinates;
-    const latLng = L.latLng(lat, lon);
-    latLngs.push(latLng);
+    this.layerGroup.clearLayers();
 
-    const label = cp.adresse || cp.id || 'Collection point';
+    const [depotLon, depotLat] = depotCoords;
+    const depotLatLng = L.latLng(depotLat, depotLon);
 
-    const marker = L.marker(latLng, {
-      title: label,
-      icon: binIcon
-    }).bindPopup(`<b>${label}</b>`);
+    // Depot
+    const depotMarker = L.marker(depotLatLng, {
+      title: 'Depot',
+      icon: depotIcon
+    }).bindPopup('<b>Depot</b>');
+    depotMarker.addTo(this.layerGroup);
 
-    marker.addTo(this.layerGroup);
-  });
+    const latLngs: L.LatLngExpression[] = [depotLatLng];
 
-  // Fit bounds sur tout
-  if (latLngs.length > 1) {
-    const bounds = L.latLngBounds(latLngs);
-    this.map.fitBounds(bounds, { padding: [30, 30] });
-  } else {
-    this.map.setView(depotLatLng, 12);
+    // All collection points (active + inactive)
+    cps.forEach((cp) => {
+      if (
+        !cp.location ||
+        !cp.location.coordinates ||
+        cp.location.coordinates.length !== 2
+      ) {
+        return;
+      }
+
+      const marker = this.createCollectionPointMarker(cp, false);
+      marker.addTo(this.layerGroup);
+
+      const [lon, lat] = cp.location.coordinates;
+      const latLng = L.latLng(lat, lon);
+      latLngs.push(latLng);
+    });
+
+    if (latLngs.length > 1) {
+      const bounds = L.latLngBounds(latLngs);
+      this.map.fitBounds(bounds, { padding: [30, 30] });
+    } else {
+      this.map.setView(depotLatLng, 12);
+    }
   }
-}
-
-
 
   // ------------------------------------------------------------------
   // Toast helpers
@@ -270,7 +310,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ------------------------------------------------------------------
-  // Plan / discard button handler
+  // Admin: Plan / discard button handler
   // ------------------------------------------------------------------
   onPlanOrDiscardClick(): void {
     if (this.tours.length) {
@@ -281,32 +321,109 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ------------------------------------------------------------------
-  // Planning multiple tours (VROOM)
+  // Admin: planning tours (VROOM)
   // ------------------------------------------------------------------
   private planTours(): void {
-    this.isLoading = true;
-    this.resetPlanningState(false); // ne touche pas encore à la map
+    // no type selected at all
+    if (!this.selectedTypes || !this.selectedTypes.length) {
+      this.showAssignError('Please select at least one waste type.');
+      return;
+    }
 
-    this.tourneeService.planTournee(this.selectedType, this.threshold).subscribe({
-      next: (tournees) => {
-        if (!tournees || !tournees.length) {
+    this.isLoading = true;
+    this.resetPlanningState(false); // do not clear map yet
+
+    this.tourneeService
+      .planTournees(this.selectedTypes, this.threshold)
+      .pipe(
+        catchError((err) => {
+          console.error('Error planning tours for selected types', err);
           this.isLoading = false;
-          this.showAssignError('No tours could be planned for the selected criteria.');
+          this.showAssignError(
+            'No tours could be planned for the selected types and threshold.'
+          );
+          return of([] as Tournee[]);
+        })
+      )
+      .subscribe((allTours: Tournee[]) => {
+        if (!allTours.length) {
+          this.isLoading = false;
+          this.showAssignError(
+            'No tours could be planned for the selected types and threshold.'
+          );
           return;
         }
 
-        this.loadDepotAndCollectionPointsForTours(tournees);
+        this.loadDepotAndCollectionPointsForTours(allTours);
+      });
+  }
+
+  // ------------------------------------------------------------------
+  // Employee: load his in-progress tour(s)
+  // ------------------------------------------------------------------
+  private loadInProgressToursForCurrentEmployee(): void {
+    const email = this.authService.getUserEmail();
+
+    if (!email) {
+      console.warn(
+        'No user email found for current user, skipping in-progress tours load.'
+      );
+      return;
+    }
+
+    // keep the base map (all collection points), just reset tours state
+    this.isLoading = true;
+    this.resetPlanningState(false);
+
+    // 1) Get the Employee by email (Observable<Employee>)
+    this.employeeService.getEmployeeByEmail(email).subscribe({
+      next: (employee: Employee) => {
+        if (!employee || !employee.id) {
+          console.warn(
+            'No employee found for email',
+            email,
+            '— skipping in-progress tours load.'
+          );
+          this.isLoading = false;
+          return;
+        }
+
+        const employeeId = employee.id;
+
+        // 2) Now that we have the id, load in-progress tours for this employee
+        this.tourneeAssignmentService
+          .getInProgressTourneesForEmployee(employeeId)
+          .pipe(
+            catchError((err) => {
+              console.error(
+                'Error loading in-progress tours for employee',
+                err
+              );
+              this.isLoading = false;
+              return of([] as Tournee[]);
+            })
+          )
+          .subscribe((employeeTours: Tournee[]) => {
+            if (!employeeTours || !employeeTours.length) {
+              // No current assignment, keep the base map only
+              this.isLoading = false;
+              return;
+            }
+
+            // Reuse your existing logic to build TourView + render map
+            this.loadDepotAndCollectionPointsForTours(employeeTours);
+          });
       },
       error: (err) => {
-        console.error('Error planning tours', err);
+        console.error('Error loading employee by email', err);
         this.isLoading = false;
-        this.showAssignError('Failed to plan tours. Please check backend logs.');
       }
     });
   }
 
+
   private loadDepotAndCollectionPointsForTours(tournees: Tournee[]): void {
-    // Récupérer tous les CP uniques sur toutes les tournées
+    // Collect all CP ids used in these tours
     const cpIdSet = new Set<string>();
     tournees.forEach((t) => {
       t.steps.forEach((s) => {
@@ -325,20 +442,21 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     const cpIds = Array.from(cpIdSet);
 
     const depot$ = this.depotService.getMainDepot();
-    const cps$ = forkJoin(
+    const cpsInTours$ = forkJoin(
       cpIds.map((id) => this.collectionPointService.getCollectionPointById(id))
     );
 
-    forkJoin({ depot: depot$, cps: cps$ }).subscribe({
-      next: ({ depot, cps }) => {
+    forkJoin({ depot: depot$, cpsInTours: cpsInTours$ }).subscribe({
+      next: ({ depot, cpsInTours }) => {
+        // Map id -> CP for CPs used in tours
         const cpMap = new Map<string, CollectionPoint>();
-        cps.forEach((cp) => {
+        cpsInTours.forEach((cp) => {
           if (cp && cp.id) {
             cpMap.set(cp.id, cp);
           }
         });
 
-        // Construire TourView pour chaque tournée
+        // Build TourView for each tour
         this.tours = tournees.map((tour) => {
           const stops: StopView[] = tour.steps
             .slice()
@@ -357,10 +475,20 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
             vehicleDisplay: null,
             isAssigning: false
           };
+
+          // If backend already sends assignments (employee in-progress case),
+          // hydrate them and load display data.
+          const incomingAssignments = (tour as any)
+            .assignments as TourneeAssignment[] | undefined;
+          if (incomingAssignments && incomingAssignments.length) {
+            tv.assignments = incomingAssignments;
+            this.loadAssignmentDetailsForTour(tv, incomingAssignments);
+          }
+
           return tv;
         });
 
-        // Dépôt
+        // Depot
         if (
           depot.location &&
           depot.location.coordinates &&
@@ -375,6 +503,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
         this.selectedStop = null;
 
         if (this.tours.length && this.depotCoords) {
+          // For employee: at most one tour; for admin: first planned tour
           this.activeTourIndex = 0;
           this.renderMap(this.depotCoords, this.tours[0]);
         }
@@ -388,7 +517,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ------------------------------------------------------------------
-  // Discard tours
+  // Discard tours (admin)
   // ------------------------------------------------------------------
   private discardAllTours(): void {
     if (!this.tours.length) {
@@ -421,7 +550,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
           return;
         }
 
-        // Ajuster activeTourIndex
+        // Adjust activeTourIndex
         if (this.activeTourIndex === index) {
           this.selectedStop = null;
           this.activeTourIndex = 0;
@@ -450,11 +579,15 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (clearMap && this.layerGroup) {
       this.layerGroup.clearLayers();
+      // Back to "all points" view if we have data
+      if (this.depotCoords && this.allCollectionPoints.length) {
+        this.renderInitialMap(this.depotCoords, this.allCollectionPoints);
+      }
     }
   }
 
   // ------------------------------------------------------------------
-  // Auto-assign resources
+  // Auto-assign resources (admin)
   // ------------------------------------------------------------------
   assignResourcesForAll(): void {
     if (!this.tours.length) {
@@ -474,7 +607,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
           this.updateTourAssignments(tour, assignments);
         });
         this.isAssigning = false;
-        this.showAssignSuccess('Crew and vehicles assigned to all tours.');
+        this.showAssignSuccess('Crew assigned to all tours.');
       },
       error: (err) => {
         console.error('Error assigning resources for all tours', err);
@@ -484,7 +617,11 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  assignResourcesForTour(tour: TourView): void {
+  assignResourcesForTour(tour: TourView, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
+
     tour.isAssigning = true;
 
     this.tourneeAssignmentService
@@ -493,12 +630,12 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
         next: (assignments) => {
           this.updateTourAssignments(tour, assignments);
           tour.isAssigning = false;
-          this.showAssignSuccess('Crew and vehicle assigned to this tour.');
+          this.showAssignSuccess('Crew assigned to this tour.');
         },
         error: (err) => {
           console.error('Error auto-assigning resources for tour', err);
           tour.isAssigning = false;
-          this.showAssignError('Failed to assign crew and vehicle for this tour.');
+          this.showAssignError('Failed to assign crew for this tour.');
         }
       });
   }
@@ -522,23 +659,38 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     tour: TourView,
     assignments: TourneeAssignment[]
   ): void {
-    const vehicleId = assignments[0].vehicleId;
-    const employeeIds = Array.from(new Set(assignments.map((a) => a.employeeId)));
+    const plannedVehicleId = (tour.tournee as any)
+      .plannedVehicleId as string | undefined;
 
-    const vehicle$ = this.vehicleService.getVehicleById(vehicleId);
+    const employeeIds = Array.from(
+      new Set(assignments.map((a) => a.employeeId))
+    );
     const employees$ = forkJoin(
       employeeIds.map((id) => this.employeeService.getEmployeeById(id))
     );
 
+    const vehicle$ = plannedVehicleId
+      ? this.vehicleService
+          .getVehicleById(plannedVehicleId)
+          .pipe(
+            catchError((err) => {
+              console.error('Failed to load planned vehicle', err);
+              return of(null as unknown as Vehicle);
+            })
+          )
+      : of(null as unknown as Vehicle);
+
     forkJoin({ vehicle: vehicle$, employees: employees$ }).subscribe({
       next: ({ vehicle, employees }) => {
-        if (vehicle) {
+        if (vehicle && (vehicle as any).id) {
           const v = vehicle as Vehicle;
           tour.vehicleDisplay = {
             id: v.id,
             plateNumber: v.plateNumber,
             capacityVolumeL: v.capacityVolumeL
           };
+        } else {
+          tour.vehicleDisplay = null;
         }
 
         tour.crewDisplay = employees.map(
@@ -550,13 +702,16 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
         );
       },
       error: (err) => {
-        console.error('Failed to load assignment details (employees/vehicle)', err);
+        console.error(
+          'Failed to load assignment details (employees/vehicle)',
+          err
+        );
       }
     });
   }
 
   // ------------------------------------------------------------------
-  // Map rendering (markers + route) pour la tournée active
+  // Map rendering (markers + route) for active tour
   // ------------------------------------------------------------------
   private renderMap(
     depotCoords: [number, number],
@@ -568,7 +723,6 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.layerGroup.clearLayers();
 
-    // Dépôt
     const [depotLon, depotLat] = depotCoords;
     const depotLatLng = L.latLng(depotLat, depotLon);
 
@@ -578,37 +732,47 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     }).bindPopup('<b>Depot</b>');
     depotMarker.addTo(this.layerGroup);
 
-    // Fallback straight-line route
+    const routeColor = this.getRouteColor(tour.tournee.tourneeType);
+
+    // Markers for ALL collection points (active + inactive)
+    const activeCpIds = new Set<string>(
+      tour.stops.map((s) => s.collectionPoint.id)
+    );
+
     const fallbackLatLngs: L.LatLngExpression[] = [depotLatLng];
 
+    this.allCollectionPoints.forEach((cp) => {
+      if (
+        !cp.location ||
+        !cp.location.coordinates ||
+        cp.location.coordinates.length !== 2
+      ) {
+        return;
+      }
+
+      const marker = this.createCollectionPointMarker(
+        cp,
+        activeCpIds.has(cp.id)
+      );
+      marker.addTo(this.layerGroup);
+    });
+
+    // Points of active tour for fallback route
     tour.stops.forEach((stop) => {
       const loc = stop.collectionPoint.location;
       if (!loc || !loc.coordinates || loc.coordinates.length !== 2) {
         return;
       }
-
       const [lon, lat] = loc.coordinates;
       const latLng = L.latLng(lat, lon);
-
       fallbackLatLngs.push(latLng);
-
-      const marker = L.marker(latLng, {
-        title: `Step ${stop.step.order}`,
-        icon: binIcon
-      }).bindPopup(
-        `<b>Step ${stop.step.order}</b><br>${
-          stop.collectionPoint.adresse || stop.collectionPoint.id
-        }`
-      );
-
-      marker.addTo(this.layerGroup);
     });
 
     if (tour.stops.length > 0) {
       fallbackLatLngs.push(depotLatLng);
     }
 
-    // 1) Route géométrique VROOM (polyline) si dispo
+    // 1) Geometric route from VROOM if available
     if (tour.tournee.geometry) {
       try {
         const decoded = polyline.decode(
@@ -620,7 +784,10 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
           ([lat, lon]: [number, number]) => L.latLng(lat, lon)
         );
 
-        const geometryLine = L.polyline(geomLatLngs, { weight: 4 });
+        const geometryLine = L.polyline(geomLatLngs, {
+          weight: 4,
+          color: routeColor
+        });
         geometryLine.addTo(this.layerGroup);
         this.map.fitBounds(geometryLine.getBounds(), { padding: [30, 30] });
         return;
@@ -632,18 +799,24 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }
 
-    // 2) Fallback: lignes droites dépôt -> stops -> dépôt
-    const routeLine = L.polyline(fallbackLatLngs, { weight: 4 });
+    // 2) Fallback: straight lines depot -> stops -> depot
+    const routeLine = L.polyline(fallbackLatLngs, {
+      weight: 4,
+      color: routeColor
+    });
     routeLine.addTo(this.layerGroup);
     this.map.fitBounds(routeLine.getBounds(), { padding: [30, 30] });
   }
 
-  focusTour(index: number): void {
+  focusTour(index: number, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
+
     if (index < 0 || index >= this.tours.length) {
       return;
     }
     this.activeTourIndex = index;
-    this.selectedStop = null;
 
     if (this.depotCoords) {
       this.renderMap(this.depotCoords, this.tours[index]);
@@ -679,7 +852,181 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     return icons[type] || '🗑️';
   }
 
-  getStatusBadgeClass(_status: string): string {
-    return `status-badge status-active`;
+  getStatusBadgeClass(status: string): string {
+    // Adjust according to actual statuses if needed
+    switch (status) {
+      default:
+        return 'status-badge status-active';
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Helpers for popups / colors / markers
+  // ------------------------------------------------------------------
+  private getRouteColor(type: TrashType): string {
+    switch (type) {
+      case TrashType.PLASTIC:
+        return '#EFFF00';
+      case TrashType.ORGANIC:
+        return '#854d0e';
+      case TrashType.PAPER:
+        return '#3b82f6';
+      case TrashType.GLASS:
+        return '#22c55e';
+      default:
+        return '#4b5563';
+    }
+  }
+
+  private createCollectionPointMarker(
+    cp: CollectionPoint,
+    isInActiveTour: boolean
+  ): L.Marker {
+    const isActive = (cp as any).active !== false;
+    const icon = isActive ? binIcon : inactiveBinIcon;
+
+    const [lon, lat] = cp.location.coordinates;
+    const latLng = L.latLng(lat, lon);
+
+    const marker = L.marker(latLng, {
+      title: cp.adresse || cp.id || 'Collection point',
+      icon
+    });
+
+    marker.bindPopup('<div class="cp-popup">Loading bins...</div>');
+    this.buildCollectionPointPopup(cp, isInActiveTour, isActive, marker);
+
+    return marker;
+  }
+
+  private buildCollectionPointPopup(
+    cp: CollectionPoint,
+    isInActiveTour: boolean,
+    isActive: boolean,
+    marker: L.Marker
+  ): void {
+    const label = cp.adresse || cp.id || 'Collection point';
+
+    let baseHtml = `<div style="
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 12px;
+      line-height: 1.4;
+      max-width: 240px;
+      padding: 6px 8px;
+    ">`;
+
+    baseHtml += `<div style="font-weight: 600; margin-bottom: 4px;">${label}</div>`;
+
+    baseHtml += `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px;">`;
+
+    const statusBg = isActive ? '#DCFCE7' : '#FEE2E2';
+    const statusColor = isActive ? '#166534' : '#991B1B';
+
+    baseHtml += `<span style="
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: ${statusBg};
+      color: ${statusColor};
+      border: 1px solid rgba(0,0,0,0.06);
+    ">Status: ${isActive ? 'Active' : 'Inactive'}</span>`;
+
+    if (isInActiveTour) {
+      baseHtml += `<span style="
+        padding: 2px 6px;
+        border-radius: 999px;
+        font-size: 11px;
+        background: #DBEAFE;
+        color: #1D4ED8;
+        border: 1px solid rgba(0,0,0,0.06);
+      ">In active tour</span>`;
+    }
+
+    baseHtml += `</div>`;
+
+    const bins = ((cp as any).bins || []) as any[];
+
+    if (!bins.length) {
+      const html =
+        baseHtml +
+        `<div style="margin-top: 4px; font-size: 11px; color: #6B7280;">No bins</div>` +
+        `</div>`;
+      marker.setPopupContent(html);
+      return;
+    }
+
+    const readingRequests = bins.map((b) =>
+      this.binReadingService.getLatestBinReadingForBin(b.id).pipe(
+        catchError((err) => {
+          console.error(
+            'Error loading latest bin reading for bin',
+            b.id,
+            err
+          );
+          return of(null);
+        })
+      )
+    );
+
+    forkJoin(readingRequests).subscribe((readings) => {
+      const rows: string[] = [];
+
+      bins.forEach((b, index) => {
+        const rawType = b.type || b.trashType || b.binType;
+        if (!rawType) {
+          return;
+        }
+
+        const displayType = this.formatTrashTypeLabel(String(rawType));
+        const reading = readings[index] as any;
+
+        let fill: number | null = null;
+        if (reading != null && reading.fillPct != null) {
+          const parsed = Number(reading.fillPct);
+          fill = isNaN(parsed) ? null : parsed;
+        }
+
+        const value = fill != null ? `${fill.toFixed(0)}%` : 'N/A';
+
+        rows.push(`
+          <tr>
+            <td style="padding: 2px 4px; white-space: nowrap; color: #374151;">
+              ${displayType}
+            </td>
+            <td style="padding: 2px 4px; text-align: right; font-weight: 500; color: #111827;">
+              ${value}
+            </td>
+          </tr>
+        `);
+      });
+
+      let html = baseHtml;
+      html += `<div style="margin-top: 4px; font-weight: 600;">Bins</div>`;
+      html += `<table style="width: 100%; border-collapse: collapse; margin-top: 2px;">`;
+      html += rows.join('');
+      html += `</table>`;
+      html += `</div>`;
+
+      marker.setPopupContent(html);
+    });
+  }
+
+  private formatTrashTypeLabel(raw: string): string {
+    if (!raw) {
+      return '';
+    }
+    const upper = raw.toUpperCase();
+    switch (upper) {
+      case 'PLASTIC':
+        return 'Plastic';
+      case 'ORGANIC':
+        return 'Organic';
+      case 'GLASS':
+        return 'Glass';
+      case 'PAPER':
+        return 'Paper';
+      default:
+        return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    }
   }
 }

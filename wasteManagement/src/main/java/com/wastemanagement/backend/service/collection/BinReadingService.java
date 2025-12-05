@@ -9,4 +9,5 @@ public interface BinReadingService {
     List<BinReadingResponseDTO> getAll();
     BinReadingResponseDTO getById(String id);
     void delete(String id);
+    BinReadingResponseDTO findTopByBinIdOrderByTsDesc(String binId);
 }

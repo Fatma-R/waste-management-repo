@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api';
 import { TourneeAssignment } from '../../shared/models/tournee-assignment';
+import { Tournee } from '../../shared/models/tournee.model';
 
 @Injectable({
   providedIn: 'root'
@@ -18,6 +19,12 @@ export class TourneeAssignmentService {
     return this.api.post<TourneeAssignment[]>(
       `/tournee-assignments/${tourneeId}/assignments/auto`,
       {}
+    );
+  }
+
+  getInProgressTourneesForEmployee(employeeId: string): Observable<Tournee[]> {
+    return this.api.get<Tournee[]>(
+      `/tournee-assignments/employee/${employeeId}/tournees/in-progress`
     );
   }
 }

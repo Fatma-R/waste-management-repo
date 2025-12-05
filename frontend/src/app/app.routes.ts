@@ -77,16 +77,19 @@ export const routes: Routes = [
         ]
       },
 
-      {
-        path: 'user',
-        canActivate: [RoleGuard],
-        data: { roles: ['ROLE_USER', 'ROLE_ADMIN'] },
-        children: [
-          { path: 'dashboard', component: DashboardComponent },
-          { path: 'home', component: HelloPage },
-          { path: 'alerts', component: AlertsComponent   },
-          { path: 'employee-alerts', component: EmployeeAlertsComponent}
-
+     {
+  path: 'user',
+  canActivate: [RoleGuard],
+  data: { roles: ['ROLE_USER', 'ROLE_ADMIN'] },
+  children: [
+    { path: 'dashboard', component: DashboardComponent },
+    { path: 'home', component: HelloPage },
+    { path: 'alerts', component: AlertsComponent },
+    { path: 'employee-alerts', component: EmployeeAlertsComponent },
+    { path: 'tournee-map', component: TourneeMapComponent }  // si nécessaire
+  ]
+}
+ main
         ]
       },
 

@@ -12,11 +12,12 @@ import com.wastemanagement.backend.model.vehicle.VehicleStatus;
 import com.wastemanagement.backend.security.JwtUtil;
 import com.wastemanagement.backend.service.CustomUserDetailsService;
 import com.wastemanagement.backend.service.vehicle.VehicleService;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+// MockBean est déprécié mais encore utilisable ; à terme passer à @Mock/@Import si tu montes de version
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
@@ -26,9 +27,15 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(
         controllers = VehicleController.class,
@@ -61,10 +68,14 @@ class VehicleControllerTests {
 
     @BeforeEach
     void setup() {
+        MockitoAnnotations.openMocks(this);
+
+        GeoJSONPoint location = new GeoJSONPoint(10.0, 20.0);
+
         requestDTO = new VehicleRequestDTO();
         requestDTO.setPlateNumber("ABC-123");
         requestDTO.setCapacityVolumeL(5000);
-        requestDTO.setCoordinates(new double[]{10.0, 20.0});
+        requestDTO.setCurrentLocation(location);
         requestDTO.setFuelType(FuelType.DIESEL);
         requestDTO.setStatus(VehicleStatus.AVAILABLE);
 
@@ -72,7 +83,7 @@ class VehicleControllerTests {
                 "1",
                 "ABC-123",
                 5000,
-                new GeoJSONPoint(10.0, 20.0),
+                location,
                 FuelType.DIESEL,
                 VehicleStatus.AVAILABLE
         );
@@ -81,7 +92,7 @@ class VehicleControllerTests {
                 "1",
                 "ABC-123",
                 5000,
-                new double[]{10.0, 20.0},
+                location,
                 FuelType.DIESEL,
                 VehicleStatus.AVAILABLE
         );
@@ -92,21 +103,21 @@ class VehicleControllerTests {
     // -------------------------------
     @Test
     void testMapperToEntityAndResponse() {
-        // Création du DTO d'entrée pour le test
+        // DTO d'entrée pour le test
+        GeoJSONPoint location = new GeoJSONPoint(30.0, 10.0);
+
         VehicleRequestDTO requestDTO = new VehicleRequestDTO();
         requestDTO.setPlateNumber("ABC-123");
         requestDTO.setCapacityVolumeL(5000);
         requestDTO.setFuelType(FuelType.DIESEL);
-        requestDTO.setCoordinates(new double[]{30.0, 10.0}); // longitude = 30.0, latitude = 10.0
+        requestDTO.setCurrentLocation(location);
         requestDTO.setStatus(VehicleStatus.AVAILABLE);
 
-        // Création du mapper
         VehicleMapper mapper = new VehicleMapper();
 
-        // Conversion DTO -> Entity
+        // DTO -> Entity
         Vehicle mapped = mapper.toEntity(requestDTO);
 
-        // Vérifications sur l'entité mappée
         assert mapped.getPlateNumber().equals("ABC-123");
         assert mapped.getCapacityVolumeL() == 5000;
         assert mapped.getFuelType() == FuelType.DIESEL;
@@ -114,19 +125,16 @@ class VehicleControllerTests {
         assert mapped.getCurrentLocation().getLatitude() == 10.0;
         assert mapped.getCurrentLocation().getLongitude() == 30.0;
 
-        // Conversion Entity -> ResponseDTO
+        // Entity -> ResponseDTO
         VehicleResponseDTO dto = mapper.toResponseDTO(mapped);
 
-        // Vérifications sur le DTO de réponse
         assert dto.getPlateNumber().equals("ABC-123");
         assert dto.getCapacityVolumeL() == 5000;
         assert dto.getFuelType() == FuelType.DIESEL;
-        assert dto.getCoordinates() != null;
-        assert dto.getCoordinates()[0] == 30.0; // longitude
-        assert dto.getCoordinates()[1] == 10.0; // latitude
+        assert dto.getCurrentLocation() != null;
+        assert dto.getCurrentLocation().getLongitude() == 30.0;
+        assert dto.getCurrentLocation().getLatitude() == 10.0;
     }
-
-
 
     // -------------------------------
     // CONTROLLER TESTS
@@ -147,9 +155,10 @@ class VehicleControllerTests {
 
     @Test
     void testGetAllVehicles() throws Exception {
+        GeoJSONPoint loc2 = new GeoJSONPoint(15.0, 25.0);
         VehicleResponseDTO v2 = new VehicleResponseDTO(
                 "2", "XYZ-555", 3000,
-                new double[]{15.0, 25.0},
+                loc2,
                 FuelType.GASOLINE, VehicleStatus.IN_SERVICE
         );
 
@@ -172,9 +181,10 @@ class VehicleControllerTests {
 
     @Test
     void testUpdateVehicle() throws Exception {
+        GeoJSONPoint updatedLocation = new GeoJSONPoint(40.0, 50.0);
         VehicleResponseDTO updated = new VehicleResponseDTO(
                 "1", "NEW-999", 7000,
-                new double[]{40.0, 50.0},
+                updatedLocation,
                 FuelType.ELECTRIC,
                 VehicleStatus.IN_SERVICE
         );
@@ -184,6 +194,7 @@ class VehicleControllerTests {
         requestDTO.setPlateNumber("NEW-999");
         requestDTO.setCapacityVolumeL(7000);
         requestDTO.setFuelType(FuelType.ELECTRIC);
+        requestDTO.setCurrentLocation(updatedLocation);
 
         mockMvc.perform(put("/api/v1/vehicles/1")
                         .contentType(MediaType.APPLICATION_JSON)

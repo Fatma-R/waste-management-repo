@@ -2,6 +2,7 @@ package com.wastemanagement.backend.mapper.employee;
 
 import com.wastemanagement.backend.dto.user.EmployeeRequestDTO;
 import com.wastemanagement.backend.dto.user.EmployeeResponseDTO;
+import com.wastemanagement.backend.model.GeoJSONPoint;
 import com.wastemanagement.backend.model.user.Employee;
 import com.wastemanagement.backend.model.user.User;
 
@@ -18,6 +19,10 @@ public class EmployeeMapper {
         emp.setUser(user);
 
         emp.setSkill(dto.getSkill());
+
+        GeoJSONPoint location = dto.getLocation();
+        emp.setLocation(location);
+
         return emp;
     }
 
@@ -33,6 +38,9 @@ public class EmployeeMapper {
         }
 
         dto.setSkill(emp.getSkill());
+
+        dto.setLocation(emp.getLocation());
+
         return dto;
     }
 
@@ -51,6 +59,10 @@ public class EmployeeMapper {
         }
         if (dto.getSkill() != null) {
             emp.setSkill(dto.getSkill());
+        }
+
+        if (dto.getLocation() != null) {
+            emp.setLocation(dto.getLocation());
         }
     }
 }

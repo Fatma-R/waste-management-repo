@@ -21,6 +21,10 @@ export class EmployeeService {
     return this.api.get<Employee>(`/employees/${id}`);
   }
 
+  getEmployeeByEmail(email: string): Observable<Employee> {
+    return this.api.get<Employee>(`/employees/by-email/${email}`);
+  }
+
   createEmployee(payload: CreateEmployeeDto): Observable<Employee> {
     // POST /employees with { fullName, email, skill }
     return this.api.post<Employee>('/employees', payload);

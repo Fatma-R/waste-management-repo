@@ -44,7 +44,7 @@ public class TourneeServiceImpl implements TourneeService {
      * Approximate capacity of one bin in liters.
      * TODO: replace with real value or per-bin config (e.g. 240L, 360L, 660L)
      */
-    private static final double BIN_CAPACITY_L = 75.0;
+    private static final double BIN_CAPACITY_L = 660;
 
     @Override
     public TourneeResponseDTO createTournee(TourneeRequestDTO dto) {
@@ -82,13 +82,39 @@ public class TourneeServiceImpl implements TourneeService {
         tourneeRepository.deleteById(id);
     }
 
+    // --------------------------------------------------------------------
+    // Single-type API + "optional" forced CPs
+    // --------------------------------------------------------------------
+
     /**
-     * Planifie UNE OU PLUSIEURS tournées pour un type de déchet donné.
-     * Chaque route renvoyée par VROOM → 1 Tournee, avec un plannedVehicleId.
+     * Single-type API kept for compatibility.
+     * It just wraps the single-type planner with no forced collection points.
      */
     @Override
-    public List<TourneeResponseDTO> planTourneeWithVroom(TrashType type, double fillThreshold) {
-        // 1) Récupérer le dépôt principal
+    public List<TourneeResponseDTO> planTourneesWithVroom(TrashType type, double fillThreshold) {
+        if (type == null) {
+            throw new IllegalArgumentException("TrashType must not be null");
+        }
+        // "Optional" parameter = null (no forced CPs)
+        return planTourneesWithVroom(type, fillThreshold, null);
+    }
+
+    /**
+     * Single-type planner with an "optional" parameter:
+     *
+     * @param type                     trash type (required)
+     * @param fillThreshold            threshold in percent (ignored if forcedCollectionPointIds is not empty)
+     * @param forcedCollectionPointIds if non-null/non-empty, we ONLY plan for these CPs
+     *                                 (used for emergency mode, etc.).
+     */
+    public List<TourneeResponseDTO> planTourneesWithVroom(TrashType type,
+                                                          double fillThreshold,
+                                                          Set<String> forcedCollectionPointIds) {
+        if (type == null) {
+            throw new IllegalArgumentException("TrashType must not be null");
+        }
+
+        // 1) Depot + coords
         com.wastemanagement.backend.model.tournee.Depot depot =
                 depotService.getMainDepotEntityOrThrow();
 
@@ -98,50 +124,64 @@ public class TourneeServiceImpl implements TourneeService {
         }
         double[] depotCoords = depotLoc.getCoordinates(); // [lon, lat] (GeoJSON)
 
-        // 2) Déterminer les points de collecte à visiter pour ce type
-        //    + construire un mapping CP -> volume total en litres
-        Map<String, Double> cpIdToVolumeLiters = new HashMap<>();
-        List<CollectionPoint> pointsNeedingCollection =
-                findCollectionPointsNeedingCollection(type, fillThreshold, cpIdToVolumeLiters);
+        // 2) Vehicles pool (AVAILABLE + valid capacity)
+        List<Vehicle> initialAvailableVehicles =
+                vehicleRepository.findByStatus(VehicleStatus.AVAILABLE);
 
-        if (pointsNeedingCollection.isEmpty()) {
+        List<Vehicle> vehiclesPool = initialAvailableVehicles.stream()
+                .filter(v -> v.getCapacityVolumeL() > 0)
+                .collect(Collectors.toList());
+
+        if (vehiclesPool.isEmpty()) {
+            throw new IllegalStateException("No AVAILABLE vehicle with valid capacity");
+        }
+
+        // 3) Determine CPs + volumes, either forced list or normal threshold logic
+        Map<String, Double> cpIdToVolumeLiters = new HashMap<>();
+        List<CollectionPoint> points;
+
+        if (forcedCollectionPointIds != null && !forcedCollectionPointIds.isEmpty()) {
+            points = findCollectionPointsForIdsAndType(type, forcedCollectionPointIds, cpIdToVolumeLiters);
+        } else {
+            points = findCollectionPointsNeedingCollection(type, fillThreshold, cpIdToVolumeLiters);
+        }
+
+        if (points.isEmpty()) {
             throw new IllegalStateException(
                     "No collection points need collection for type " + type +
                             " with threshold " + fillThreshold
             );
         }
 
-        // 3) Construire la requête VROOM + mappings :
-        //    - jobId -> collectionPointId
-        //    - vroomVehicleId -> vehicleId (Mongo)
+        // 4) Build VROOM request using the vehicles pool
         Map<Integer, String> jobIdToCollectionPointId = new HashMap<>();
         Map<Integer, String> vroomVehicleIdToVehicleId = new HashMap<>();
 
-        VroomRequest request = buildVroomRequestForPoints(
+        VroomRequest request = buildVroomRequestForPointsWithVehicles(
                 depotCoords,
-                pointsNeedingCollection,
+                points,
                 cpIdToVolumeLiters,
                 jobIdToCollectionPointId,
-                vroomVehicleIdToVehicleId
+                vroomVehicleIdToVehicleId,
+                vehiclesPool
         );
 
-        // 4) Appeler VROOM
+        // 5) Call VROOM
         VroomSolution solution = vroomClient.optimize(request);
 
         if (solution.getRoutes() == null || solution.getRoutes().isEmpty()) {
-            throw new IllegalStateException("VROOM returned no routes");
+            throw new IllegalStateException("VROOM returned no routes for type " + type);
         }
 
-        // 5) Pour CHAQUE route, créer une Tournee
+        // 6) Build Tournees (one per route)
         List<Tournee> tournees = new ArrayList<>();
 
         for (VroomRoute route : solution.getRoutes()) {
-            // Si la route n'a pas de steps (aucun job affecté), on l'ignore
+            // Ignore routes with no steps
             if (route.getSteps() == null || route.getSteps().isEmpty()) {
                 continue;
             }
 
-            // VROOM renvoie l'id du véhicule (celui qu'on lui a donné dans VroomVehicle.setId)
             Integer vroomVehicleId = route.getVehicle();
             String plannedVehicleId = null;
             if (vroomVehicleId != null) {
@@ -161,8 +201,175 @@ public class TourneeServiceImpl implements TourneeService {
             throw new IllegalStateException("VROOM returned only empty routes (no steps)");
         }
 
-        // 6) Sauvegarder toutes les tournées et retourner les DTO
+        // 7) Save and map to DTOs
         Iterable<Tournee> savedIterable = tourneeRepository.saveAll(tournees);
+        List<Tournee> savedList = StreamSupport
+                .stream(savedIterable.spliterator(), false)
+                .toList();
+
+        return savedList.stream()
+                .map(TourneeMapper::toResponse)
+                .toList();
+    }
+
+    // --------------------------------------------------------------------
+    // Multi-type planner (kept as-is, using shared vehicles pool)
+    // --------------------------------------------------------------------
+
+    /**
+     * New multi-type planner:
+     * - Takes a list of TrashType (may contain 1 or more types).
+     * - Sorts them by priority: type with the "fullest" bin (highest fillPct) first.
+     * - Uses a single pool of AVAILABLE vehicles.
+     * - For each type, calls VROOM with the CURRENT pool.
+     * - Vehicles used for one type are removed from the pool for the next types.
+     * - If one type has no bins/collection points above threshold, it is skipped
+     *   (does NOT fail the whole process).
+     */
+    @Override
+    public List<TourneeResponseDTO> planTourneesWithVroom(List<TrashType> types, double fillThreshold) {
+        if (types == null || types.isEmpty()) {
+            throw new IllegalArgumentException("At least one TrashType is required");
+        }
+
+        // 1) Get depot and coordinates ONCE
+        com.wastemanagement.backend.model.tournee.Depot depot =
+                depotService.getMainDepotEntityOrThrow();
+
+        GeoJSONPoint depotLoc = depot.getLocation();
+        if (depotLoc == null || depotLoc.getCoordinates() == null) {
+            throw new IllegalStateException("Depot location not configured");
+        }
+        double[] depotCoords = depotLoc.getCoordinates(); // [lon, lat]
+
+        // 2) Initial vehicles pool (AVAILABLE + valid capacity)
+        List<Vehicle> initialAvailableVehicles =
+                vehicleRepository.findByStatus(VehicleStatus.AVAILABLE);
+
+        List<Vehicle> vehiclesPool = initialAvailableVehicles.stream()
+                .filter(v -> v.getCapacityVolumeL() > 0)
+                .collect(Collectors.toList());
+
+        if (vehiclesPool.isEmpty()) {
+            throw new IllegalStateException("No AVAILABLE vehicle with valid capacity");
+        }
+
+        // 3) Sort trash types by priority = fullest bin (highest fillPct)
+        //    Remove duplicates + nulls just in case
+        List<TrashType> sortedTypes = types.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        sortedTypes.sort((t1, t2) -> {
+            double max2 = computeMaxFillPctForType(t2);
+            double max1 = computeMaxFillPctForType(t1);
+            // descending: type with highest max fillPct first
+            return Double.compare(max2, max1);
+        });
+
+        System.out.println("Sorted types by priority (fullest bin first): " + sortedTypes);
+
+        // 4) Plan tours per type using the current vehiclesPool
+        List<Tournee> allPlannedTours = new ArrayList<>();
+
+        for (TrashType type : sortedTypes) {
+            if (vehiclesPool.isEmpty()) {
+                System.out.println("Vehicles pool is empty, stopping planning for remaining types.");
+                break;
+            }
+
+            System.out.println("Planning tours for type " + type + " with " + vehiclesPool.size() + " vehicles left.");
+
+            // 4.1) Determine collection points that need collection for this type
+            Map<String, Double> cpIdToVolumeLiters = new HashMap<>();
+            List<CollectionPoint> pointsNeedingCollection =
+                    findCollectionPointsNeedingCollection(type, fillThreshold, cpIdToVolumeLiters);
+
+            if (pointsNeedingCollection.isEmpty()) {
+                System.out.println("No collection points need collection for type " + type +
+                        " with threshold " + fillThreshold + " → skipping this type.");
+                continue; // do NOT fail; just move on to next type
+            }
+
+            // 4.2) Build VROOM request using CURRENT vehicles pool
+            Map<Integer, String> jobIdToCollectionPointId = new HashMap<>();
+            Map<Integer, String> vroomVehicleIdToVehicleId = new HashMap<>();
+
+            VroomRequest request = buildVroomRequestForPointsWithVehicles(
+                    depotCoords,
+                    pointsNeedingCollection,
+                    cpIdToVolumeLiters,
+                    jobIdToCollectionPointId,
+                    vroomVehicleIdToVehicleId,
+                    vehiclesPool
+            );
+
+            // 4.3) Call VROOM
+            VroomSolution solution = vroomClient.optimize(request);
+
+            if (solution.getRoutes() == null || solution.getRoutes().isEmpty()) {
+                System.out.println("VROOM returned no routes for type " + type + " → skipping this type.");
+                continue;
+            }
+
+            // 4.4) Build Tournee for EACH route, track which vehicles were used
+            List<Tournee> tourneesForType = new ArrayList<>();
+            Set<String> usedVehicleIds = new HashSet<>();
+
+            for (VroomRoute route : solution.getRoutes()) {
+                // Ignore routes with no steps
+                if (route.getSteps() == null || route.getSteps().isEmpty()) {
+                    continue;
+                }
+
+                Integer vroomVehicleId = route.getVehicle();
+                String plannedVehicleId = null;
+                if (vroomVehicleId != null) {
+                    plannedVehicleId = vroomVehicleIdToVehicleId.get(vroomVehicleId);
+                }
+
+                if (plannedVehicleId != null) {
+                    usedVehicleIds.add(plannedVehicleId);
+                }
+
+                Tournee tournee = buildTourneeFromVroom(
+                        type,
+                        route,
+                        jobIdToCollectionPointId,
+                        plannedVehicleId
+                );
+                tourneesForType.add(tournee);
+            }
+
+            if (tourneesForType.isEmpty()) {
+                System.out.println("VROOM returned only empty routes for type " + type + " → skipping.");
+                continue;
+            }
+
+            // 4.5) Add these tours to global result
+            allPlannedTours.addAll(tourneesForType);
+
+            // 4.6) Remove used vehicles from the pool for the next types
+            if (!usedVehicleIds.isEmpty()) {
+                vehiclesPool = vehiclesPool.stream()
+                        .filter(v -> !usedVehicleIds.contains(v.getId()))
+                        .collect(Collectors.toList());
+
+                System.out.println("Vehicles used for type " + type + ": " + usedVehicleIds);
+                System.out.println("Vehicles remaining in pool: " + vehiclesPool.size());
+            }
+        }
+
+        // 5) If absolutely nothing could be planned → fail once
+        if (allPlannedTours.isEmpty()) {
+            throw new IllegalStateException(
+                    "No tours could be planned for the requested waste types and threshold."
+            );
+        }
+
+        // 6) Save all tours and map to DTOs
+        Iterable<Tournee> savedIterable = tourneeRepository.saveAll(allPlannedTours);
         List<Tournee> savedList = StreamSupport
                 .stream(savedIterable.spliterator(), false)
                 .toList();
@@ -175,6 +382,30 @@ public class TourneeServiceImpl implements TourneeService {
     // --------------------------------------------------------------------
     // Helpers internes
     // --------------------------------------------------------------------
+
+    /**
+     * Computes the maximum fillPct for a given TrashType across all active bins.
+     * Used only to PRIORITIZE types (the one closest to overflowing first).
+     * If no bins/readings → returns 0.0.
+     */
+    private double computeMaxFillPctForType(TrashType type) {
+        List<Bin> bins = binRepository.findByActiveTrueAndType(type);
+        double maxFill = 0.0;
+
+        for (Bin bin : bins) {
+            BinReading latest = binReadingRepository.findTopByBinIdOrderByTsDesc(bin.getId());
+            if (latest == null) {
+                continue;
+            }
+            double fill = latest.getFillPct();
+            if (fill > maxFill) {
+                maxFill = fill;
+            }
+        }
+
+        System.out.println("Max fillPct for type " + type + " = " + maxFill);
+        return maxFill;
+    }
 
     /**
      * Pour un TrashType donné, retourne les CollectionPoint qui doivent être visités.
@@ -190,7 +421,7 @@ public class TourneeServiceImpl implements TourneeService {
     private List<CollectionPoint> findCollectionPointsNeedingCollection(TrashType type,
                                                                         double threshold,
                                                                         Map<String, Double> cpIdToVolumeLiters) {
-
+        Set<String> cpAlreadyCovered = getCollectionPointIdsAlreadyCoveredForType(type);
         // a) Tous les bacs actifs de ce type
         List<Bin> bins = binRepository.findByActiveTrueAndType(type);
         System.out.println("Found bins for type " + type + " = " + bins.size());
@@ -205,6 +436,15 @@ public class TourneeServiceImpl implements TourneeService {
         Set<String> cpIdsOverThreshold = new HashSet<>();
 
         for (Bin bin : bins) {
+            String cpId = bin.getCollectionPointId();
+            if (cpId == null) { continue; }
+            // ignore bins whose CP is already planned/assigned
+            if (cpAlreadyCovered.contains(cpId)) {
+                System.out.println("Skipping bin " + bin.getId()
+                        + " because CP " + cpId + " is already covered (PLANNED/ASSIGNED) for type " + type);
+                continue;
+            }
+
             BinReading latest = binReadingRepository.findTopByBinIdOrderByTsDesc(bin.getId());
 
             System.out.println("Bin " + bin.getId() + " latest reading = "
@@ -219,7 +459,6 @@ public class TourneeServiceImpl implements TourneeService {
             // volume de CE bac
             double volumeL = (fillPct / 100.0) * BIN_CAPACITY_L;
 
-            String cpId = bin.getCollectionPointId();
             // On additionne TOUS les volumes dans cpTotalVolume
             cpTotalVolume.merge(cpId, volumeL, Double::sum);
 
@@ -253,6 +492,75 @@ public class TourneeServiceImpl implements TourneeService {
     }
 
     /**
+     * Variante de la méthode précédente pour le mode "forced CPs":
+     * On ne regarde QUE les CP dont l'id est dans cpIdsFilter, sans seuil.
+     */
+    private List<CollectionPoint> findCollectionPointsForIdsAndType(TrashType type,
+                                                                    Set<String> cpIdsFilter,
+                                                                    Map<String, Double> cpIdToVolumeLiters) {
+        if (cpIdsFilter == null || cpIdsFilter.isEmpty()) {
+            return List.of();
+        }
+
+        Set<String> cpAlreadyCovered = getCollectionPointIdsAlreadyCoveredForType(type);
+        Set<String> effectiveFilter = cpIdsFilter.stream()
+                .filter(cpId -> !cpAlreadyCovered.contains(cpId))
+                .collect(Collectors.toSet());
+
+        if (effectiveFilter.isEmpty()) {
+            System.out.println("All forced CPs are already covered (PLANNED/ASSIGNED) for type "
+                    + type + " → nothing to plan.");
+            return List.of();
+        }
+
+        List<Bin> bins = binRepository.findByActiveTrueAndType(type);
+        System.out.println("Found bins for type " + type + " (forced CP mode) = " + bins.size());
+        if (bins.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, Double> cpTotalVolume = new HashMap<>();
+
+        for (Bin bin : bins) {
+            String cpId = bin.getCollectionPointId();
+            if (cpId == null || !cpIdsFilter.contains(cpId)) {
+                continue;
+            }
+
+            BinReading latest = binReadingRepository.findTopByBinIdOrderByTsDesc(bin.getId());
+            System.out.println("Forced mode - bin " + bin.getId() + " latest reading = "
+                    + (latest != null ? latest.getFillPct() : "null"));
+
+            if (latest == null) {
+                continue;
+            }
+
+            double fillPct = latest.getFillPct();
+            double volumeL = (fillPct / 100.0) * BIN_CAPACITY_L;
+            cpTotalVolume.merge(cpId, volumeL, Double::sum);
+        }
+
+        cpIdToVolumeLiters.clear();
+        for (String cpId : cpIdsFilter) {
+            double totalVol = cpTotalVolume.getOrDefault(cpId, 0.0);
+            if (totalVol > 0) {
+                cpIdToVolumeLiters.put(cpId, totalVol);
+            }
+        }
+
+        if (cpIdToVolumeLiters.isEmpty()) {
+            return List.of();
+        }
+
+        List<CollectionPoint> allPoints =
+                collectionPointRepository.findAllById(cpIdToVolumeLiters.keySet());
+
+        return allPoints.stream()
+                .filter(CollectionPoint::isActive)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Construit la requête VROOM et remplit les mappings :
      * - jobId -> collectionPointId
      * - vroomVehicleId -> vehicleId (Mongo)
@@ -260,22 +568,25 @@ public class TourneeServiceImpl implements TourneeService {
      * Modèle "réaliste" :
      * - Chaque véhicule a une CAPACITÉ en litres (vehicle.capacityVolumeL).
      * - Chaque job a une DEMANDE en litres (volume actuel total des bacs de ce type au CP).
+     *
+     * IMPORTANT: ici on ne lit PAS dans le repository pour les véhicules :
+     * on utilise le vehiclesPool fourni (déjà filtré/partagé entre types).
      */
-    private VroomRequest buildVroomRequestForPoints(double[] depotCoords,
-                                                    List<CollectionPoint> points,
-                                                    Map<String, Double> cpIdToVolumeLiters,
-                                                    Map<Integer, String> jobIdToCollectionPointId,
-                                                    Map<Integer, String> vroomVehicleIdToVehicleId) {
+    private VroomRequest buildVroomRequestForPointsWithVehicles(double[] depotCoords,
+                                                                List<CollectionPoint> points,
+                                                                Map<String, Double> cpIdToVolumeLiters,
+                                                                Map<Integer, String> jobIdToCollectionPointId,
+                                                                Map<Integer, String> vroomVehicleIdToVehicleId,
+                                                                List<Vehicle> vehiclesPool) {
 
-        // --- Vehicles : tous les véhicules en statut AVAILABLE ---
-        List<Vehicle> availableVehicles = vehicleRepository.findByStatus(VehicleStatus.AVAILABLE);
-        if (availableVehicles.isEmpty()) {
+        if (vehiclesPool == null || vehiclesPool.isEmpty()) {
             throw new IllegalStateException("No available vehicles for tournee");
         }
 
+        // --- Vehicles: from the given pool ---
         List<VroomVehicle> vroomVehicles = new ArrayList<>();
         int vroomVehicleId = 1;
-        for (Vehicle v : availableVehicles) {
+        for (Vehicle v : vehiclesPool) {
             double capLiters = v.getCapacityVolumeL(); // champ en litres
 
             if (capLiters <= 0) {
@@ -299,7 +610,7 @@ public class TourneeServiceImpl implements TourneeService {
         }
 
         if (vroomVehicles.isEmpty()) {
-            throw new IllegalStateException("No AVAILABLE vehicle with valid capacity");
+            throw new IllegalStateException("No AVAILABLE vehicle with valid capacity in pool");
         }
 
         // --- Jobs : un job par CollectionPoint ---
@@ -325,11 +636,8 @@ public class TourneeServiceImpl implements TourneeService {
             // DEMANDE en litres (réaliste) :
             double volumeLiters = cpIdToVolumeLiters.getOrDefault(cp.getId(), 0.0);
             if (volumeLiters <= 0) {
-                // Si on est là, c'est étrange : CP sélectionné mais pas de volume.
-                // On met une petite demande non nulle pour éviter de le "griller" complètement.
-                System.out.println("Warning: CP " + cp.getId()
-                        + " selected but volumeLiters <= 0, using fallback.");
-                volumeLiters = binCount * BIN_CAPACITY_L * 0.5;
+                throw new IllegalStateException("Inconsistent data: CP " + cp.getId()
+                        + " is selected for collection but has volume <= 0");
             }
 
             int amountLiters = (int) Math.round(volumeLiters);
@@ -373,7 +681,7 @@ public class TourneeServiceImpl implements TourneeService {
         tournee.setStartedAt(null);
         tournee.setFinishedAt(null);
 
-        // <-- nouveau : on mémorise le véhicule choisi par VROOM pour cette route
+        // On mémorise le véhicule choisi par VROOM pour cette route
         tournee.setPlannedVehicleId(plannedVehicleId);
 
         List<RouteStep> steps = new ArrayList<>();
@@ -410,5 +718,25 @@ public class TourneeServiceImpl implements TourneeService {
 
         tournee.setSteps(steps);
         return tournee;
+    }
+
+    /**
+     * Returns collectionPointIds that already belong to an ASSIGNED tour
+     * for the given trash type. Those CPs must NOT be considered again when
+     * selecting bins needing collection.
+     */
+    private Set<String> getCollectionPointIdsAlreadyCoveredForType(TrashType type) {
+        Set<String> cpIds = new HashSet<>();
+        List<Tournee> assignedTours = tourneeRepository.findByTourneeTypeAndStatus(type, TourneeStatus.IN_PROGRESS);
+        for (Tournee t : assignedTours) {
+            if (t.getSteps() == null) continue;
+            for (RouteStep step : t.getSteps()) {
+                if (step.getCollectionPointId() != null) {
+                    cpIds.add(step.getCollectionPointId());
+                }
+            }
+        }
+        System.out.println("Already covered CPs for type " + type + " (ASSIGNED) = " + cpIds.size());
+        return cpIds;
     }
 }

@@ -2,6 +2,7 @@ package com.wastemanagement.backend.controller.tournee;
 
 import com.wastemanagement.backend.dto.tournee.TourneeAssignmentRequestDTO;
 import com.wastemanagement.backend.dto.tournee.TourneeAssignmentResponseDTO;
+import com.wastemanagement.backend.dto.tournee.TourneeResponseDTO;
 import com.wastemanagement.backend.service.tournee.TourneeAssignmentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -62,4 +63,10 @@ public class TourneeAssignmentController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
+
+    @GetMapping("/employee/{employeeId}/tournees/in-progress")
+    public List<TourneeResponseDTO> getInProgressTournees(@PathVariable String employeeId) {
+        return service.getInProgressTourneesForEmployee(employeeId);
+    }
+
 }

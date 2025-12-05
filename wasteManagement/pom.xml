@@ -28,6 +28,7 @@
     </scm>
     <properties>
         <java.version>17</java.version>
+        <spring.mongodb.embedded.version>6.0.5</spring.mongodb.embedded.version>
     </properties>
     <dependencies>
 
@@ -56,6 +57,7 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        
         <!-- JWT API -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

@@ -1,6 +1,7 @@
 package com.wastemanagement.backend.controller;
 
 
+import com.wastemanagement.backend.dto.tournee.TourneeResponseDTO;
 import com.wastemanagement.backend.dto.vehicle.VehicleRequestDTO;
 import com.wastemanagement.backend.dto.vehicle.VehicleResponseDTO;
 import com.wastemanagement.backend.model.vehicle.FuelType;
@@ -17,6 +18,7 @@ public class VehicleController {
 
     @Autowired
     private VehicleService service;
+
     @PostMapping
     public ResponseEntity<VehicleResponseDTO> create(@RequestBody VehicleRequestDTO dto) {
         return ResponseEntity.ok(service.createVehicle(dto));
@@ -50,5 +52,11 @@ public class VehicleController {
     @GetMapping("/fuel/{fuelType}")
     public ResponseEntity<List<VehicleResponseDTO>> getByFuelType(@PathVariable FuelType fuelType) {
         return ResponseEntity.ok(service.getVehiclesByFuelType(fuelType));
+    }
+    @PostMapping("/available-for-tournee")
+    public ResponseEntity<List<VehicleResponseDTO>> getAvailableVehiclesForTournee(
+            @RequestBody TourneeResponseDTO tournee) {
+        List<VehicleResponseDTO> availableVehicles = service.getAvailableVehiclesForTournee(tournee);
+        return ResponseEntity.ok(availableVehicles);
     }
 }

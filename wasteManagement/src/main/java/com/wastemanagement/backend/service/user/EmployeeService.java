@@ -1,5 +1,6 @@
 package com.wastemanagement.backend.service.user;
 
+import com.wastemanagement.backend.dto.tournee.TourneeResponseDTO;
 import com.wastemanagement.backend.dto.user.EmployeeRequestDTO;
 import com.wastemanagement.backend.dto.user.EmployeeResponseDTO;
 import com.wastemanagement.backend.model.user.Skill;
@@ -24,4 +25,8 @@ public interface EmployeeService {
     void deleteEmployee(String id);
 
     void deleteEmployeeAndUserByEmployeeId(String employeeId);
+
+    List<EmployeeResponseDTO> getAvailableEmployeeForTournee(TourneeResponseDTO plannedTournee);
+
+    EmployeeResponseDTO getEmployeeByEmail(String email);
 }
