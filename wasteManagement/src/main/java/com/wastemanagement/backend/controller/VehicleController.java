@@ -2,13 +2,18 @@ package com.wastemanagement.backend.controller;
 
 
 import com.wastemanagement.backend.dto.tournee.TourneeResponseDTO;
+import com.wastemanagement.backend.dto.vehicle.VehicleLocationUpdateDTO;
 import com.wastemanagement.backend.dto.vehicle.VehicleRequestDTO;
 import com.wastemanagement.backend.dto.vehicle.VehicleResponseDTO;
+import com.wastemanagement.backend.model.GeoJSONPoint;
 import com.wastemanagement.backend.model.vehicle.FuelType;
 import com.wastemanagement.backend.service.vehicle.VehicleService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -34,6 +39,25 @@ public class VehicleController {
         VehicleResponseDTO dto = service.getVehicleById(id);
         return dto != null ? ResponseEntity.ok(dto) : ResponseEntity.notFound().build();
     }
+
+    @GetMapping("/{id}/location")
+    public ResponseEntity<GeoJSONPoint> getLocation(@PathVariable String id) {
+        GeoJSONPoint location = service.getCurrentLocation(id);
+        return location != null ? ResponseEntity.ok(location) : ResponseEntity.notFound().build();
+    }
+
+    @PatchMapping("/{id}/location")
+    public ResponseEntity<VehicleResponseDTO> updateLocation(@PathVariable String id,
+                                                             @Valid @RequestBody VehicleLocationUpdateDTO dto) {
+        VehicleResponseDTO updated = service.updateCurrentLocation(id, dto);
+        return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
+    }
+
+    @GetMapping(value = "/{id}/location/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamLocation(@PathVariable String id) {
+        return service.streamLocation(id);
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<VehicleResponseDTO> update(@PathVariable String id, @RequestBody VehicleRequestDTO dto) {
         VehicleResponseDTO updated = service.updateVehicle(id, dto);

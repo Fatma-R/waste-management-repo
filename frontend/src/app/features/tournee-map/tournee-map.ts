@@ -21,7 +21,7 @@ import { CollectionPointService } from '../../core/services/collection-point';
 import { TourneeAssignmentService } from '../../core/services/tournee-assignment';
 
 import { Tournee, RouteStep } from '../../shared/models/tournee.model';
-import { CollectionPoint } from '../../shared/models/collection-point.model';
+import { CollectionPoint, GeoJSONPoint } from '../../shared/models/collection-point.model';
 import { TrashType } from '../../shared/models/bin.model';
 import { TourneeAssignment } from '../../shared/models/tournee-assignment';
 
@@ -30,8 +30,8 @@ import { VehicleService } from '../../core/services/vehicle';
 import { Employee } from '../../shared/models/employee.model';
 import { Vehicle } from '../../shared/models/vehicle.model';
 
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { forkJoin, of, interval, Subscription } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 import { BinReadingService } from '../../core/services/bin-reading';
 
 // -----------------------------------------------------
@@ -103,7 +103,10 @@ interface TourView {
 export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private map!: L.Map;
   private layerGroup!: L.LayerGroup;
+  private vehicleLayer!: L.LayerGroup;
   private depotCoords: [number, number] | null = null;
+  private vehicleMarkers = new Map<string, L.Marker>();
+  private vehiclesTrackingSub: Subscription | null = null;
 
   @Input() tournees: Tournee[] | null = null;
   @Input() collectionPoints: CollectionPoint[] | null = null;
@@ -144,12 +147,14 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     this.initMap();
     this.loadInitialPoints();
+    this.startVehiclesTracking();
   }
 
   ngOnDestroy(): void {
     if (this.map) {
       this.map.remove();
     }
+    this.stopVehiclesTracking();
   }
 
   // Convenience getter: tournée active
@@ -188,6 +193,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     }).addTo(this.map);
 
     this.layerGroup = L.layerGroup().addTo(this.map);
+    this.vehicleLayer = L.layerGroup().addTo(this.map);
   }
 
   private loadInitialPoints(): void {
@@ -938,6 +944,92 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  // ------------------------------------------------------------------
+  // Live vehicle tracking for ALL vehicles
+  // ------------------------------------------------------------------
+  private startVehiclesTracking(): void {
+    this.stopVehiclesTracking();
+
+    // Initial fetch
+    this.vehicleService
+      .getVehicles()
+      .pipe(catchError(() => of([] as Vehicle[])))
+      .subscribe((vehicles) => this.updateVehicleMarkers(vehicles));
+
+    // Poll every 5 seconds
+    this.vehiclesTrackingSub = interval(5000)
+      .pipe(
+        switchMap(() =>
+          this.vehicleService
+            .getVehicles()
+            .pipe(catchError(() => of([] as Vehicle[])))
+        )
+      )
+      .subscribe((vehicles) => this.updateVehicleMarkers(vehicles));
+  }
+
+  private stopVehiclesTracking(): void {
+    if (this.vehiclesTrackingSub) {
+      this.vehiclesTrackingSub.unsubscribe();
+      this.vehiclesTrackingSub = null;
+    }
+    if (this.vehicleLayer) {
+      this.vehicleMarkers.forEach((marker) => this.vehicleLayer.removeLayer(marker));
+    }
+    this.vehicleMarkers.clear();
+  }
+
+  private updateVehicleMarkers(vehicles: Vehicle[]): void {
+    if (!this.map || !this.vehicleLayer || !vehicles) {
+      return;
+    }
+
+    const seen = new Set<string>();
+
+    vehicles.forEach((v) => {
+      if (
+        !v.id ||
+        !v.currentLocation ||
+        !v.currentLocation.coordinates ||
+        v.currentLocation.coordinates.length !== 2
+      ) {
+        return;
+      }
+
+      const [lon, lat] = v.currentLocation.coordinates;
+      const latLng = L.latLng(lat, lon);
+      seen.add(v.id);
+
+      let marker = this.vehicleMarkers.get(v.id);
+      if (!marker) {
+        const vehicleIcon = L.icon({
+          iconUrl: 'assets/map/truck.png',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18]
+        });
+        marker = L.marker(latLng, {
+          icon: vehicleIcon,
+          title: v.plateNumber || 'Vehicle'
+        }).bindPopup(
+          `<div style="font-weight:600">${v.plateNumber || 'Vehicle'}</div>
+           <div style="font-size:12px;color:#334155">${v.status || ''}</div>`
+        );
+        marker.addTo(this.vehicleLayer);
+        this.vehicleMarkers.set(v.id, marker);
+      } else {
+        marker.setLatLng(latLng);
+      }
+    });
+
+    // Remove markers for vehicles no longer present
+    this.vehicleMarkers.forEach((marker, id) => {
+      if (!seen.has(id)) {
+        this.vehicleLayer.removeLayer(marker);
+        this.vehicleMarkers.delete(id);
+      }
+    });
+  }
+
   private formatTrashTypeLabel(raw: string): string {
     if (!raw) {
       return '';
@@ -957,4 +1049,5 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
         return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
     }
   }
+
 }

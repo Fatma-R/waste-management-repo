@@ -85,7 +85,8 @@ class VehicleControllerTests {
                 5000,
                 location,
                 FuelType.DIESEL,
-                VehicleStatus.AVAILABLE
+                VehicleStatus.AVAILABLE,
+                false
         );
 
         responseDTO = new VehicleResponseDTO(
@@ -94,7 +95,8 @@ class VehicleControllerTests {
                 5000,
                 location,
                 FuelType.DIESEL,
-                VehicleStatus.AVAILABLE
+                VehicleStatus.AVAILABLE,
+                false
         );
     }
 
@@ -159,7 +161,8 @@ class VehicleControllerTests {
         VehicleResponseDTO v2 = new VehicleResponseDTO(
                 "2", "XYZ-555", 3000,
                 loc2,
-                FuelType.GASOLINE, VehicleStatus.IN_SERVICE
+                FuelType.GASOLINE, VehicleStatus.IN_SERVICE,
+                false
         );
 
         when(vehicleService.getAllVehicles(0, 10)).thenReturn(Arrays.asList(responseDTO, v2));
@@ -186,7 +189,8 @@ class VehicleControllerTests {
                 "1", "NEW-999", 7000,
                 updatedLocation,
                 FuelType.ELECTRIC,
-                VehicleStatus.IN_SERVICE
+                VehicleStatus.IN_SERVICE,
+                false
         );
 
         when(vehicleService.updateVehicle(eq("1"), any())).thenReturn(updated);

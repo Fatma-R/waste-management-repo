@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { ApiService } from './api';
 import { Vehicle, CreateVehicleDto, UpdateVehicleDto } from '../../shared/models/vehicle.model';
+import { GeoJSONPoint } from '../../shared/models/collection-point.model';
 
 @Injectable({
   providedIn: 'root'
@@ -43,6 +44,13 @@ export class VehicleService {
 
   deleteVehicle(id: string): Observable<void> {
     return this.api.delete<void>(`/vehicles/${id}`);
+  }
+
+  /**
+   * Fetch the current location of a vehicle (GeoJSON Point).
+   */
+  getVehicleLocation(id: string): Observable<GeoJSONPoint> {
+    return this.api.get<GeoJSONPoint>(`/vehicles/${id}/location`);
   }
   
   getMockVehicles(): Observable<Vehicle[]> {
