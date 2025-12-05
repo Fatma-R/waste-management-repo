@@ -73,7 +73,7 @@
       <div class="admin-grid">
         
         <!-- Map Preview -->
-        <app-card padding="lg" class="map-preview-card">
+        <app-card padding="lg" class="map-preview-card dashboard-card">
 
           <div class="card-header">
             <h2 class="card-title">Tournee Map Preview</h2>
@@ -90,7 +90,7 @@
         </app-card>
 
         <!-- Alerts -->
-        <app-card padding="lg" class="management-card">
+        <app-card padding="lg" class="management-card dashboard-card">
           <div class="card-header">
             <h2 class="card-title">Recent Alerts</h2>
             <a routerLink="/admin/alerts" class="card-link">View All →</a>
@@ -135,7 +135,7 @@
 
 
         <!-- Employee Management -->
-        <app-card padding="lg" class="management-card">
+        <app-card padding="lg" class="management-card dashboard-card">
           <div class="card-header">
             <h2 class="card-title">Employee Management</h2>
             <a routerLink="/admin/employees" class="card-link">View All →</a>
@@ -180,7 +180,7 @@
         </app-card>
 
         <!-- Collection Points & Bins -->
-        <app-card padding="lg" class="management-card">
+        <app-card padding="lg" class="management-card dashboard-card">
           <div class="card-header">
             <h2 class="card-title">Collection Points & Bins</h2>
             <a routerLink="/admin/collection-points" class="card-link">
@@ -234,7 +234,7 @@
 
 
         <!-- Vehicles -->
-        <app-card padding="lg" class="management-card">
+        <app-card padding="lg" class="management-card dashboard-card">
           <div class="card-header">
             <h2 class="card-title">Vehicles</h2>
             <a routerLink="/admin/vehicles" class="card-link">Manage →</a>
@@ -281,7 +281,7 @@
         </app-card>
 
         <!-- Incidents -->
-        <app-card padding="lg" class="management-card">
+        <app-card padding="lg" class="management-card dashboard-card">
           <div class="card-header">
             <h2 class="card-title">Recent Incidents</h2>
             <a routerLink="/admin/incidents" class="card-link">View All →</a>
@@ -322,7 +322,7 @@
 
 
         <!-- System Controls -->
-        <app-card padding="lg" class="controls-card">
+        <app-card padding="lg" class="controls-card dashboard-card">
           <div class="card-header">
             <h2 class="card-title">System Controls</h2>
           </div>
@@ -364,68 +364,3 @@
     </div>
   </div>
 </main>
-
-<!-- Delete Employee Confirmation Modal -->
-<app-modal
-  [isOpen]="isDeleteEmployeeModalOpen"
-  title="Delete Employee"
-  size="sm"
-  (close)="closeDeleteEmployeeModal()">
-  <div class="confirm-modal">
-    <p class="modal-description">
-      Are you sure you want to delete this employee? This action cannot be undone.
-    </p>
-    <div class="modal-actions">
-      <app-button
-        variant="outline"
-        (click)="closeDeleteEmployeeModal()">
-        Cancel
-      </app-button>
-      <app-button
-        variant="primary"
-        (click)="confirmDeleteEmployee()">
-        Delete Employee
-      </app-button>
-    </div>
-  </div>
-</app-modal>
-
-<!-- Delete Bin Confirmation Modal -->
-<app-modal
-  [isOpen]="isDeleteBinModalOpen"
-  title="Delete Bin"
-  size="sm"
-  (close)="closeDeleteBinModal()">
-  <div class="confirm-modal">
-    <p class="modal-description">
-      Are you sure you want to delete this bin? This action cannot be undone.
-    </p>
-    <div class="modal-actions">
-      <app-button
-        variant="outline"
-        (click)="closeDeleteBinModal()">
-        Cancel
-      </app-button>
-      <app-button
-        variant="primary"
-        (click)="confirmDeleteBin()">
-        Delete Bin
-      </app-button>
-    </div>
-  </div>
-</app-modal>
-<app-modal
-  [isOpen]="isDeleteVehicleModalOpen"
-  title="Delete Vehicle"
-  size="sm"
-  (close)="isDeleteVehicleModalOpen = false">
-  <div class="confirm-modal">
-    <p class="modal-description">
-      Are you sure you want to delete this vehicle? This action cannot be undone.
-    </p>
-    <div class="modal-actions">
-      <app-button variant="outline" (click)="isDeleteVehicleModalOpen = false">Cancel</app-button>
-      <app-button variant="primary" (click)="confirmDeleteVehicle()">Delete Vehicle</app-button>
-    </div>
-  </div>
-</app-modal>

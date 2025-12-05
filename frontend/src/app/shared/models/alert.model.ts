@@ -10,6 +10,9 @@ export type AlertType =
   | 'BATTERY_LOW';
 
 export interface Alert {
+message: any;
+resolved: any;
+severity: any;
   id: string;
   binId: string;
   ts: string; // ISO date string from backend (Date serialized)

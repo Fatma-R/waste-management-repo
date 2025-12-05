@@ -52,4 +52,16 @@ export class AlertService {
   getAlertsByCleared(cleared: boolean) {
     return this.api.get<Alert[]>(`/alerts/cleared/${cleared}`);
   }
+  getAllAlertsSimple(): Observable<any[]> {
+   return this.api.get<Alert[]>('/alerts');
+  }
+  markAsRead(alert: Alert): Observable<Alert> {
+    return this.updateAlert(alert.id, { cleared: true });
+  }
+
+
+ 
+
 }
+
+
