@@ -1,0 +1,89 @@
+<main class="alerts-page">
+  <div class="container">
+
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Alerts</h1>
+    <p class="page-subtitle">View alerts from bins and sensors</p>
+  </div>
+</div>
+
+<div *ngIf="isLoading" class="loading-container">
+  <app-loading-spinner message="Loading alerts..."></app-loading-spinner>
+</div>
+
+<div *ngIf="!isLoading">
+
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label class="filter-label">Type:</label>
+      <select [(ngModel)]="filterType" class="filter-select">
+        <option value="all">All Types</option>
+        <option value="THRESHOLD">Threshold</option>
+        <option value="SENSOR_ANOMALY">Sensor Anomaly</option>
+        <option value="LEVEL_HIGH">Level High</option>
+        <option value="LEVEL_LOW">Level Low</option>
+        <option value="LEVEL_CRITICAL">Level Critical</option>
+        <option value="BATTERY_LOW">Battery Low</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Cleared:</label>
+      <select [(ngModel)]="filterCleared" class="filter-select">
+        <option value="all">All</option>
+        <option value="not_cleared">Not Cleared</option>
+        <option value="cleared">Cleared</option>
+      </select>
+    </div>
+
+    <div class="filter-info">
+      <span class="info-text">{{ filteredAlerts.length }} alerts</span>
+    </div>
+  </div>
+
+  <div class="alerts-section">
+    <h2 class="section-title">Recent Alerts</h2>
+    <div class="alerts-grid">
+      <app-card *ngFor="let alert of filteredAlerts" [hoverable]="true" padding="md" class="alert-card">
+        <div class="alert-header">
+          <div class="alert-info">
+            <h3 class="alert-type">{{ getTypeLabel(alert.type) }}</h3>
+            <p class="alert-bin">🗂 Bin: {{ alert.binId }}</p>
+          </div>
+          <div class="alert-meta">
+            <span class="alert-value">{{ alert.value }}</span>
+            <span class="alert-ts">{{ formatDate(alert.ts) }}</span>
+          </div>
+        </div>
+
+        <div class="alert-details">
+          <div class="detail-item">
+            <span class="detail-label">Type:</span>
+            <span class="detail-value">{{ getTypeLabel(alert.type) }}</span>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">Value:</span>
+            <span class="detail-value">{{ alert.value }}</span>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">Cleared:</span>
+            <span class="detail-value">{{ alert.cleared ? 'Yes' : 'No' }}</span>
+          </div>
+        </div>
+      </app-card>
+
+      <div *ngIf="filteredAlerts.length === 0" class="no-alerts">
+        <p>No alerts match the selected filters</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+```
+
+  </div>
+</main>

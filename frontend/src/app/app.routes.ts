@@ -22,6 +22,8 @@ import { BinComponent } from './features/bin/bin';
 import { CollectionPointComponent } from './features/collection-point/collection-point';
 import { BinReadingComponent } from './features/bin-reading/bin-reading';
 import { TourneeMapComponent } from './features/tournee-map/tournee-map';
+import { EmployeeAlertsComponent } from './features/employee-alerts/employee-alerts';
+
 
 export const routes: Routes = [
 
@@ -81,7 +83,10 @@ export const routes: Routes = [
         data: { roles: ['ROLE_USER', 'ROLE_ADMIN'] },
         children: [
           { path: 'dashboard', component: DashboardComponent },
-          { path: 'home', component: HelloPage }
+          { path: 'home', component: HelloPage },
+          { path: 'alerts', component: AlertsComponent   },
+          { path: 'employee-alerts', component: EmployeeAlertsComponent}
+
         ]
       },
 
