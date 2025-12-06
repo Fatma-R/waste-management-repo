@@ -146,6 +146,19 @@ export class AdminDashboardComponent implements OnInit {
     emergency: false
   };
 
+  get autoModeLabel(): string {
+    switch (this.autoMode) {
+      case AutoMode.OFF:
+        return 'Off';
+      case AutoMode.EMERGENCIES_ONLY:
+        return 'Emergencies only';
+      case AutoMode.FULL:
+        return 'Full automation';
+      default:
+        return '...';
+    }
+  }
+
 
 
   // KPI values

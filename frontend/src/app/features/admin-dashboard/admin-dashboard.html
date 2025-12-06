@@ -344,8 +344,13 @@
                 <p class="panel-label">Auto Planning Mode</p>
                 <p class="panel-hint">Off, emergencies-only or full automation.</p>
               </div>
-              <span class="mode-pill" [class.pill-loading]="isModeLoading">
-                {{ autoMode || '...' }}
+              <span
+                class="mode-pill"
+                [class.pill-loading]="isModeLoading"
+                [class.mode-pill--off]="autoMode === AutoMode.OFF"
+                [class.mode-pill--emergency]="autoMode === AutoMode.EMERGENCIES_ONLY"
+                [class.mode-pill--full]="autoMode === AutoMode.FULL">
+                {{ autoModeLabel }}
               </span>
             </div>
 
