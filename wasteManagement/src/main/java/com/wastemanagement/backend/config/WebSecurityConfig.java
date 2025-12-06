@@ -173,6 +173,9 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/v1/alerts/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/alerts/**").hasRole("ADMIN")
 
+                        // Mode CRUD -> Admin ONLY
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auto-planning/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auto-planning/**").hasRole("ADMIN")
 
 
 

@@ -1,3 +1,14 @@
+<!-- Toasts -->
+<div *ngIf="assignSuccessMessage" class="toast toast-success">
+  <span class="toast-icon">✅</span>
+  <span class="toast-text">{{ assignSuccessMessage }}</span>
+</div>
+
+<div *ngIf="assignErrorMessage" class="toast toast-error">
+  <span class="toast-icon">⚠️</span>
+  <span class="toast-text">{{ assignErrorMessage }}</span>
+</div>
+
 <main class="admin-page">
   <div class="container">
     <!-- Page Header -->
@@ -325,6 +336,70 @@
         <app-card padding="lg" class="controls-card dashboard-card">
           <div class="card-header">
             <h2 class="card-title">System Controls</h2>
+          </div>
+
+          <div class="auto-mode-panel">
+            <div class="panel-top">
+              <div>
+                <p class="panel-label">Auto Planning Mode</p>
+                <p class="panel-hint">Off, emergencies-only or full automation.</p>
+              </div>
+              <span class="mode-pill" [class.pill-loading]="isModeLoading">
+                {{ autoMode || '...' }}
+              </span>
+            </div>
+
+            <div class="mode-toggle">
+              <button
+                type="button"
+                class="toggle-chip"
+                [class.active]="autoMode === AutoMode.OFF"
+                [disabled]="isModeLoading"
+                (click)="setAutoMode(AutoMode.OFF)">
+                <span class="dot dot-muted"></span>
+                Off
+              </button>
+              <button
+                type="button"
+                class="toggle-chip"
+                [class.active]="autoMode === AutoMode.EMERGENCIES_ONLY"
+                [disabled]="isModeLoading"
+                (click)="setAutoMode(AutoMode.EMERGENCIES_ONLY)">
+                <span class="dot dot-amber"></span>
+                Emergencies
+              </button>
+              <button
+                type="button"
+                class="toggle-chip"
+                [class.active]="autoMode === AutoMode.FULL"
+                [disabled]="isModeLoading"
+                (click)="setAutoMode(AutoMode.FULL)">
+                <span class="dot dot-green"></span>
+                Full
+              </button>
+            </div>
+
+            <div class="run-actions">
+              <button
+                type="button"
+                class="run-btn"
+                [disabled]="runLoading.scheduled"
+                (click)="runScheduled()">
+                <span class="run-label">Run scheduled cycle</span>
+                <span class="run-sub">Trigger the daily full loop now</span>
+                <span class="run-icon" aria-hidden="true">↻</span>
+              </button>
+
+              <button
+                type="button"
+                class="run-btn"
+                [disabled]="runLoading.emergency"
+                (click)="runEmergency()">
+                <span class="run-label">Run emergency loop</span>
+                <span class="run-sub">Immediate dispatch respecting mode</span>
+                <span class="run-icon" aria-hidden="true">⚡</span>
+              </button>
+            </div>
           </div>
 
           <div class="controls-grid">
