@@ -16,7 +16,8 @@ public class VehicleMapper {
                 vehicle.getCapacityVolumeL(),
                 vehicle.getCurrentLocation(), // GeoJSONPoint directement
                 vehicle.getFuelType(),
-                vehicle.getStatus()
+                vehicle.getStatus(),
+                vehicle.isBusy()
         );
     }
 
@@ -28,7 +29,8 @@ public class VehicleMapper {
                 dto.getCapacityVolumeL(),
                 dto.getCurrentLocation(),
                 dto.getFuelType(),
-                dto.getStatus()
+                dto.getStatus(),
+                dto.getBusy() != null ? dto.getBusy() : false
         );
     }
 
@@ -47,6 +49,9 @@ public class VehicleMapper {
         }
         if (dto.getStatus() != null) {
             entity.setStatus(dto.getStatus());
+        }
+        if (dto.getBusy() != null) {
+            entity.setBusy(dto.getBusy());
         }
     }
 }

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Live Vehicle Tracker</title>
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-sA+4Jv4gG3uglG2v81gEMuDo70fHnLh9O3A6Z0p4bpc="
+        crossorigin="anonymous"
+    />
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; background: #0f172a; color: #e2e8f0; }
+        header { padding: 12px 16px; background: #111827; display: flex; align-items: center; gap: 12px; }
+        input, button { padding: 8px 10px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; }
+        button { cursor: pointer; border: 1px solid #38bdf8; }
+        #map { height: calc(100vh - 56px); }
+    </style>
+</head>
+<body>
+<header>
+    <label for="vehicleId">Vehicle ID</label>
+    <input id="vehicleId" type="text" placeholder="mongo id" />
+    <button id="start">Start tracking</button>
+    <span id="status"></span>
+</header>
+<div id="map"></div>
+
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-o9N1jGDf7gkP2v5YDoauCKg0qf7gkT+6C1Zp5F2z0SY="
+    crossorigin="anonymous"
+></script>
+<script>
+    const map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+    const vehicleIcon = L.icon({
+        iconUrl: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14/assets/svg/1f69a.svg',
+        iconSize: [42, 42],
+        iconAnchor: [21, 21]
+    });
+
+    let marker = null;
+    let source = null;
+
+    function setStatus(text, color = '#38bdf8') {
+        document.getElementById('status').textContent = text;
+        document.getElementById('status').style.color = color;
+    }
+
+    function connectStream(vehicleId) {
+        if (source) {
+            source.close();
+        }
+        const url = `/api/v1/vehicles/${vehicleId}/location/stream`;
+        source = new EventSource(url);
+
+        source.addEventListener('location', (evt) => {
+            const data = JSON.parse(evt.data);
+            if (!data || !data.coordinates || data.coordinates.length < 2) return;
+            const [lon, lat] = data.coordinates;
+
+            if (!marker) {
+                marker = L.marker([lat, lon], { icon: vehicleIcon }).addTo(map);
+                map.setView([lat, lon], 15);
+            } else {
+                marker.setLatLng([lat, lon]);
+            }
+        });
+
+        source.onopen = () => setStatus('Streaming live locations');
+        source.onerror = () => setStatus('Stream closed or unavailable', '#f87171');
+    }
+
+    document.getElementById('start').addEventListener('click', () => {
+        const vehicleId = document.getElementById('vehicleId').value.trim();
+        if (!vehicleId) {
+            setStatus('Enter a vehicle id', '#f87171');
+            return;
+        }
+        setStatus('Connecting…');
+        connectStream(vehicleId);
+    });
+</script>
+</body>
+</html>

@@ -18,5 +18,5 @@ public class VehicleResponseDTO {
     private GeoJSONPoint currentLocation;
     private FuelType fuelType;
     private VehicleStatus status;
+    private boolean busy;
 }
-

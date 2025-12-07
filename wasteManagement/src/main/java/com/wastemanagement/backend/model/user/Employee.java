@@ -26,4 +26,8 @@ public class Employee {
     private GeoJSONPoint location;
 
     private EmployeeStatus status;
+
+    public Employee(String id, User user, Skill skill) {
+        this(id, user, skill, null, null);
+    }
 }
