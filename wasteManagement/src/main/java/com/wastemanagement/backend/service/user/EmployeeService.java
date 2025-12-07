@@ -27,4 +27,6 @@ public interface EmployeeService {
     void deleteEmployeeAndUserByEmployeeId(String employeeId);
 
     List<EmployeeResponseDTO> getAvailableEmployeeForTournee(TourneeResponseDTO plannedTournee);
+
+    EmployeeResponseDTO getEmployeeByEmail(String email);
 }

@@ -2,7 +2,9 @@ package com.wastemanagement.backend.service.tournee;
 
 import com.wastemanagement.backend.dto.tournee.TourneeAssignmentRequestDTO;
 import com.wastemanagement.backend.dto.tournee.TourneeAssignmentResponseDTO;
+import com.wastemanagement.backend.dto.tournee.TourneeResponseDTO;
 import com.wastemanagement.backend.mapper.tournee.TourneeAssignmentMapper;
+import com.wastemanagement.backend.mapper.tournee.TourneeMapper;
 import com.wastemanagement.backend.model.tournee.Tournee;
 import com.wastemanagement.backend.model.tournee.TourneeAssignment;
 import com.wastemanagement.backend.model.tournee.TourneeStatus;
@@ -52,9 +54,8 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
     @Override
     public Optional<TourneeAssignmentResponseDTO> update(String id, TourneeAssignmentRequestDTO dto) {
         Optional<TourneeAssignment> existing = repo.findById(id);
-        if (existing.isEmpty()) {
-            return Optional.empty();
-        }
+        if (existing.isEmpty()) return Optional.empty();
+
         TourneeAssignment entity = existing.get();
         TourneeAssignmentMapper.merge(entity, dto);
         return Optional.of(TourneeAssignmentMapper.toResponseDTO(repo.save(entity)));
@@ -62,9 +63,7 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
 
     @Override
     public boolean delete(String id) {
-        if (!repo.existsById(id)) {
-            return false;
-        }
+        if (!repo.existsById(id)) return false;
         repo.deleteById(id);
         return true;
     }
@@ -80,16 +79,19 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
             throw new IllegalStateException("Only PLANNED tournees can be assigned");
         }
 
+        // compute start/end of shift based on distance
         Instant shiftStart = Instant.now();
         long estimatedMillis = estimateDurationMillis(tournee);
         Instant shiftEnd = shiftStart.plusMillis(estimatedMillis);
 
+        // pick crew automatically
         List<Employee> crew = pickCrewForTournee();
 
         List<TourneeAssignment> assignments = new ArrayList<>();
         for (Employee e : crew) {
             TourneeAssignment a = new TourneeAssignment();
             a.setTourneeId(tournee.getId());
+            // ✅ respect vehicle already attached to the tournee
             a.setVehicleId(tournee.getPlannedVehicleId());
             a.setEmployeeId(e.getId());
             a.setShiftStart(shiftStart);
@@ -98,7 +100,11 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
         }
 
         List<TourneeAssignment> saved = repo.saveAll(assignments);
-        tournee.setStatus(TourneeStatus.ASSIGNED);
+
+        log.info("Saved {} assignments (crew + tournee vehicle) for tournee {}", saved.size(), tourneeId);
+
+        // ✅ respect business rule: once assigned → IN_PROGRESS
+        tournee.setStatus(TourneeStatus.IN_PROGRESS);
         tourneeRepository.save(tournee);
 
         return saved.stream()
@@ -106,12 +112,27 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
                 .toList();
     }
 
+    @Override
+    public List<TourneeResponseDTO> getInProgressTourneesForEmployee(String employeeId) {
+        List<String> tourneeIds = repo.findByEmployeeId(employeeId).stream()
+                .map(TourneeAssignment::getTourneeId)
+                .toList();
+
+        if (tourneeIds.isEmpty()) return List.of();
+
+        return tourneeRepository.findByStatusAndIdIn(TourneeStatus.IN_PROGRESS, tourneeIds)
+                .stream()
+                .map(TourneeMapper::toResponse)
+                .toList();
+    }
+
+    // ---------------------------------------------------------
     // Helpers
+    // ---------------------------------------------------------
+
     private long estimateDurationMillis(Tournee tournee) {
         double plannedKm = tournee.getPlannedKm();
-        if (plannedKm <= 0) {
-            plannedKm = 10.0;
-        }
+        if (plannedKm <= 0) plannedKm = 10.0;
         double hours = plannedKm / AVG_SPEED_KMH;
         return (long) (hours * 3600 * 1000);
     }

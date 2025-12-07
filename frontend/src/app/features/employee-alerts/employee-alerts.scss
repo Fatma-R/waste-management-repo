@@ -1,0 +1,21 @@
+@use '../../shared/styles/variables' as *;
+@import '../alert/alert.scss';
+
+.alerts-page {
+  min-height: calc(100vh - 200px);
+  padding: $spacing-lg 0;
+  background: var(--color-off-white);
+}
+
+
+
+/* Reutilisation des styles des filtres et cards 
+.filter-bar, .alerts-section, .alerts-grid, .alert-card, .alert-header, .alert-info,
+.alert-type, .alert-bin, .alert-meta, .alert-value, .alert-ts, .alert-details,
+.detail-item, .detail-label, .detail-value, .no-alerts {
+    @extend .filter-bar, .alerts-section, .alerts-grid, .alert-card, .alert-header, .alert-info,
+    .alert-type, .alert-bin, .alert-meta, .alert-value, .alert-ts, .alert-details,
+    .detail-item, .detail-label, .detail-value, .no-alerts 
+    from '../alerts/alerts.scss';
+}
+*/

@@ -1,3 +1,14 @@
+<!-- Toasts -->
+<div *ngIf="assignSuccessMessage" class="toast toast-success">
+  <span class="toast-icon">✅</span>
+  <span class="toast-text">{{ assignSuccessMessage }}</span>
+</div>
+
+<div *ngIf="assignErrorMessage" class="toast toast-error">
+  <span class="toast-icon">⚠️</span>
+  <span class="toast-text">{{ assignErrorMessage }}</span>
+</div>
+
 <main class="admin-page">
   <div class="container">
     <!-- Page Header -->
@@ -73,7 +84,7 @@
       <div class="admin-grid">
         
         <!-- Map Preview -->
-        <app-card padding="lg" class="map-preview-card">
+        <app-card padding="lg" class="map-preview-card dashboard-card">
 
           <div class="card-header">
             <h2 class="card-title">Tournee Map Preview</h2>
@@ -90,7 +101,7 @@
         </app-card>
 
         <!-- Alerts -->
-        <app-card padding="lg" class="management-card">
+        <app-card padding="lg" class="management-card dashboard-card">
           <div class="card-header">
             <h2 class="card-title">Recent Alerts</h2>
             <a routerLink="/admin/alerts" class="card-link">View All →</a>
@@ -135,7 +146,7 @@
 
 
         <!-- Employee Management -->
-        <app-card padding="lg" class="management-card">
+        <app-card padding="lg" class="management-card dashboard-card">
           <div class="card-header">
             <h2 class="card-title">Employee Management</h2>
             <a routerLink="/admin/employees" class="card-link">View All →</a>
@@ -180,7 +191,7 @@
         </app-card>
 
         <!-- Collection Points & Bins -->
-        <app-card padding="lg" class="management-card">
+        <app-card padding="lg" class="management-card dashboard-card">
           <div class="card-header">
             <h2 class="card-title">Collection Points & Bins</h2>
             <a routerLink="/admin/collection-points" class="card-link">
@@ -234,7 +245,7 @@
 
 
         <!-- Vehicles -->
-        <app-card padding="lg" class="management-card">
+        <app-card padding="lg" class="management-card dashboard-card">
           <div class="card-header">
             <h2 class="card-title">Vehicles</h2>
             <a routerLink="/admin/vehicles" class="card-link">Manage →</a>
@@ -281,7 +292,7 @@
         </app-card>
 
         <!-- Incidents -->
-        <app-card padding="lg" class="management-card">
+        <app-card padding="lg" class="management-card dashboard-card">
           <div class="card-header">
             <h2 class="card-title">Recent Incidents</h2>
             <a routerLink="/admin/incidents" class="card-link">View All →</a>
@@ -322,9 +333,78 @@
 
 
         <!-- System Controls -->
-        <app-card padding="lg" class="controls-card">
+        <app-card padding="lg" class="controls-card dashboard-card">
           <div class="card-header">
             <h2 class="card-title">System Controls</h2>
+          </div>
+
+          <div class="auto-mode-panel">
+            <div class="panel-top">
+              <div>
+                <p class="panel-label">Auto Planning Mode</p>
+                <p class="panel-hint">Off, emergencies-only or full automation.</p>
+              </div>
+              <span
+                class="mode-pill"
+                [class.pill-loading]="isModeLoading"
+                [class.mode-pill--off]="autoMode === AutoMode.OFF"
+                [class.mode-pill--emergency]="autoMode === AutoMode.EMERGENCIES_ONLY"
+                [class.mode-pill--full]="autoMode === AutoMode.FULL">
+                {{ autoModeLabel }}
+              </span>
+            </div>
+
+            <div class="mode-toggle">
+              <button
+                type="button"
+                class="toggle-chip"
+                [class.active]="autoMode === AutoMode.OFF"
+                [disabled]="isModeLoading"
+                (click)="setAutoMode(AutoMode.OFF)">
+                <span class="dot dot-muted"></span>
+                Off
+              </button>
+              <button
+                type="button"
+                class="toggle-chip"
+                [class.active]="autoMode === AutoMode.EMERGENCIES_ONLY"
+                [disabled]="isModeLoading"
+                (click)="setAutoMode(AutoMode.EMERGENCIES_ONLY)">
+                <span class="dot dot-amber"></span>
+                Emergencies
+              </button>
+              <button
+                type="button"
+                class="toggle-chip"
+                [class.active]="autoMode === AutoMode.FULL"
+                [disabled]="isModeLoading"
+                (click)="setAutoMode(AutoMode.FULL)">
+                <span class="dot dot-green"></span>
+                Full
+              </button>
+            </div>
+
+            <div class="run-actions">
+              <button
+                type="button"
+                class="run-btn"
+                [disabled]="runLoading.scheduled"
+                (click)="runScheduled()">
+                <span class="run-label">Run scheduled cycle</span>
+                <span class="run-sub">Trigger the daily full loop now</span>
+                <span class="run-icon" aria-hidden="true">↻</span>
+              </button>
+
+              <button
+                type="button"
+                class="run-btn"
+                [disabled]="runLoading.emergency"
+                (click)="runEmergency()">
+                <span class="run-label">Run emergency loop</span>
+                <span class="run-sub">Immediate dispatch respecting mode</span>
+                <span class="run-icon" aria-hidden="true">⚡</span>
+              </button>
+            </div>
           </div>
 
           <div class="controls-grid">
@@ -364,68 +444,3 @@
     </div>
   </div>
 </main>
-
-<!-- Delete Employee Confirmation Modal -->
-<app-modal
-  [isOpen]="isDeleteEmployeeModalOpen"
-  title="Delete Employee"
-  size="sm"
-  (close)="closeDeleteEmployeeModal()">
-  <div class="confirm-modal">
-    <p class="modal-description">
-      Are you sure you want to delete this employee? This action cannot be undone.
-    </p>
-    <div class="modal-actions">
-      <app-button
-        variant="outline"
-        (click)="closeDeleteEmployeeModal()">
-        Cancel
-      </app-button>
-      <app-button
-        variant="primary"
-        (click)="confirmDeleteEmployee()">
-        Delete Employee
-      </app-button>
-    </div>
-  </div>
-</app-modal>
-
-<!-- Delete Bin Confirmation Modal -->
-<app-modal
-  [isOpen]="isDeleteBinModalOpen"
-  title="Delete Bin"
-  size="sm"
-  (close)="closeDeleteBinModal()">
-  <div class="confirm-modal">
-    <p class="modal-description">
-      Are you sure you want to delete this bin? This action cannot be undone.
-    </p>
-    <div class="modal-actions">
-      <app-button
-        variant="outline"
-        (click)="closeDeleteBinModal()">
-        Cancel
-      </app-button>
-      <app-button
-        variant="primary"
-        (click)="confirmDeleteBin()">
-        Delete Bin
-      </app-button>
-    </div>
-  </div>
-</app-modal>
-<app-modal
-  [isOpen]="isDeleteVehicleModalOpen"
-  title="Delete Vehicle"
-  size="sm"
-  (close)="isDeleteVehicleModalOpen = false">
-  <div class="confirm-modal">
-    <p class="modal-description">
-      Are you sure you want to delete this vehicle? This action cannot be undone.
-    </p>
-    <div class="modal-actions">
-      <app-button variant="outline" (click)="isDeleteVehicleModalOpen = false">Cancel</app-button>
-      <app-button variant="primary" (click)="confirmDeleteVehicle()">Delete Vehicle</app-button>
-    </div>
-  </div>
-</app-modal>

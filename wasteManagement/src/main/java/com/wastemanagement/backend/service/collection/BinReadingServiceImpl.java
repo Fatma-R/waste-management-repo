@@ -44,10 +44,12 @@ public class BinReadingServiceImpl implements BinReadingService {
 
     @Override
     public BinReadingResponseDTO getById(String id) {
-        BinReading entity = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("BinReading not found"));
-        return BinReadingMapper.toResponseDTO(entity);
-    }
+        return repository.findById(id)
+                .map(BinReadingMapper::toResponseDTO)
+                .orElseGet(() -> {
+                    System.out.println("BinReading not found for id: " + id);
+                    return null;
+                });}
 
     @Override
     public void delete(String id) {

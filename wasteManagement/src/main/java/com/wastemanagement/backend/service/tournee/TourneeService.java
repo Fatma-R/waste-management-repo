@@ -3,6 +3,7 @@ package com.wastemanagement.backend.service.tournee;
 import com.wastemanagement.backend.dto.tournee.TourneeRequestDTO;
 import com.wastemanagement.backend.dto.tournee.TourneeResponseDTO;
 import com.wastemanagement.backend.model.collection.TrashType;
+import com.wastemanagement.backend.model.tournee.TourneeStatus;
 
 import java.util.List;
 import java.util.Set;
@@ -26,4 +27,6 @@ public interface TourneeService {
     List<TourneeResponseDTO> planTourneesWithVroom(TrashType type,
                                                    double fillThreshold,
                                                    Set<String> forcedCollectionPointIds);
+
+    List<TourneeResponseDTO> findByStatus(TourneeStatus status);
 }

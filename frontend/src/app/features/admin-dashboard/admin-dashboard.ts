@@ -21,6 +21,8 @@ import { IncidentService } from '../../core/services/incident';
 import { Incident } from '../../shared/models/incident.model';
 import { AlertService } from '../../core/services/alert';
 import { Alert , AlertType } from '../../shared/models/alert.model';
+import { AutoPlanningService } from '../../core/services/auto-planning';
+import { AutoMode } from '../../shared/models/AutoMoode.model';
 
 import { TourneeMapComponent } from '../tournee-map/tournee-map';
 
@@ -120,6 +122,7 @@ export interface AlertView {
   styleUrls: ['./admin-dashboard.scss']
 })
 export class AdminDashboardComponent implements OnInit {
+  AutoMode = AutoMode;
 
 
   isLoading = true;
@@ -136,6 +139,25 @@ export class AdminDashboardComponent implements OnInit {
   incidents: Incident[] = [];
   alerts: AlertView[] = [];
 
+  autoMode: AutoMode | null = null;
+  isModeLoading = false;
+  runLoading = {
+    scheduled: false,
+    emergency: false
+  };
+
+  get autoModeLabel(): string {
+    switch (this.autoMode) {
+      case AutoMode.OFF:
+        return 'Off';
+      case AutoMode.EMERGENCIES_ONLY:
+        return 'Emergencies only';
+      case AutoMode.FULL:
+        return 'Full automation';
+      default:
+        return '...';
+    }
+  }
 
 
 
@@ -159,7 +181,9 @@ export class AdminDashboardComponent implements OnInit {
   private employeesLoaded = false;
   private binsLoaded = false;
   private collectionPointsLoaded = false;
-tournees: any;
+  tournees: any;
+  assignSuccessMessage: string | null = null;
+  assignErrorMessage: string | null = null;
 
   constructor(
     private employeeService: EmployeeService,
@@ -169,13 +193,13 @@ tournees: any;
     private router: Router,
     private vehicleService: VehicleService,
     private incidentService : IncidentService,
-    private alertService : AlertService
-
-    
+    private alertService : AlertService,
+    private autoPlanningService: AutoPlanningService
   ) {}
 
   ngOnInit(): void {
     this.loadDashboardData();
+    this.loadAutoMode();
 
   }
 
@@ -710,6 +734,90 @@ tournees: any;
       case 'SENSOR_ANOMALY': return 'CRITICAL';
       default: return 'MEDIUM';
     }
+  }
+
+  private showAssignSuccess(message: string): void {
+    this.assignSuccessMessage = message;
+    this.assignErrorMessage = null;
+
+    setTimeout(() => {
+      this.assignSuccessMessage = null;
+    }, 3000);
+  }
+
+  private showAssignError(message: string): void {
+    this.assignErrorMessage = message;
+    this.assignSuccessMessage = null;
+
+    setTimeout(() => {
+      this.assignErrorMessage = null;
+    }, 3000);
+  }
+
+  // ========= AUTO PLANNING =========
+
+  loadAutoMode(): void {
+    this.isModeLoading = true;
+    this.autoPlanningService.getMode().subscribe({
+      next: (mode) => {
+        this.autoMode = mode;
+        this.isModeLoading = false;
+      },
+      error: () => {
+        this.isModeLoading = false;
+        this.notificationService.showToast('Erreur lors du chargement du mode auto', 'error');
+      }
+    });
+  }
+
+  setAutoMode(mode: AutoMode): void {
+    if (this.isModeLoading || this.autoMode === mode) return;
+    this.isModeLoading = true;
+    this.autoPlanningService.setMode(mode).subscribe({
+      next: () => {
+        this.autoMode = mode;
+        this.isModeLoading = false;
+        this.notificationService.showToast(`Mode basculé sur ${mode.replace('_', ' ').toLowerCase()}`, 'success');
+      },
+      error: () => {
+        this.isModeLoading = false;
+        this.notificationService.showToast('Impossible de changer le mode auto', 'error');
+      }
+    });
+  }
+
+  runScheduled(): void {
+    if (this.runLoading.scheduled) return;
+    this.runLoading.scheduled = true;
+    this.autoPlanningService.runScheduledCycle().subscribe({
+      next: () => {
+        this.runLoading.scheduled = false;
+        this.notificationService.showToast('Cycle quotidien déclenché', 'success');
+        this.showAssignSuccess('Full loop triggered successfully.');
+      },
+      error: () => {
+        this.runLoading.scheduled = false;
+        this.notificationService.showToast('Échec du déclenchement du cycle', 'error');
+        this.assignErrorMessage = 'Failed to trigger full loop.';
+      }
+    });
+  }
+
+  runEmergency(): void {
+    if (this.runLoading.emergency) return;
+    this.runLoading.emergency = true;
+    this.autoPlanningService.runEmergencyLoop().subscribe({
+      next: () => {
+        this.runLoading.emergency = false;
+        this.notificationService.showToast('Boucle urgence déclenchée', 'success');
+        this.showAssignSuccess('Emergency loop triggered successfully.');
+      },
+      error: () => {
+        this.runLoading.emergency = false;
+        this.notificationService.showToast('Échec du déclenchement urgence', 'error');
+        this.assignErrorMessage = 'Failed to trigger emergency loop.';
+      }
+    });
   }
 
 

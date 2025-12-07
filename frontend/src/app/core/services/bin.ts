@@ -20,6 +20,7 @@
     createBin(payload: CreateBinDto): Observable<Bin> {
       return this.api.post<Bin>('/bins', payload);
     }
+    
 
     updateBin(id: string, payload: UpdateBinDto): Observable<Bin> {
       return this.api.put<Bin>(`/bins/${id}`, payload);

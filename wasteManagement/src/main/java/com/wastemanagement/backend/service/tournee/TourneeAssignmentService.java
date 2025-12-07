@@ -2,6 +2,7 @@ package com.wastemanagement.backend.service.tournee;
 
 import com.wastemanagement.backend.dto.tournee.TourneeAssignmentRequestDTO;
 import com.wastemanagement.backend.dto.tournee.TourneeAssignmentResponseDTO;
+import com.wastemanagement.backend.dto.tournee.TourneeResponseDTO;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,4 +20,7 @@ public interface TourneeAssignmentService {
     boolean delete(String id);
 
     List<TourneeAssignmentResponseDTO> autoAssignForTournee(String tourneeId);
+
+    List<TourneeResponseDTO> getInProgressTourneesForEmployee(String employeeId);
+
 }

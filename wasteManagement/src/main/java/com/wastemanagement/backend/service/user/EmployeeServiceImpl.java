@@ -85,6 +85,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
     }
 
+    // ======================== Nouvelle méthode ========================
     @Override
     public List<EmployeeResponseDTO> getAvailableEmployeeForTournee(TourneeResponseDTO plannedTournee) {
         if (plannedTournee.getStartedAt() == null || plannedTournee.getFinishedAt() == null) {
@@ -107,6 +108,20 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public EmployeeResponseDTO getEmployeeByEmail(String email) {
+        User user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+
+        Employee emp = employeeRepo.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Employee not found for user: " + email));
+
+        return EmployeeMapper.toResponse(emp);
+    }
+
+    /**
+     * Vérifie si deux plages horaires se chevauchent
+     */
     private boolean timesOverlap(Instant start1, Instant end1, Instant start2, Instant end2) {
         return start1.isBefore(end2) && start2.isBefore(end1);
     }

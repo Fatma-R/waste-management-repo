@@ -11,9 +11,9 @@
 
 <main class="map-page" [class.with-details]="selectedStop">
   <div class="map-container">
-    <!-- Filter Bar -->
-    <div class="filter-bar">
-      <!-- Waste types: pretty pill checkboxes -->
+    <!-- Filter / Planning Bar (ADMIN ONLY) -->
+    <div class="filter-bar" *ngIf="isAdmin">
+      <!-- Waste types: admin chooses tour type here -->
       <div class="filter-group waste-type-group">
         <span class="filter-label">Waste types:</span>
         <div class="filter-checkboxes">
@@ -50,18 +50,38 @@
           step="5" />
       </div>
 
-      <!-- Plan / Discard all -->
-      <app-button variant="primary" (click)="onPlanOrDiscardClick()">
-        {{ tours.length ? 'Discard all tours' : 'Plan tours' }}
-      </app-button>
+      <!-- Admin action buttons -->
+      <ng-container *ngIf="adminViewMode === 'IN_PROGRESS'; else planningActions">
+        <!-- Initial state: view in-progress tours -->
+        <app-button
+          variant="primary"
+          (click)="startPlanning()">
+          Plan
+        </app-button>
+      </ng-container>
 
-      <!-- Assign crew to all tours -->
-      <app-button
-        variant="outline"
-        [disabled]="!tours.length || isAssigning"
-        (click)="assignResourcesForAll()">
-        {{ isAssigning ? 'Assigning...' : 'Assign crews to all' }}
-      </app-button>
+      <ng-template #planningActions>
+        <!-- Planning state -->
+        <app-button
+          variant="primary"
+          (click)="terminatePlanning()">
+          Done
+        </app-button>
+
+        <app-button
+          variant="outline"
+          [disabled]="!tours.length || isAssigning"
+          (click)="assignResourcesForAll()">
+          {{ isAssigning ? 'Assign…' : 'Assign all' }}
+        </app-button>
+
+        <app-button
+          variant="ghost"
+          [disabled]="!tours.length"
+          (click)="discardAllTours()">
+          Clear
+        </app-button>
+      </ng-template>
     </div>
 
     <!-- Map and Sidebar -->
@@ -72,7 +92,12 @@
 
         <!-- Loading overlay -->
         <div *ngIf="isLoading" class="map-overlay">
-          <app-loading-spinner message="Planning tours and loading map...">
+          <app-loading-spinner
+            [message]="
+              isAdmin
+                ? 'Planning tours and loading map...'
+                : 'Loading map and your tour...'
+            ">
           </app-loading-spinner>
         </div>
 
@@ -82,24 +107,34 @@
           class="map-overlay">
           <div class="map-placeholder-content">
             <p class="map-placeholder-icon">🗺️</p>
-            <h3 class="map-placeholder-title">Plan collection tours</h3>
-            <p class="map-placeholder-text">
+            <h3 class="map-placeholder-title">
+              {{ isAdmin ? 'Plan collection tours' : 'No tour assigned yet' }}
+            </h3>
+            <p
+              class="map-placeholder-text"
+              *ngIf="isAdmin">
               Select one or more waste types and a threshold, then click "Plan tours"
               to generate optimized routes from the depot to the collection points
               that need service.
             </p>
+            <p
+              class="map-placeholder-text"
+              *ngIf="!isAdmin">
+              There is currently no in-progress tour for you. Once your manager assigns one,
+              it will appear here.
+            </p>
           </div>
         </div>
-
       </div>
 
       <!-- Tours + Stops Sidebar -->
       <div class="bins-sidebar">
         <app-card padding="md" class="bins-list-card">
           <h2 class="sidebar-title">
-            Planned tours
+            {{ isAdmin ? 'Planned tours' : 'My tour' }}
             <span *ngIf="tours.length">({{ tours.length }})</span>
           </h2>
+
 
           <div *ngIf="tours.length; else noTours" class="tours-list">
             <div
@@ -132,27 +167,30 @@
                   </div>
                   <div class="tour-meta" *ngIf="tourView.vehicleDisplay">
                     <span>
-                      Vehicle: {{ tourView.vehicleDisplay?.plateNumber }}
+                      Vehicle: {{ tourView.vehicleDisplay.plateNumber }}
                     </span>
                     <span>
-                      · {{ tourView.vehicleDisplay?.capacityVolumeL | number:'1.0-0' }} L
+                      · {{ tourView.vehicleDisplay.capacityVolumeL | number:'1.0-0' }} L
                     </span>
                   </div>
                 </div>
 
-                <div class="tour-card-actions">
+                <!-- Admin-only actions (planning mode only) -->
+                <div
+                  class="tour-card-actions"
+                  *ngIf="isAdmin && adminViewMode === 'PLANNING'">
                   <app-button
                     size="sm"
                     variant="outline"
                     [disabled]="tourView.isAssigning"
                     (click)="assignResourcesForTour(tourView, $event)">
-                    {{ tourView.isAssigning ? 'Assigning...' : 'Assign crew' }}
+                    {{ tourView.isAssigning ? 'Assigning...' : 'Assign' }}
                   </app-button>
                   <app-button
                     size="sm"
                     variant="ghost"
                     (click)="discardTour(tourView, ti); $event.stopPropagation()">
-                    Discard
+                    Clear
                   </app-button>
                 </div>
               </div>
@@ -163,7 +201,11 @@
                   *ngFor="let stop of tourView.stops"
                   class="bin-item"
                   (click)="selectStop(ti, stop); $event.stopPropagation()"
-                  [class.bin-selected]="selectedStop && selectedStop.step.id === stop.step.id && ti === activeTourIndex">
+                  [class.bin-selected]="
+                    selectedStop &&
+                    selectedStop.step.id === stop.step.id &&
+                    ti === activeTourIndex
+                  ">
                   <div class="bin-item-header">
                     <span class="bin-icon" aria-hidden="true">
                       {{ getTrashTypeIcon(tourView.tournee.tourneeType) }}
@@ -192,7 +234,9 @@
 
           <ng-template #noTours>
             <div class="no-bins">
-              <p>No tours planned yet.</p>
+              <p>
+                {{ isAdmin ? 'No tours planned yet.' : 'No tour in progress for now.' }}
+              </p>
             </div>
           </ng-template>
         </app-card>
@@ -283,9 +327,9 @@
       <div class="detail-row">
         <span class="detail-label">Vehicle:</span>
         <span class="detail-value" *ngIf="activeTour.vehicleDisplay; else vehicleIdOnly">
-          {{ activeTour.vehicleDisplay?.plateNumber }}
+          {{ activeTour.vehicleDisplay.plateNumber }}
           ·
-          {{ activeTour.vehicleDisplay?.capacityVolumeL | number:'1.0-0' }} L
+          {{ activeTour.vehicleDisplay.capacityVolumeL | number:'1.0-0' }} L
         </span>
         <ng-template #vehicleIdOnly>
           <span class="detail-value">

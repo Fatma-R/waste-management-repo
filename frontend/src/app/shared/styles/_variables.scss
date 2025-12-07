@@ -19,10 +19,16 @@ $shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
 $shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
 $shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
 
-// Border Radius
+/* Border Radius
 $radius-sm: 8px;
 $radius-md: 12px;
-$radius-lg: 16px;
+$radius-lg: 16px;*/
+/* ===== Border radius ===== */
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 12px;
+$radius-xl: 16px;
+
 
 // Spacing
 $spacing-xs: 0.5rem;
@@ -30,3 +36,5 @@ $spacing-sm: 1rem;
 $spacing-md: 1.5rem;
 $spacing-lg: 2rem;
 $spacing-xl: 3rem;
+
+

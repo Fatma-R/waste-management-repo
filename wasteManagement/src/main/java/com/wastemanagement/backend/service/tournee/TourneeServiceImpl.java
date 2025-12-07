@@ -575,7 +575,7 @@ public class TourneeServiceImpl implements TourneeService {
 
     private Set<String> getCollectionPointIdsAlreadyCoveredForType(TrashType type) {
         Set<String> cpIds = new HashSet<>();
-        List<Tournee> assignedTours = tourneeRepository.findByTourneeTypeAndStatus(type, TourneeStatus.ASSIGNED);
+        List<Tournee> assignedTours = tourneeRepository.findByTourneeTypeAndStatus(type, TourneeStatus.IN_PROGRESS);
         for (Tournee t : assignedTours) {
             if (t.getSteps() == null) continue;
             for (RouteStep step : t.getSteps()) {
@@ -599,5 +599,11 @@ public class TourneeServiceImpl implements TourneeService {
             vehicle.setBusy(true);
         }
         vehicleRepository.saveAll(vehicles);
+    @Override
+    public List<TourneeResponseDTO> findByStatus(TourneeStatus status) {
+        List<Tournee> tournees = tourneeRepository.findByStatus(status);
+        return tournees.stream()
+                .map(TourneeMapper::toResponse)
+                .collect(Collectors.toList());
     }
 }

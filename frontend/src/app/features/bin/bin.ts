@@ -257,9 +257,24 @@ export class BinComponent implements OnInit {
     this.router.navigate(['/admin/collection-points']);
   }
 
+  //viewReadings(binId: string): void {
+    //if (this.isCollectionPointView && this.collectionPointId) {
+     // this.router.navigate(['/admin/collection-points', this.collectionPointId, 'bins', binId, 'readings']);
+    //}
+  //}
   viewReadings(binId: string): void {
-    if (this.isCollectionPointView && this.collectionPointId) {
-      this.router.navigate(['/admin/collection-points', this.collectionPointId, 'bins', binId, 'readings']);
-    }
+  if (!binId) return;
+
+  const currentUrl = this.router.url;
+
+  // Si on vient de l'admin dashboard
+  if (currentUrl.startsWith('/admin/collection-points')) {
+    this.router.navigate(['/admin/collection-points', this.collectionPointId, 'bins', binId, 'readings']);
+  } else {
+    // Sinon on considère que c'est un user
+    this.router.navigate(['/user/bins', binId, 'readings']);
   }
+}
+
+  
 }
