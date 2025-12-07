@@ -7,9 +7,6 @@ import com.wastemanagement.backend.model.tournee.Tournee;
 import com.wastemanagement.backend.model.tournee.TourneeAssignment;
 import com.wastemanagement.backend.model.tournee.TourneeStatus;
 import com.wastemanagement.backend.model.user.Employee;
-import com.wastemanagement.backend.model.vehicle.Vehicle;
-import com.wastemanagement.backend.model.vehicle.VehicleStatus;
-import com.wastemanagement.backend.repository.VehicleRepository;
 import com.wastemanagement.backend.repository.tournee.TourneeAssignmentRepository;
 import com.wastemanagement.backend.repository.tournee.TourneeRepository;
 import com.wastemanagement.backend.repository.user.EmployeeRepository;
@@ -32,7 +29,6 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
 
     private final TourneeAssignmentRepository repo;
     private final TourneeRepository tourneeRepository;
-    private final VehicleRepository vehicleRepository;
     private final EmployeeRepository employeeRepository;
 
     @Override
@@ -88,16 +84,13 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
         long estimatedMillis = estimateDurationMillis(tournee);
         Instant shiftEnd = shiftStart.plusMillis(estimatedMillis);
 
-        Vehicle vehicle = pickVehicleForTournee(tournee);
-        markVehicleBusy(vehicle);
-
         List<Employee> crew = pickCrewForTournee();
 
         List<TourneeAssignment> assignments = new ArrayList<>();
         for (Employee e : crew) {
             TourneeAssignment a = new TourneeAssignment();
             a.setTourneeId(tournee.getId());
-            a.setVehicleId(vehicle.getId());
+            a.setVehicleId(tournee.getPlannedVehicleId());
             a.setEmployeeId(e.getId());
             a.setShiftStart(shiftStart);
             a.setShiftEnd(shiftEnd);
@@ -123,24 +116,11 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
         return (long) (hours * 3600 * 1000);
     }
 
-    private Vehicle pickVehicleForTournee(Tournee tournee) {
-        return vehicleRepository.findFirstByStatusAndBusyFalse(VehicleStatus.AVAILABLE)
-                .orElseThrow(() -> new IllegalStateException("No AVAILABLE vehicle for tournee " + tournee.getId()));
-    }
-
     private List<Employee> pickCrewForTournee() {
         List<Employee> active = (List<Employee>) employeeRepository.findAll();
         if (active.size() < 3) {
             throw new IllegalStateException("Not enough active employees to assign this tournee");
         }
         return active.subList(0, 3);
-    }
-
-    private void markVehicleBusy(Vehicle vehicle) {
-        if (vehicle == null || vehicle.isBusy()) {
-            return;
-        }
-        vehicle.setBusy(true);
-        vehicleRepository.save(vehicle);
     }
 }
