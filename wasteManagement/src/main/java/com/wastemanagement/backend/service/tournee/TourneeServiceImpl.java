@@ -739,4 +739,12 @@ public class TourneeServiceImpl implements TourneeService {
         System.out.println("Already covered CPs for type " + type + " (ASSIGNED) = " + cpIds.size());
         return cpIds;
     }
+
+    @Override
+    public List<TourneeResponseDTO> findByStatus(TourneeStatus status) {
+        List<Tournee> tournees = tourneeRepository.findByStatus(status);
+        return tournees.stream()
+                .map(TourneeMapper::toResponse)
+                .collect(Collectors.toList());
+    }
 }

@@ -131,6 +131,9 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   trashTypes = Object.values(TrashType);
   selectedTypes: TrashType[] = [TrashType.PLASTIC];
   threshold = 80;
+  // Admin view mode: list in-progress vs planning new tours
+  adminViewMode: 'IN_PROGRESS' | 'PLANNING' = 'IN_PROGRESS';
+
 
   constructor(
     private tourneeService: TourneeService,
@@ -226,11 +229,14 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
         this.isLoading = false;
 
-        // 🔹 Employee mode: after base map & collection points are loaded,
-        // automatically load his in-progress tour (at most one).
-        if (!this.isAdmin) {
+        // After base map & collection points are loaded,
+        // load initial tours depending on role.
+        if (this.isAdmin) {
+          this.loadInProgressToursForAdmin();
+        } else {
           this.loadInProgressToursForCurrentEmployee();
         }
+
       },
       error: (err) => {
         console.error('Error loading initial depot/collection points', err);
@@ -359,6 +365,43 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ------------------------------------------------------------------
+// Admin: load all in-progress tours
+// ------------------------------------------------------------------
+private loadInProgressToursForAdmin(): void {
+  if (!this.isAdmin) {
+    return;
+  }
+
+  this.adminViewMode = 'IN_PROGRESS';
+  this.isLoading = true;
+
+  // Keep base map (all collection points), just reset tours state
+  this.resetPlanningState(false);
+
+  // 🔸 You need this method in TourneeService:
+  // getInProgressTournees(): Observable<Tournee[]>
+  this.tourneeService
+    .getInProgressTournees()
+    .pipe(
+      catchError((err) => {
+        console.error('Error loading in-progress tours (admin)', err);
+        this.isLoading = false;
+        return of([] as Tournee[]);
+      })
+    )
+    .subscribe((tours) => {
+      if (!tours || !tours.length) {
+        // No in-progress tours, keep base map
+        this.isLoading = false;
+        return;
+      }
+
+      this.loadDepotAndCollectionPointsForTours(tours);
+    });
+}
+
+
+  // ------------------------------------------------------------------
   // Employee: load his in-progress tour(s)
   // ------------------------------------------------------------------
   private loadInProgressToursForCurrentEmployee(): void {
@@ -420,6 +463,62 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     });
   }
+
+      // ------------------------------------------------------------------
+      // Admin: enter planning mode
+      // ------------------------------------------------------------------
+      startPlanning(): void {
+        if (!this.isAdmin) {
+          return;
+        }
+
+        this.adminViewMode = 'PLANNING';
+        this.planTours();
+      }
+    
+    // ------------------------------------------------------------------
+  // Admin: terminate planning and go back to in-progress tours
+  // ------------------------------------------------------------------
+  terminatePlanning(): void {
+    if (!this.isAdmin) {
+      return;
+    }
+
+    // If nothing is currently planned, just reload in-progress tours
+    if (!this.tours.length) {
+      this.loadInProgressToursForAdmin();
+      return;
+    }
+
+    const unassignedTours = this.tours.filter(
+      (t) => !t.assignments || !t.assignments.length
+    );
+
+    // If everything is assigned, nothing to discard – go straight back
+    if (!unassignedTours.length) {
+      this.loadInProgressToursForAdmin();
+      return;
+    }
+
+    const delete$ = unassignedTours.map((t) =>
+      this.tourneeService.deleteTournee(t.tournee.id)
+    );
+
+    forkJoin(delete$).subscribe({
+      next: () => {
+        this.showAssignSuccess('Unassigned tours discarded.');
+        this.loadInProgressToursForAdmin();
+      },
+      error: (err) => {
+        console.error('Error discarding unassigned tours', err);
+        this.showAssignError('Failed to discard some unassigned tours.');
+        // Even if some deletions fail, still go back to in-progress view
+        this.loadInProgressToursForAdmin();
+      }
+    });
+  }
+
+
 
 
   private loadDepotAndCollectionPointsForTours(tournees: Tournee[]): void {
@@ -519,7 +618,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   // ------------------------------------------------------------------
   // Discard tours (admin)
   // ------------------------------------------------------------------
-  private discardAllTours(): void {
+  public discardAllTours(): void {
     if (!this.tours.length) {
       return;
     }

@@ -31,4 +31,8 @@ export class TourneeService {
   deleteTournee(id: string): Observable<void> {
     return this.api.delete<void>(`/tournees/${id}`);
   }
+
+  getInProgressTournees(): Observable<Tournee[]> {
+    return this.api.get<Tournee[]>('/tournees/in-progress');
+  }
 }

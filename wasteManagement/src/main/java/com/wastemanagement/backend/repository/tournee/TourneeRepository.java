@@ -13,5 +13,6 @@ import java.util.List;
 public interface TourneeRepository extends MongoRepository<Tournee, String> {
     List<Tournee> findByTourneeTypeAndStatus(TrashType type, TourneeStatus status);
     List<Tournee> findByStatusAndIdIn(TourneeStatus status, Collection<String> ids);
+    List<Tournee> findByStatus(TourneeStatus status);
 
 }

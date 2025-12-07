@@ -50,18 +50,38 @@
           step="5" />
       </div>
 
-      <!-- Plan / Discard all (ADMIN ONLY) -->
-      <app-button variant="primary" (click)="onPlanOrDiscardClick()">
-        {{ tours.length ? 'Discard all tours' : 'Plan tours' }}
-      </app-button>
+      <!-- Admin action buttons -->
+      <ng-container *ngIf="adminViewMode === 'IN_PROGRESS'; else planningActions">
+        <!-- Initial state: view in-progress tours -->
+        <app-button
+          variant="primary"
+          (click)="startPlanning()">
+          Plan
+        </app-button>
+      </ng-container>
 
-      <!-- Assign crew to all tours (ADMIN ONLY) -->
-      <app-button
-        variant="outline"
-        [disabled]="!tours.length || isAssigning"
-        (click)="assignResourcesForAll()">
-        {{ isAssigning ? 'Assigning...' : 'Assign crews to all' }}
-      </app-button>
+      <ng-template #planningActions>
+        <!-- Planning state -->
+        <app-button
+          variant="primary"
+          (click)="terminatePlanning()">
+          Done
+        </app-button>
+
+        <app-button
+          variant="outline"
+          [disabled]="!tours.length || isAssigning"
+          (click)="assignResourcesForAll()">
+          {{ isAssigning ? 'Assign…' : 'Assign all' }}
+        </app-button>
+
+        <app-button
+          variant="ghost"
+          [disabled]="!tours.length"
+          (click)="discardAllTours()">
+          Clear
+        </app-button>
+      </ng-template>
     </div>
 
     <!-- Map and Sidebar -->
@@ -115,6 +135,7 @@
             <span *ngIf="tours.length">({{ tours.length }})</span>
           </h2>
 
+
           <div *ngIf="tours.length; else noTours" class="tours-list">
             <div
               *ngFor="let tourView of tours; let ti = index"
@@ -154,20 +175,22 @@
                   </div>
                 </div>
 
-                <!-- Admin-only actions -->
-                <div class="tour-card-actions" *ngIf="isAdmin">
+                <!-- Admin-only actions (planning mode only) -->
+                <div
+                  class="tour-card-actions"
+                  *ngIf="isAdmin && adminViewMode === 'PLANNING'">
                   <app-button
                     size="sm"
                     variant="outline"
                     [disabled]="tourView.isAssigning"
                     (click)="assignResourcesForTour(tourView, $event)">
-                    {{ tourView.isAssigning ? 'Assigning...' : 'Assign crew' }}
+                    {{ tourView.isAssigning ? 'Assigning...' : 'Assign' }}
                   </app-button>
                   <app-button
                     size="sm"
                     variant="ghost"
                     (click)="discardTour(tourView, ti); $event.stopPropagation()">
-                    Discard
+                    Clear
                   </app-button>
                 </div>
               </div>

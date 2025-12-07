@@ -3,6 +3,7 @@ package com.wastemanagement.backend.controller.tournee;
 import com.wastemanagement.backend.dto.tournee.TourneeRequestDTO;
 import com.wastemanagement.backend.dto.tournee.TourneeResponseDTO;
 import com.wastemanagement.backend.model.collection.TrashType;
+import com.wastemanagement.backend.model.tournee.TourneeStatus;
 import com.wastemanagement.backend.service.tournee.TourneeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -86,5 +87,10 @@ public class TourneeController {
                 tourneeService.planTourneesWithVroom(resolvedTypes, threshold);
 
         return ResponseEntity.ok(planned);
+    }
+
+    @GetMapping("/in-progress")
+    public List<TourneeResponseDTO> getInProgressTournees() {
+        return tourneeService.findByStatus(TourneeStatus.IN_PROGRESS);
     }
 }
