@@ -599,6 +599,7 @@ public class TourneeServiceImpl implements TourneeService {
             vehicle.setBusy(true);
         }
         vehicleRepository.saveAll(vehicles);
+    }
     @Override
     public List<TourneeResponseDTO> findByStatus(TourneeStatus status) {
         List<Tournee> tournees = tourneeRepository.findByStatus(status);
