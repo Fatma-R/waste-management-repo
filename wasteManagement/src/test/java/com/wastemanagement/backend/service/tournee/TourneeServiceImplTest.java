@@ -83,7 +83,7 @@ class TourneeServiceImplTest {
                 .thenReturn(new BinReading("br1", "bin1", new Date(), 80.0, 0, 0.0, 0));
         CollectionPoint cp = new CollectionPoint("cp1", new GeoJSONPoint(1.5, 2.5), true, "addr", new ArrayList<>());
         when(collectionPointRepository.findAllById(Set.of("cp1"))).thenReturn(List.of(cp));
-        when(tourneeRepository.findByTourneeTypeAndStatus(TrashType.PLASTIC, TourneeStatus.ASSIGNED))
+        when(tourneeRepository.findByTourneeTypeAndStatus(TrashType.PLASTIC, TourneeStatus.PLANNED))
                 .thenReturn(Collections.emptyList());
 
         VroomRoute route = new VroomRoute();
@@ -137,7 +137,7 @@ class TourneeServiceImplTest {
                 .thenReturn(new BinReading("br1", "bin1", new Date(), 80.0, 0, 0.0, 0));
         CollectionPoint cp = new CollectionPoint("cp1", new GeoJSONPoint(1.5, 2.5), true, "addr", new ArrayList<>());
         when(collectionPointRepository.findAllById(Set.of("cp1"))).thenReturn(List.of(cp));
-        when(tourneeRepository.findByTourneeTypeAndStatus(TrashType.PLASTIC, TourneeStatus.ASSIGNED))
+        when(tourneeRepository.findByTourneeTypeAndStatus(TrashType.PLASTIC, TourneeStatus.PLANNED))
                 .thenReturn(Collections.emptyList());
 
         VroomSolution solution = new VroomSolution();

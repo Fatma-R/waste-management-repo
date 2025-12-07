@@ -64,7 +64,7 @@ class TourneeAssignmentServiceImplTest {
             assertNotNull(saved.getShiftEnd());
         }
         verify(tourneeRepository).save(any(Tournee.class));
-        assertEquals(TourneeStatus.ASSIGNED, tournee.getStatus());
+        assertEquals(TourneeStatus.IN_PROGRESS, tournee.getStatus());
     }
 
     @Test

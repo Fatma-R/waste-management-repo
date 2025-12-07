@@ -575,7 +575,7 @@ public class TourneeServiceImpl implements TourneeService {
 
     private Set<String> getCollectionPointIdsAlreadyCoveredForType(TrashType type) {
         Set<String> cpIds = new HashSet<>();
-        List<Tournee> assignedTours = tourneeRepository.findByTourneeTypeAndStatus(type, TourneeStatus.IN_PROGRESS);
+        List<Tournee> assignedTours = tourneeRepository.findByTourneeTypeAndStatus(type, TourneeStatus.PLANNED);
         for (Tournee t : assignedTours) {
             if (t.getSteps() == null) continue;
             for (RouteStep step : t.getSteps()) {
