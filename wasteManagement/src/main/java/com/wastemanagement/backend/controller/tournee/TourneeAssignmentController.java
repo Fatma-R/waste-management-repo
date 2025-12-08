@@ -69,4 +69,9 @@ public class TourneeAssignmentController {
         return service.getInProgressTourneesForEmployee(employeeId);
     }
 
+    @GetMapping("/tournee/{tourneeId}")
+    public List<TourneeAssignmentResponseDTO> getAssignmentsForTournee(@PathVariable String tourneeId) {
+        return service.getAssignmentsForTournee(tourneeId);
+    }
+
 }

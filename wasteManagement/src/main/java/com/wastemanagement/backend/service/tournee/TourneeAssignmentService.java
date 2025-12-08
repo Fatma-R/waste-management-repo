@@ -23,4 +23,6 @@ public interface TourneeAssignmentService {
 
     List<TourneeResponseDTO> getInProgressTourneesForEmployee(String employeeId);
 
+    List<TourneeAssignmentResponseDTO> getAssignmentsForTournee(String tourneeId);
+
 }

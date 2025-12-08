@@ -79,7 +79,7 @@
           variant="ghost"
           [disabled]="!tours.length"
           (click)="discardAllTours()">
-          Clear
+          Clear unassigned
         </app-button>
       </ng-template>
     </div>
@@ -175,23 +175,35 @@
                   </div>
                 </div>
 
-                <!-- Admin-only actions (planning mode only) -->
-                <div
-                  class="tour-card-actions"
-                  *ngIf="isAdmin && adminViewMode === 'PLANNING'">
-                  <app-button
-                    size="sm"
-                    variant="outline"
-                    [disabled]="tourView.isAssigning"
-                    (click)="assignResourcesForTour(tourView, $event)">
-                    {{ tourView.isAssigning ? 'Assigning...' : 'Assign' }}
-                  </app-button>
-                  <app-button
-                    size="sm"
-                    variant="ghost"
-                    (click)="discardTour(tourView, ti); $event.stopPropagation()">
-                    Clear
-                  </app-button>
+                <!-- Admin-only actions -->
+                <div class="tour-card-actions" *ngIf="isAdmin">
+                  <!-- PLANNING actions -->
+                  <ng-container *ngIf="adminViewMode === 'PLANNING'; else inProgressActions">
+                    <app-button
+                      size="sm"
+                      variant="outline"
+                      [disabled]="tourView.isAssigning"
+                      (click)="assignResourcesForTour(tourView, $event)">
+                      {{ tourView.isAssigning ? 'Assigning...' : 'Assign' }}
+                    </app-button>
+
+                    <app-button
+                      size="sm"
+                      variant="ghost"
+                      (click)="discardTour(tourView, ti); $event.stopPropagation()">
+                      Delete
+                    </app-button>
+                  </ng-container>
+
+                  <!-- IN_PROGRESS actions -->
+                  <ng-template #inProgressActions>
+                    <app-button
+                      size="sm"
+                      variant="ghost"
+                      (click)="discardTour(tourView, ti); $event.stopPropagation()">
+                      Delete
+                    </app-button>
+                  </ng-template>
                 </div>
               </div>
 

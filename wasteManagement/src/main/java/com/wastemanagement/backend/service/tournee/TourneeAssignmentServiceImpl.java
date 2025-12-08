@@ -9,6 +9,7 @@ import com.wastemanagement.backend.model.tournee.Tournee;
 import com.wastemanagement.backend.model.tournee.TourneeAssignment;
 import com.wastemanagement.backend.model.tournee.TourneeStatus;
 import com.wastemanagement.backend.model.user.Employee;
+import com.wastemanagement.backend.model.user.EmployeeStatus;
 import com.wastemanagement.backend.repository.tournee.TourneeAssignmentRepository;
 import com.wastemanagement.backend.repository.tournee.TourneeRepository;
 import com.wastemanagement.backend.repository.user.EmployeeRepository;
@@ -21,6 +22,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -84,14 +87,15 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
         long estimatedMillis = estimateDurationMillis(tournee);
         Instant shiftEnd = shiftStart.plusMillis(estimatedMillis);
 
-        // pick crew automatically
-        List<Employee> crew = pickCrewForTournee();
+        // pick only employees available in this window + mark them BUSY
+        // while it is true that right now any assignment really only needs the flag to check availability,
+        // I'm checking the time window mainly for future proofing, and also for data consistency.
+        List<Employee> crew = pickCrewForTournee(shiftStart, shiftEnd);
 
         List<TourneeAssignment> assignments = new ArrayList<>();
         for (Employee e : crew) {
             TourneeAssignment a = new TourneeAssignment();
             a.setTourneeId(tournee.getId());
-            // ✅ respect vehicle already attached to the tournee
             a.setVehicleId(tournee.getPlannedVehicleId());
             a.setEmployeeId(e.getId());
             a.setShiftStart(shiftStart);
@@ -103,7 +107,7 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
 
         log.info("Saved {} assignments (crew + tournee vehicle) for tournee {}", saved.size(), tourneeId);
 
-        // ✅ respect business rule: once assigned → IN_PROGRESS
+        // once assigned → IN_PROGRESS (already your rule)
         tournee.setStatus(TourneeStatus.IN_PROGRESS);
         tourneeRepository.save(tournee);
 
@@ -111,6 +115,7 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
                 .map(TourneeAssignmentMapper::toResponseDTO)
                 .toList();
     }
+
 
     @Override
     public List<TourneeResponseDTO> getInProgressTourneesForEmployee(String employeeId) {
@@ -137,11 +142,49 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
         return (long) (hours * 3600 * 1000);
     }
 
-    private List<Employee> pickCrewForTournee() {
-        List<Employee> active = (List<Employee>) employeeRepository.findAll();
-        if (active.size() < 3) {
-            throw new IllegalStateException("Not enough active employees to assign this tournee");
+    private List<Employee> pickCrewForTournee(Instant shiftStart, Instant shiftEnd) {
+        // All existing assignments
+        List<TourneeAssignment> allAssignments = repo.findAll();
+
+        // Employees busy in the requested time window (overlapping shifts)
+        Set<String> busyEmployeeIds = allAssignments.stream()
+                .filter(a -> timesOverlap(a.getShiftStart(), a.getShiftEnd(), shiftStart, shiftEnd))
+                .map(TourneeAssignment::getEmployeeId)
+                .collect(Collectors.toSet());
+
+        // Candidates = employees not busy in this window AND not logically BUSY
+        List<Employee> candidates = ((List<Employee>) employeeRepository.findAll())
+                .stream()
+                .filter(e -> {
+                    EmployeeStatus status = e.getStatus();
+                    boolean logicallyFree = (status == null || status == EmployeeStatus.FREE);
+                    return logicallyFree && !busyEmployeeIds.contains(e.getId());
+                })
+                .collect(Collectors.toList());
+
+        if (candidates.size() < 3) {
+            throw new IllegalStateException("Not enough available employees to assign this tournee");
         }
-        return active.subList(0, 3);
+
+        // For now, simply pick the first 3
+        List<Employee> chosen = candidates.subList(0, 3);
+
+        // 🔹 Mark them BUSY
+        chosen.forEach(e -> e.setStatus(EmployeeStatus.BUSY));
+        employeeRepository.saveAll(chosen);
+
+        return chosen;
     }
+
+    private boolean timesOverlap(Instant start1, Instant end1, Instant start2, Instant end2) {
+        return start1.isBefore(end2) && start2.isBefore(end1);
+    }
+
+    @Override
+    public List<TourneeAssignmentResponseDTO> getAssignmentsForTournee(String tourneeId) {
+        return repo.findByTourneeId(tourneeId).stream()
+                .map(TourneeAssignmentMapper::toResponseDTO)
+                .toList();
+    }
+
 }

@@ -8,17 +8,18 @@ import com.wastemanagement.backend.model.collection.Bin;
 import com.wastemanagement.backend.model.collection.BinReading;
 import com.wastemanagement.backend.model.collection.CollectionPoint;
 import com.wastemanagement.backend.model.collection.TrashType;
-import com.wastemanagement.backend.model.tournee.RouteStep;
-import com.wastemanagement.backend.model.tournee.StepStatus;
-import com.wastemanagement.backend.model.tournee.Tournee;
-import com.wastemanagement.backend.model.tournee.TourneeStatus;
+import com.wastemanagement.backend.model.tournee.*;
+import com.wastemanagement.backend.model.user.Employee;
+import com.wastemanagement.backend.model.user.EmployeeStatus;
 import com.wastemanagement.backend.model.vehicle.Vehicle;
 import com.wastemanagement.backend.model.vehicle.VehicleStatus;
 import com.wastemanagement.backend.repository.collection.BinReadingRepository;
 import com.wastemanagement.backend.repository.collection.BinRepository;
 import com.wastemanagement.backend.repository.CollectionPointRepository;
+import com.wastemanagement.backend.repository.tournee.TourneeAssignmentRepository;
 import com.wastemanagement.backend.repository.tournee.TourneeRepository;
 import com.wastemanagement.backend.repository.VehicleRepository;
+import com.wastemanagement.backend.repository.user.EmployeeRepository;
 import com.wastemanagement.backend.vroom.VroomClient;
 import com.wastemanagement.backend.vroom.dto.VroomJob;
 import com.wastemanagement.backend.vroom.dto.VroomOptions;
@@ -29,6 +30,7 @@ import com.wastemanagement.backend.vroom.dto.VroomStep;
 import com.wastemanagement.backend.vroom.dto.VroomVehicle;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -51,6 +53,8 @@ public class TourneeServiceImpl implements TourneeService {
     private final VehicleRepository vehicleRepository;
     private final DepotService depotService;
     private final VroomClient vroomClient;
+    private final EmployeeRepository employeeRepository;
+    private final TourneeAssignmentRepository tourneeAssignmentRepository;
 
     @Override
     public TourneeResponseDTO createTournee(TourneeRequestDTO dto) {
@@ -84,10 +88,49 @@ public class TourneeServiceImpl implements TourneeService {
                 .toList();
     }
 
+    @Transactional
     @Override
     public void deleteTournee(String id) {
-        tourneeRepository.deleteById(id);
+        // 1. Load the tournee or fail
+        Tournee tournee = tourneeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Tournee not found: " + id));
+
+        // 2. Load assignments for this tournee
+        List<TourneeAssignment> assignments =
+                tourneeAssignmentRepository.findByTourneeId(id);
+
+        // 3. Free vehicle if any
+        String vehicleId = tournee.getPlannedVehicleId();
+        if (vehicleId != null) {
+            vehicleRepository.findById(vehicleId).ifPresent(vehicle -> {
+                vehicle.setBusy(false);
+                vehicleRepository.save(vehicle);
+            });
+        }
+
+        // 4. Free employees if any assignments
+        if (!assignments.isEmpty()) {
+            List<String> employeeIds = assignments.stream()
+                    .map(TourneeAssignment::getEmployeeId)
+                    .distinct()
+                    .toList();
+
+            List<Employee> employees = (List<Employee>) employeeRepository.findAllById(employeeIds);
+            for (Employee e : employees) {
+                e.setStatus(EmployeeStatus.FREE); // your enum
+            }
+            employeeRepository.saveAll(employees);
+        }
+
+        // 5. Delete assignments
+        if (!assignments.isEmpty()) {
+            tourneeAssignmentRepository.deleteAll(assignments);
+        }
+
+        // 6. Delete tournee
+        tourneeRepository.delete(tournee);
     }
+
 
     // --------------------------------------------------------------------
     // Single-type API + "optional" forced CPs
@@ -607,4 +650,75 @@ public class TourneeServiceImpl implements TourneeService {
                 .map(TourneeMapper::toResponse)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public void completeTournee(String tourneeId) {
+        Tournee tournee = tourneeRepository.findById(tourneeId)
+                .orElseThrow(() -> new IllegalArgumentException("Tournee not found: " + tourneeId));
+
+        if (tournee.getStatus() == TourneeStatus.COMPLETED ||
+                tournee.getStatus() == TourneeStatus.CANCELED) {
+            return;
+        }
+
+        tournee.setStatus(TourneeStatus.COMPLETED);
+        tournee.setFinishedAt(new Date()); // or Date.from(Instant.now())
+        tourneeRepository.save(tournee);
+
+        releaseResourcesForTournee(tournee);
+    }
+
+    private void releaseResourcesForTournee(Tournee tournee) {
+        // 1) Vehicle
+        String vehicleId = tournee.getPlannedVehicleId();
+        if (vehicleId != null) {
+            vehicleRepository.findById(vehicleId).ifPresent(v -> {
+                v.setBusy(false);
+                vehicleRepository.save(v);
+            });
+        }
+
+        // 2) Employees
+        List<TourneeAssignment> assignments =
+                tourneeAssignmentRepository.findByTourneeId(tournee.getId());
+
+        if (assignments == null || assignments.isEmpty()) {
+            return;
+        }
+
+        Set<String> employeeIds = assignments.stream()
+                .map(TourneeAssignment::getEmployeeId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (employeeIds.isEmpty()) {
+            return;
+        }
+
+        List<Employee> employees = (List<Employee>) employeeRepository.findAllById(employeeIds);
+
+        for (Employee emp : employees) {
+            // Does this employee still have assignments on PLANNED/IN_PROGRESS tours?
+            List<TourneeAssignment> empAssignments =
+                    tourneeAssignmentRepository.findByEmployeeId(emp.getId());
+
+            boolean stillBusy = empAssignments.stream().anyMatch(a -> {
+                if (a.getTourneeId().equals(tournee.getId())) {
+                    return false;
+                }
+                return tourneeRepository.findById(a.getTourneeId())
+                        .map(t -> t.getStatus() == TourneeStatus.PLANNED
+                                || t.getStatus() == TourneeStatus.IN_PROGRESS)
+                        .orElse(false);
+            });
+
+            if (!stillBusy) {
+                emp.setStatus(EmployeeStatus.FREE);
+            }
+        }
+
+        employeeRepository.saveAll(employees);
+    }
+
+
 }

@@ -21,7 +21,10 @@ import { CollectionPointService } from '../../core/services/collection-point';
 import { TourneeAssignmentService } from '../../core/services/tournee-assignment';
 
 import { Tournee, RouteStep } from '../../shared/models/tournee.model';
-import { CollectionPoint, GeoJSONPoint } from '../../shared/models/collection-point.model';
+import {
+  CollectionPoint,
+  GeoJSONPoint
+} from '../../shared/models/collection-point.model';
 import { TrashType } from '../../shared/models/bin.model';
 import { TourneeAssignment } from '../../shared/models/tournee-assignment';
 
@@ -30,8 +33,8 @@ import { VehicleService } from '../../core/services/vehicle';
 import { Employee } from '../../shared/models/employee.model';
 import { Vehicle } from '../../shared/models/vehicle.model';
 
-import { forkJoin, of, interval, Subscription } from 'rxjs';
-import { catchError, switchMap } from 'rxjs/operators';
+import { forkJoin, of, interval, Subscription, from } from 'rxjs';
+import { catchError, concatMap, switchMap, tap } from 'rxjs/operators';
 import { BinReadingService } from '../../core/services/bin-reading';
 import { AuthService } from '../../core/auth/auth.service';
 
@@ -137,7 +140,6 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   // Admin view mode: list in-progress vs planning new tours
   adminViewMode: 'IN_PROGRESS' | 'PLANNING' = 'IN_PROGRESS';
 
-
   constructor(
     private tourneeService: TourneeService,
     private depotService: DepotService,
@@ -242,7 +244,6 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
         } else {
           this.loadInProgressToursForCurrentEmployee();
         }
-
       },
       error: (err) => {
         console.error('Error loading initial depot/collection points', err);
@@ -371,41 +372,38 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ------------------------------------------------------------------
-// Admin: load all in-progress tours
-// ------------------------------------------------------------------
-private loadInProgressToursForAdmin(): void {
-  if (!this.isAdmin) {
-    return;
+  // Admin: load all in-progress tours
+  // ------------------------------------------------------------------
+  private loadInProgressToursForAdmin(): void {
+    if (!this.isAdmin) {
+      return;
+    }
+
+    this.adminViewMode = 'IN_PROGRESS';
+    this.isLoading = true;
+
+    // Keep base map (all collection points), just reset tours state
+    this.resetPlanningState(false);
+
+    this.tourneeService
+      .getInProgressTournees()
+      .pipe(
+        catchError((err) => {
+          console.error('Error loading in-progress tours (admin)', err);
+          this.isLoading = false;
+          return of([] as Tournee[]);
+        })
+      )
+      .subscribe((tours) => {
+        if (!tours || !tours.length) {
+          // No in-progress tours, keep base map
+          this.isLoading = false;
+          return;
+        }
+
+        this.loadDepotAndCollectionPointsForTours(tours);
+      });
   }
-
-  this.adminViewMode = 'IN_PROGRESS';
-  this.isLoading = true;
-
-  // Keep base map (all collection points), just reset tours state
-  this.resetPlanningState(false);
-
-  // 🔸 You need this method in TourneeService:
-  // getInProgressTournees(): Observable<Tournee[]>
-  this.tourneeService
-    .getInProgressTournees()
-    .pipe(
-      catchError((err) => {
-        console.error('Error loading in-progress tours (admin)', err);
-        this.isLoading = false;
-        return of([] as Tournee[]);
-      })
-    )
-    .subscribe((tours) => {
-      if (!tours || !tours.length) {
-        // No in-progress tours, keep base map
-        this.isLoading = false;
-        return;
-      }
-
-      this.loadDepotAndCollectionPointsForTours(tours);
-    });
-}
-
 
   // ------------------------------------------------------------------
   // Employee: load his in-progress tour(s)
@@ -470,19 +468,19 @@ private loadInProgressToursForAdmin(): void {
     });
   }
 
-      // ------------------------------------------------------------------
-      // Admin: enter planning mode
-      // ------------------------------------------------------------------
-      startPlanning(): void {
-        if (!this.isAdmin) {
-          return;
-        }
+  // ------------------------------------------------------------------
+  // Admin: enter planning mode
+  // ------------------------------------------------------------------
+  startPlanning(): void {
+    if (!this.isAdmin) {
+      return;
+    }
 
-        this.adminViewMode = 'PLANNING';
-        this.planTours();
-      }
-    
-    // ------------------------------------------------------------------
+    this.adminViewMode = 'PLANNING';
+    this.planTours();
+  }
+
+  // ------------------------------------------------------------------
   // Admin: terminate planning and go back to in-progress tours
   // ------------------------------------------------------------------
   terminatePlanning(): void {
@@ -523,9 +521,6 @@ private loadInProgressToursForAdmin(): void {
       }
     });
   }
-
-
-
 
   private loadDepotAndCollectionPointsForTours(tournees: Tournee[]): void {
     // Collect all CP ids used in these tours
@@ -581,13 +576,11 @@ private loadInProgressToursForAdmin(): void {
             isAssigning: false
           };
 
-          // If backend already sends assignments (employee in-progress case),
-          // hydrate them and load display data.
+          // If backend ever sends assignments directly on the tour object
           const incomingAssignments = (tour as any)
             .assignments as TourneeAssignment[] | undefined;
           if (incomingAssignments && incomingAssignments.length) {
-            tv.assignments = incomingAssignments;
-            this.loadAssignmentDetailsForTour(tv, incomingAssignments);
+            this.updateTourAssignments(tv, incomingAssignments);
           }
 
           return tv;
@@ -608,10 +601,41 @@ private loadInProgressToursForAdmin(): void {
         this.selectedStop = null;
 
         if (this.tours.length && this.depotCoords) {
-          // For employee: at most one tour; for admin: first planned tour
           this.activeTourIndex = 0;
           this.renderMap(this.depotCoords, this.tours[0]);
         }
+
+        // Load assignments for each tour (admin IN_PROGRESS or employee view)
+        const shouldLoadAssignments =
+          (this.isAdmin && this.adminViewMode === 'IN_PROGRESS') ||
+          !this.isAdmin;
+
+        if (!shouldLoadAssignments || !this.tours.length) {
+          return;
+        }
+
+        const assign$ = this.tours.map((tv) =>
+          this.tourneeAssignmentService
+            .getAssignmentsForTournee(tv.tournee.id)
+            .pipe(
+              catchError((err) => {
+                console.error(
+                  'Failed to load assignments for tour',
+                  tv.tournee.id,
+                  err
+                );
+                return of([] as TourneeAssignment[]);
+              })
+            )
+        );
+
+        forkJoin(assign$).subscribe((allAssignments) => {
+          allAssignments.forEach((assignments, idx) => {
+            if (assignments && assignments.length) {
+              this.updateTourAssignments(this.tours[idx], assignments);
+            }
+          });
+        });
       },
       error: (err) => {
         console.error('Error loading depot/collection points for tours', err);
@@ -629,18 +653,40 @@ private loadInProgressToursForAdmin(): void {
       return;
     }
 
-    const delete$ = this.tours.map((t) =>
+    // Only discard tours that are still unassigned
+    const unassignedTours = this.tours.filter(
+      (t) => !t.assignments || !t.assignments.length
+    );
+
+    if (!unassignedTours.length) {
+      this.showAssignError('There are no unassigned tours to discard.');
+      return;
+    }
+
+    const delete$ = unassignedTours.map((t) =>
       this.tourneeService.deleteTournee(t.tournee.id)
     );
 
     forkJoin(delete$).subscribe({
       next: () => {
-        this.resetPlanningState(true);
-        this.showAssignSuccess('All planned tours have been discarded.');
+        // Keep only tours that had assignments
+        this.tours = this.tours.filter(
+          (t) => t.assignments && t.assignments.length
+        );
+
+        if (this.tours.length === 0) {
+          this.resetPlanningState(true);
+        } else if (this.depotCoords) {
+          this.activeTourIndex = 0;
+          this.selectedStop = null;
+          this.renderMap(this.depotCoords, this.tours[0]);
+        }
+
+        this.showAssignSuccess('Unassigned tours have been discarded.');
       },
       error: (err) => {
-        console.error('Error discarding all tours', err);
-        this.showAssignError('Failed to discard all tours.');
+        console.error('Error discarding unassigned tours', err);
+        this.showAssignError('Failed to discard unassigned tours.');
       }
     });
   }
@@ -695,36 +741,116 @@ private loadInProgressToursForAdmin(): void {
   // Auto-assign resources (admin)
   // ------------------------------------------------------------------
   assignResourcesForAll(): void {
-    if (!this.tours.length) {
-      return;
-    }
+  if (!this.tours.length) {
+    return;
+  }
 
-    this.isAssigning = true;
+  // Only assign tours that do not yet have assignments
+  const toursToAssign = this.tours.filter(
+    (t) => !t.assignments || !t.assignments.length
+  );
 
-    const assign$ = this.tours.map((t) =>
-      this.tourneeAssignmentService.autoAssignForTournee(t.tournee.id)
-    );
+  if (!toursToAssign.length) {
+    this.showAssignError('All tours already have assigned crew.');
+    return;
+  }
 
-    forkJoin(assign$).subscribe({
-      next: (results) => {
-        results.forEach((assignments, idx) => {
-          const tour = this.tours[idx];
-          this.updateTourAssignments(tour, assignments);
-        });
-        this.isAssigning = false;
-        this.showAssignSuccess('Crew assigned to all tours.');
+  this.isAssigning = true;
+
+  let successCount = 0;
+  let failureCount = 0;
+  let hadCapacityError = false; // 👈 track "not enough employees" errors
+
+  from(toursToAssign)
+    .pipe(
+      concatMap((tour) =>
+        this.tourneeAssignmentService
+          .autoAssignForTournee(tour.tournee.id)
+          .pipe(
+            tap((assignments) => {
+              if (assignments && assignments.length) {
+                this.updateTourAssignments(tour, assignments);
+                successCount++;
+              } else {
+                failureCount++;
+              }
+            }),
+            catchError((err) => {
+              console.error(
+                'Error assigning resources for tour',
+                tour.tournee.id,
+                err
+              );
+              failureCount++;
+
+              // 💡 Try to detect the specific "not enough employees" case
+              const backendMsg =
+                (err?.error && (err.error.message || err.error)) ||
+                err?.message ||
+                '';
+
+              if (
+                typeof backendMsg === 'string' &&
+                backendMsg.includes('Not enough active employees')
+              ) {
+                hadCapacityError = true;
+              }
+
+              // swallow error so the sequence continues to the next tour
+              return of([] as TourneeAssignment[]);
+            })
+          )
+      )
+    )
+    .subscribe({
+      next: () => {
+        // handled in tap
       },
       error: (err) => {
-        console.error('Error assigning resources for all tours', err);
+        console.error('Unexpected error in assignResourcesForAll', err);
         this.isAssigning = false;
         this.showAssignError('Failed to assign crew for all tours.');
+      },
+      complete: () => {
+        this.isAssigning = false;
+
+        if (successCount > 0 && failureCount === 0) {
+          this.showAssignSuccess('Crew assigned to all tours.');
+        } else if (successCount > 0 && failureCount > 0) {
+          if (hadCapacityError) {
+            this.showAssignError(
+              'Not enough employees to assign all tours. Some tours were assigned, others could not be.'
+            );
+          } else {
+            this.showAssignError(
+              'Crew assignment completed with some failures.'
+            );
+          }
+        } else {
+          if (hadCapacityError) {
+            this.showAssignError(
+              'No employees are available to assign these tours.'
+            );
+          } else {
+            this.showAssignError(
+              'Failed to assign crew for all selected tours.'
+            );
+          }
+        }
       }
     });
   }
 
+
   assignResourcesForTour(tour: TourView, event?: MouseEvent): void {
     if (event) {
       event.stopPropagation();
+    }
+
+    // If this tour already has assignments, avoid calling backend again
+    if (tour.assignments && tour.assignments.length) {
+      this.showAssignError('This tour already has assigned crew.');
+      return;
     }
 
     tour.isAssigning = true;
@@ -733,9 +859,13 @@ private loadInProgressToursForAdmin(): void {
       .autoAssignForTournee(tour.tournee.id)
       .subscribe({
         next: (assignments) => {
-          this.updateTourAssignments(tour, assignments);
+          if (assignments && assignments.length) {
+            this.updateTourAssignments(tour, assignments);
+            this.showAssignSuccess('Crew assigned to this tour.');
+          } else {
+            this.showAssignError('No crew could be assigned to this tour.');
+          }
           tour.isAssigning = false;
-          this.showAssignSuccess('Crew assigned to this tour.');
         },
         error: (err) => {
           console.error('Error auto-assigning resources for tour', err);
@@ -753,36 +883,53 @@ private loadInProgressToursForAdmin(): void {
     tour.crewDisplay = [];
     tour.vehicleDisplay = null;
 
-    if (!assignments || !assignments.length) {
-      return;
-    }
+    const anyTournee = tour.tournee as any;
 
-    this.loadAssignmentDetailsForTour(tour, assignments);
+    if (assignments && assignments.length) {
+      // Locally reflect that the tour is now in progress
+      if (anyTournee && typeof anyTournee === 'object') {
+        anyTournee.status = 'IN_PROGRESS';
+      }
+      this.loadAssignmentDetailsForTour(tour, assignments);
+    } else {
+      // No assignments – keep or reset status as planned
+      if (anyTournee && typeof anyTournee === 'object') {
+        anyTournee.status = anyTournee.status || 'PLANNED';
+      }
+    }
   }
 
   private loadAssignmentDetailsForTour(
     tour: TourView,
     assignments: TourneeAssignment[]
   ): void {
-    const plannedVehicleId = (tour.tournee as any)
+    // Prefer the plannedVehicleId from the tour, but if missing,
+    // fallback to the vehicle used in the assignments.
+    let vehicleId: string | undefined = (tour.tournee as any)
       .plannedVehicleId as string | undefined;
+
+    if (!vehicleId && assignments && assignments.length) {
+      vehicleId = assignments[0].vehicleId as string | undefined;
+    }
 
     const employeeIds = Array.from(
       new Set(assignments.map((a) => a.employeeId))
     );
-    const employees$ = forkJoin(
-      employeeIds.map((id) => this.employeeService.getEmployeeById(id))
-    );
 
-    const vehicle$ = plannedVehicleId
-      ? this.vehicleService
-          .getVehicleById(plannedVehicleId)
-          .pipe(
-            catchError((err) => {
-              console.error('Failed to load planned vehicle', err);
-              return of(null as unknown as Vehicle);
-            })
+    const employees$ =
+      employeeIds.length > 0
+        ? forkJoin(
+            employeeIds.map((id) => this.employeeService.getEmployeeById(id))
           )
+        : of([] as Employee[]);
+
+    const vehicle$ = vehicleId
+      ? this.vehicleService.getVehicleById(vehicleId).pipe(
+          catchError((err) => {
+            console.error('Failed to load vehicle for assignment', err);
+            return of(null as unknown as Vehicle);
+          })
+        )
       : of(null as unknown as Vehicle);
 
     forkJoin({ vehicle: vehicle$, employees: employees$ }).subscribe({
@@ -818,10 +965,7 @@ private loadInProgressToursForAdmin(): void {
   // ------------------------------------------------------------------
   // Map rendering (markers + route) for active tour
   // ------------------------------------------------------------------
-  private renderMap(
-    depotCoords: [number, number],
-    tour: TourView
-  ): void {
+  private renderMap(depotCoords: [number, number], tour: TourView): void {
     if (!this.layerGroup || !this.map) {
       return;
     }
@@ -1063,11 +1207,7 @@ private loadInProgressToursForAdmin(): void {
     const readingRequests = bins.map((b) =>
       this.binReadingService.getLatestBinReadingForBin(b.id).pipe(
         catchError((err) => {
-          console.error(
-            'Error loading latest bin reading for bin',
-            b.id,
-            err
-          );
+          console.error('Error loading latest bin reading for bin', b.id, err);
           return of(null);
         })
       )
@@ -1146,7 +1286,9 @@ private loadInProgressToursForAdmin(): void {
       this.vehiclesTrackingSub = null;
     }
     if (this.vehicleLayer) {
-      this.vehicleMarkers.forEach((marker) => this.vehicleLayer.removeLayer(marker));
+      this.vehicleMarkers.forEach((marker) =>
+        this.vehicleLayer.removeLayer(marker)
+      );
     }
     this.vehicleMarkers.clear();
   }
@@ -1220,5 +1362,4 @@ private loadInProgressToursForAdmin(): void {
         return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
     }
   }
-
 }

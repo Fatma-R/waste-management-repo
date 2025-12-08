@@ -7,12 +7,17 @@ import com.wastemanagement.backend.dto.vehicle.VehicleRequestDTO;
 import com.wastemanagement.backend.dto.vehicle.VehicleResponseDTO;
 import com.wastemanagement.backend.mapper.VehicleMapper;
 import com.wastemanagement.backend.model.GeoJSONPoint;
+import com.wastemanagement.backend.model.tournee.StepStatus;
+import com.wastemanagement.backend.model.tournee.Tournee;
+import com.wastemanagement.backend.model.tournee.TourneeStatus;
 import com.wastemanagement.backend.model.vehicle.FuelType;
 import com.wastemanagement.backend.model.vehicle.Vehicle;
 import com.wastemanagement.backend.model.vehicle.VehicleStatus;
 import com.wastemanagement.backend.repository.VehicleRepository;
+import com.wastemanagement.backend.repository.tournee.TourneeRepository;
 import com.wastemanagement.backend.service.tournee.TourneeAssignmentService;
 import com.wastemanagement.backend.service.tournee.DepotService;
+import com.wastemanagement.backend.service.tournee.TourneeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -38,6 +43,12 @@ public class VehicleServiceImpl implements VehicleService {
     private VehicleMapper mapper;
     @Autowired
     private DepotService depotService;
+    @Autowired
+    private TourneeService tourneeService;
+    @Autowired
+    private TourneeRepository tourneeRepository;
+
+
 
     private final Map<String, List<SseEmitter>> locationEmitters = new ConcurrentHashMap<>();
     private static final double LOCATION_TOLERANCE = 1e-5;
@@ -143,13 +154,35 @@ public class VehicleServiceImpl implements VehicleService {
         Vehicle vehicle = optionalVehicle.get();
         GeoJSONPoint newLocation = new GeoJSONPoint(locationUpdate.getLongitude(), locationUpdate.getLatitude());
         vehicle.setCurrentLocation(newLocation);
-        if (isAtMainDepot(newLocation)) {
-            vehicle.setBusy(false);
-        }
+
         Vehicle saved = repository.save(vehicle);
 
         notifyLocationListeners(vehicle.getId(), saved.getCurrentLocation());
+
+        // 🔹 NEW: use GPS ONLY to *suggest* completion
+        if (isAtMainDepot(newLocation)) {
+            maybeCompleteToursForVehicle(saved);
+        }
+
         return mapper.toResponseDTO(saved);
+    }
+
+    private void maybeCompleteToursForVehicle(Vehicle vehicle) {
+        // Find IN_PROGRESS tours that are using this vehicle
+        List<Tournee> inProgressTours = tourneeRepository.findByStatus(TourneeStatus.IN_PROGRESS);
+
+        inProgressTours.stream()
+                .filter(t -> vehicle.getId().equals(t.getPlannedVehicleId()))
+                .forEach(t -> {
+                    boolean allStepsDone = t.getSteps() != null
+                            && t.getSteps().stream()
+                            .noneMatch(step -> step.getStatus() == StepStatus.PENDING);
+
+                    if (allStepsDone) {
+                        // This will set status=COMPLETED and free vehicle + employees
+                        tourneeService.completeTournee(t.getId());
+                    }
+                });
     }
 
     @Override

@@ -27,4 +27,11 @@ export class TourneeAssignmentService {
       `/tournee-assignments/employee/${employeeId}/tournees/in-progress`
     );
   }
+
+  getAssignmentsForTournee(tourneeId: string): Observable<TourneeAssignment[]> {
+    return this.api.get<TourneeAssignment[]>(
+      `/tournee-assignments/tournee/${tourneeId}`
+    );
+  }
+
 }

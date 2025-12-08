@@ -29,4 +29,6 @@ public interface TourneeService {
                                                    Set<String> forcedCollectionPointIds);
 
     List<TourneeResponseDTO> findByStatus(TourneeStatus status);
+
+    void completeTournee(String tourneeId);
 }
