@@ -10,6 +10,7 @@ import com.wastemanagement.backend.model.tournee.TourneeAssignment;
 import com.wastemanagement.backend.model.tournee.TourneeStatus;
 import com.wastemanagement.backend.model.user.Employee;
 import com.wastemanagement.backend.model.user.EmployeeStatus;
+import com.wastemanagement.backend.model.user.Skill;
 import com.wastemanagement.backend.repository.tournee.TourneeAssignmentRepository;
 import com.wastemanagement.backend.repository.tournee.TourneeRepository;
 import com.wastemanagement.backend.repository.user.EmployeeRepository;
@@ -143,16 +144,16 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
     }
 
     private List<Employee> pickCrewForTournee(Instant shiftStart, Instant shiftEnd) {
-        // All existing assignments
+        // 1) All existing assignments
         List<TourneeAssignment> allAssignments = repo.findAll();
 
-        // Employees busy in the requested time window (overlapping shifts)
+        // 2) Employees busy in the requested time window (overlapping shifts)
         Set<String> busyEmployeeIds = allAssignments.stream()
                 .filter(a -> timesOverlap(a.getShiftStart(), a.getShiftEnd(), shiftStart, shiftEnd))
                 .map(TourneeAssignment::getEmployeeId)
                 .collect(Collectors.toSet());
 
-        // Candidates = employees not busy in this window AND not logically BUSY
+        // 3) Candidates = employees not busy in this window AND logically FREE
         List<Employee> candidates = ((List<Employee>) employeeRepository.findAll())
                 .stream()
                 .filter(e -> {
@@ -160,21 +161,38 @@ public class TourneeAssignmentServiceImpl implements TourneeAssignmentService {
                     boolean logicallyFree = (status == null || status == EmployeeStatus.FREE);
                     return logicallyFree && !busyEmployeeIds.contains(e.getId());
                 })
-                .collect(Collectors.toList());
+                .toList();
 
-        if (candidates.size() < 3) {
-            throw new IllegalStateException("Not enough available employees to assign this tournee");
+        // 4) Split by role/skill
+        List<Employee> driverCandidates = candidates.stream()
+                .filter(e -> e.getSkill() == Skill.DRIVER)
+                .toList();
+
+        List<Employee> agentCandidates = candidates.stream()
+                .filter(e -> e.getSkill() == Skill.AGENT)
+                .toList();
+
+        // 5) Check we can build a crew: 1 DRIVER + 2 AGENT
+        if (driverCandidates.isEmpty()) {
+            throw new IllegalStateException("Not enough available drivers to assign this tournee");
+        }
+        if (agentCandidates.size() < 2) {
+            throw new IllegalStateException("Not enough available agents to assign this tournee");
         }
 
-        // For now, simply pick the first 3
-        List<Employee> chosen = candidates.subList(0, 3);
+        // 6) Pick 1 driver + 2 agents (you can later randomize or sort by something else)
+        List<Employee> chosen = new ArrayList<>();
+        chosen.add(driverCandidates.get(0));   // 1 driver
+        chosen.add(agentCandidates.get(0));    // agent #1
+        chosen.add(agentCandidates.get(1));    // agent #2
 
-        // 🔹 Mark them BUSY
+        // 7) Mark them BUSY and persist
         chosen.forEach(e -> e.setStatus(EmployeeStatus.BUSY));
         employeeRepository.saveAll(chosen);
 
         return chosen;
     }
+
 
     private boolean timesOverlap(Instant start1, Instant end1, Instant start2, Instant end2) {
         return start1.isBefore(end2) && start2.isBefore(end1);

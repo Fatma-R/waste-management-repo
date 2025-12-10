@@ -106,7 +106,7 @@ public class BinReadingServiceImpl implements BinReadingService {
     public BinReadingResponseDTO findTopByBinIdOrderByTsDesc(String binId) {
         BinReading entity = repository.findTopByBinIdOrderByTsDesc(binId);
         if (entity == null) {
-            throw new RuntimeException("BinReading not found");
+            return null;
         }
         return BinReadingMapper.toResponseDTO(entity);
     }

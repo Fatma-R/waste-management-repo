@@ -18,6 +18,6 @@ public interface BinRepository extends MongoRepository<Bin, String> {
      * @return list of bins for that collection point
      */
     List<Bin> findByCollectionPointId(String collectionPointId);
-
+    List<Bin> findByCollectionPointIdAndActiveTrueAndType(String collectionPointId, TrashType type);
     Object findByActiveTrue();
 }

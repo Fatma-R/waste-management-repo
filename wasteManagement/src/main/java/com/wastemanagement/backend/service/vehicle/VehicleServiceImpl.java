@@ -18,6 +18,9 @@ import com.wastemanagement.backend.repository.tournee.TourneeRepository;
 import com.wastemanagement.backend.service.tournee.TourneeAssignmentService;
 import com.wastemanagement.backend.service.tournee.DepotService;
 import com.wastemanagement.backend.service.tournee.TourneeService;
+import com.wastemanagement.backend.service.tournee.TourneeServiceImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -48,7 +51,7 @@ public class VehicleServiceImpl implements VehicleService {
     @Autowired
     private TourneeRepository tourneeRepository;
 
-
+    private static final Logger log = LoggerFactory.getLogger(TourneeServiceImpl.class);
 
     private final Map<String, List<SseEmitter>> locationEmitters = new ConcurrentHashMap<>();
     private static final double LOCATION_TOLERANCE = 1e-5;
@@ -159,7 +162,6 @@ public class VehicleServiceImpl implements VehicleService {
 
         notifyLocationListeners(vehicle.getId(), saved.getCurrentLocation());
 
-        // 🔹 NEW: use GPS ONLY to *suggest* completion
         if (isAtMainDepot(newLocation)) {
             maybeCompleteToursForVehicle(saved);
         }
@@ -180,7 +182,10 @@ public class VehicleServiceImpl implements VehicleService {
 
                     if (allStepsDone) {
                         // This will set status=COMPLETED and free vehicle + employees
+                        log.info("[completion] Completing tour {} for vehicle {}", t.getId(), vehicle.getId());
                         tourneeService.completeTournee(t.getId());
+                    } else {
+                        log.info("[completion] Tour {} still has pending steps for vehicle {}", t.getId(), vehicle.getId());
                     }
                 });
     }

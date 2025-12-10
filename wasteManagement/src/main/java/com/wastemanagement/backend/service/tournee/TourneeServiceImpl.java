@@ -29,6 +29,8 @@ import com.wastemanagement.backend.vroom.dto.VroomSolution;
 import com.wastemanagement.backend.vroom.dto.VroomStep;
 import com.wastemanagement.backend.vroom.dto.VroomVehicle;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +47,7 @@ public class TourneeServiceImpl implements TourneeService {
      * TODO: replace with real value or per-bin config (e.g. 240L, 360L, 660L)
      */
     private static final double BIN_CAPACITY_L = 660;
+    private static final double SERVICED_THRESHOLD_PCT = 10.0;
 
     private final TourneeRepository tourneeRepository;
     private final CollectionPointRepository collectionPointRepository;
@@ -55,6 +58,7 @@ public class TourneeServiceImpl implements TourneeService {
     private final VroomClient vroomClient;
     private final EmployeeRepository employeeRepository;
     private final TourneeAssignmentRepository tourneeAssignmentRepository;
+    private static final Logger log = LoggerFactory.getLogger(TourneeServiceImpl.class);
 
     @Override
     public TourneeResponseDTO createTournee(TourneeRequestDTO dto) {
@@ -619,6 +623,7 @@ public class TourneeServiceImpl implements TourneeService {
     private Set<String> getCollectionPointIdsAlreadyCoveredForType(TrashType type) {
         Set<String> cpIds = new HashSet<>();
         List<Tournee> assignedTours = tourneeRepository.findByTourneeTypeAndStatus(type, TourneeStatus.PLANNED);
+        List<Tournee> inProgressTours = tourneeRepository.findByTourneeTypeAndStatus(type, TourneeStatus.IN_PROGRESS);
         for (Tournee t : assignedTours) {
             if (t.getSteps() == null) continue;
             for (RouteStep step : t.getSteps()) {
@@ -627,6 +632,16 @@ public class TourneeServiceImpl implements TourneeService {
                 }
             }
         }
+
+        for (Tournee t : inProgressTours) {
+            if (t.getSteps() == null) continue;
+            for (RouteStep step : t.getSteps()) {
+                if (step.getCollectionPointId() != null) {
+                    cpIds.add(step.getCollectionPointId());
+                }
+            }
+        }
+
         return cpIds;
     }
 
@@ -643,13 +658,115 @@ public class TourneeServiceImpl implements TourneeService {
         }
         vehicleRepository.saveAll(vehicles);
     }
+
+
     @Override
     public List<TourneeResponseDTO> findByStatus(TourneeStatus status) {
         List<Tournee> tournees = tourneeRepository.findByStatus(status);
+
+        // Only auto-refresh step statuses for IN_PROGRESS tours
+        if (status == TourneeStatus.IN_PROGRESS && !tournees.isEmpty()) {
+            boolean anyChanged = false;
+
+            for (Tournee t : tournees) {
+                boolean changedForTour = refreshStepStatusesBasedOnFillLevels(t);
+                if (changedForTour) {
+                    anyChanged = true;
+                }
+            }
+
+            if (anyChanged) {
+                tourneeRepository.saveAll(tournees);
+            }
+        }
+
         return tournees.stream()
                 .map(TourneeMapper::toResponse)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()); // or .toList() if your IDE suggests it
     }
+
+    private boolean refreshStepStatusesBasedOnFillLevels(Tournee tournee) {
+        if (tournee == null || tournee.getSteps() == null || tournee.getSteps().isEmpty()) {
+            return false;
+        }
+
+        TrashType type = tournee.getTourneeType();
+        if (type == null) {
+            return false;
+        }
+
+        boolean changed = false;
+
+        for (RouteStep step : tournee.getSteps()) {
+            // Only care about PENDING steps
+            if (step.getStatus() != StepStatus.PENDING) {
+                continue;
+            }
+
+            String cpId = step.getCollectionPointId();
+            if (cpId == null) {
+                continue;
+            }
+
+            log.info("[auto-complete] tour={} type={} cp={} stepOrder={} status={}",
+                    tournee.getId(), type, cpId, step.getOrder(), step.getStatus());
+
+            // Embedded bins only (active + matching type)
+            List<Bin> binsAtCp = collectionPointRepository.findById(cpId)
+                    .map(CollectionPoint::getBins)
+                    .orElse(Collections.emptyList())
+                    .stream()
+                    .filter(b -> b.isActive() && type.equals(b.getType()))
+                    .toList();
+
+            if (binsAtCp.isEmpty()) {
+                log.info("[auto-complete] tour={} cp={} type={} -> no active bins of this type found",
+                        tournee.getId(), cpId, type);
+                continue;
+            }
+
+            boolean hasAtLeastOneReading = false;
+            boolean allBelowThreshold = true;
+
+            // Look at latest readings for each bin
+            for (Bin bin : binsAtCp) {
+                BinReading latest = binReadingRepository.findTopByBinIdOrderByTsDesc(bin.getId());
+
+                if (latest == null) {
+                    log.info("[auto-complete] tour={} cp={} bin={} type={} -> no readings (ignored)",
+                            tournee.getId(), cpId, bin.getId(), bin.getType());
+                    continue;
+                }
+
+                hasAtLeastOneReading = true;
+
+                double fill = latest.getFillPct();
+                boolean blocking = fill >= SERVICED_THRESHOLD_PCT;
+
+                log.info("[auto-complete] tour={} cp={} bin={} type={} latestFill={} threshold={} blocking={}",
+                        tournee.getId(), cpId, bin.getId(), bin.getType(), fill, SERVICED_THRESHOLD_PCT, blocking);
+
+                if (blocking) {
+                    allBelowThreshold = false;
+                    break;
+                }
+            }
+
+            log.info("[auto-complete] tour={} cp={} hasAtLeastOneReading={} allBelowThreshold={} -> willMarkServiced={}",
+                    tournee.getId(), cpId, hasAtLeastOneReading, allBelowThreshold,
+                    (hasAtLeastOneReading && allBelowThreshold));
+
+            // Only mark SERVICED if we saw at least one reading and all were below threshold
+            if (hasAtLeastOneReading && allBelowThreshold) {
+                step.setStatus(StepStatus.SERVICED);
+                changed = true;
+                log.info("[auto-complete] tour={} cp={} -> step marked SERVICED", tournee.getId(), cpId);
+            }
+        }
+
+        return changed;
+    }
+
 
     @Override
     public void completeTournee(String tourneeId) {
