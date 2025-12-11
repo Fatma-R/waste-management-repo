@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { CardComponent } from '../../shared/components/card/card';
 import { ButtonComponent } from '../../shared/components/button/button';
 import { ModalComponent } from '../../shared/components/modal/modal';
@@ -45,7 +46,8 @@ export class VehiclesComponent implements OnInit {
 
   constructor(
     private vehicleService: VehicleService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -206,6 +208,10 @@ export class VehiclesComponent implements OnInit {
   getLongitude(vehicle: Vehicle | null): number | null {
     if (!vehicle || !vehicle.currentLocation || !vehicle.currentLocation.coordinates) return null;
     return vehicle.currentLocation.coordinates[0]; // Longitude est à l'index 0
+  }
+
+  goToDashboard(): void {
+    this.router.navigate(['/admin/dashboard']);
   }
 
 }

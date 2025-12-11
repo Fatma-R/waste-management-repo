@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import * as L from 'leaflet';
 import * as polyline from '@mapbox/polyline';
 
@@ -148,7 +149,8 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
     private employeeService: EmployeeService,
     private vehicleService: VehicleService,
     private binReadingService: BinReadingService,
-    private authService: AuthService
+    private authService: AuthService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -1361,5 +1363,14 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       default:
         return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
     }
+  }
+
+  goToDashboard(): void {
+    const path = this.authService.isAdmin()
+      ? '/admin/dashboard'
+      : this.authService.isUser()
+      ? '/user/dashboard'
+      : '/landing';
+    this.router.navigate([path]);
   }
 }

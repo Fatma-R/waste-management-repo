@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { CardComponent } from '../../shared/components/card/card';
 import { ButtonComponent } from '../../shared/components/button/button';
 import { ModalComponent } from '../../shared/components/modal/modal';
@@ -49,7 +50,8 @@ export class IncidentsComponent implements OnInit {
 
   constructor(
     private incidentService: IncidentService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -198,5 +200,9 @@ export class IncidentsComponent implements OnInit {
 
   getLongitude(incident: Incident | null): number | null {
     return incident?.location?.coordinates ? incident.location.coordinates[0] : null;
+  }
+
+  goToDashboard(): void {
+    this.router.navigate(['/admin/dashboard']);
   }
 }

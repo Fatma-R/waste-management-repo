@@ -51,37 +51,77 @@
       </div>
 
       <!-- Admin action buttons -->
-      <ng-container *ngIf="adminViewMode === 'IN_PROGRESS'; else planningActions">
-        <!-- Initial state: view in-progress tours -->
-        <app-button
-          variant="primary"
-          (click)="startPlanning()">
-          Plan
-        </app-button>
-      </ng-container>
 
-      <ng-template #planningActions>
-        <!-- Planning state -->
-        <app-button
-          variant="primary"
-          (click)="terminatePlanning()">
-          Done
+      <div class="filter-actions">
+
+        <ng-container *ngIf="adminViewMode === 'IN_PROGRESS'; else planningActions">
+
+          <!-- Initial state: view in-progress tours -->
+
+          <app-button
+
+            variant="primary"
+
+            (click)="startPlanning()">
+
+            Plan
+
+          </app-button>
+
+        </ng-container>
+
+
+
+        <ng-template #planningActions>
+
+          <!-- Planning state -->
+
+          <app-button
+
+            variant="primary"
+
+            (click)="terminatePlanning()">
+
+            Done
+
+          </app-button>
+
+
+
+          <app-button
+
+            variant="outline"
+
+            [disabled]="!tours.length || isAssigning"
+
+            (click)="assignResourcesForAll()">
+
+            {{ isAssigning ? 'Assign?' : 'Assign all' }}
+
+          </app-button>
+
+
+
+          <app-button
+
+            variant="ghost"
+
+            [disabled]="!tours.length"
+
+            (click)="discardAllTours()">
+
+            Clear unassigned
+
+          </app-button>
+
+        </ng-template>
+
+      </div>
+
+      <app-button variant="outline" (click)="goToDashboard()">
+          📊 Dashboard
         </app-button>
 
-        <app-button
-          variant="outline"
-          [disabled]="!tours.length || isAssigning"
-          (click)="assignResourcesForAll()">
-          {{ isAssigning ? 'Assign…' : 'Assign all' }}
-        </app-button>
-
-        <app-button
-          variant="ghost"
-          [disabled]="!tours.length"
-          (click)="discardAllTours()">
-          Clear unassigned
-        </app-button>
-      </ng-template>
     </div>
 
     <!-- Map and Sidebar -->

@@ -2,6 +2,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { CardComponent } from '../../shared/components/card/card';
 import { ButtonComponent } from '../../shared/components/button/button';
 import { ModalComponent } from '../../shared/components/modal/modal';
@@ -48,7 +49,8 @@ export class AlertsComponent implements OnInit {
 
   constructor(
     private alertService: AlertService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -219,6 +221,10 @@ export class AlertsComponent implements OnInit {
   {
     if (!value) return '';
     return new Date(value).toISOString();
+  }
+
+  goToDashboard(): void {
+    this.router.navigate(['/admin/dashboard']);
   }
 
   

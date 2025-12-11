@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 import { CardComponent } from '../../shared/components/card/card';
 import { ButtonComponent } from '../../shared/components/button/button';
@@ -48,7 +49,8 @@ export class AdminsComponent implements OnInit {
   constructor(
     private adminService: AdminService,
     private authService: AuthService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -216,5 +218,14 @@ export class AdminsComponent implements OnInit {
   getAdminIcon(admin: Admin): string {
     // Crown for the logged-in admin, shield for others
     return this.isCurrentAdmin(admin) ? '👑' : '🛡️';
+  }
+
+  goToDashboard(): void {
+    const path = this.authService.isAdmin()
+      ? '/admin/dashboard'
+      : this.authService.isUser()
+      ? '/user/dashboard'
+      : '/landing';
+    this.router.navigate([path]);
   }
 }

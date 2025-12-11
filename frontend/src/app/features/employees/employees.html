@@ -6,8 +6,8 @@
         <p class="page-subtitle">Manage your waste collection team</p>
       </div>
       <div class="page-actions">
-        <app-button variant="outline" (click)="openAutoAssignModal()">
-          🔄 Auto-Assign
+        <app-button variant="outline" (click)="goToDashboard()">
+          📊 Dashboard
         </app-button>
         <app-button variant="primary" (click)="openAddEmployeeModal()">
           + Add Employee
@@ -185,32 +185,4 @@
       </app-button>
     </div>
   </form>
-</app-modal>
-
-<!-- Auto-Assign Modal -->
-<app-modal
-  [isOpen]="isAutoAssignModalOpen"
-  title="Auto-Assign Employees"
-  size="sm"
-  (close)="closeAutoAssignModal()">
-  <div class="auto-assign-modal">
-    <p class="modal-description">
-      The system will automatically assign employees to zones based on proximity,
-      workload, and availability. This will optimize route efficiency.
-    </p>
-    <div class="modal-actions">
-      <app-button
-        type="button"
-        variant="outline"
-        (click)="closeAutoAssignModal()">
-        Cancel
-      </app-button>
-      <app-button
-        variant="primary"
-        [disabled]="isAssigning"
-        (click)="onAutoAssign()">
-        {{ isAssigning ? 'Assigning...' : 'Run Auto-Assign' }}
-      </app-button>
-    </div>
-  </div>
 </app-modal>

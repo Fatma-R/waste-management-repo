@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 import { CardComponent } from '../../shared/components/card/card';
 import { ButtonComponent } from '../../shared/components/button/button';
@@ -36,10 +37,6 @@ export class EmployeesComponent implements OnInit {
   formMode: 'create' | 'edit' = 'create';
   editingEmployeeId: string | null = null;
 
-  // Auto-assign modal (kept for later backend feature)
-  isAutoAssignModalOpen = false;
-  isAssigning = false;
-
   // Form model (aligned with backend DTO)
   employeeForm: CreateEmployeeDto = {
     fullName: '',
@@ -53,7 +50,8 @@ export class EmployeesComponent implements OnInit {
   constructor(
     private employeeService: EmployeeService,
     private authService: AuthService, 
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -204,36 +202,6 @@ export class EmployeesComponent implements OnInit {
   }
 
   // -----------------
-  // AUTO-ASSIGN
-  // -----------------
-
-  openAutoAssignModal(): void {
-    this.isAutoAssignModalOpen = true;
-  }
-
-  closeAutoAssignModal(): void {
-    this.isAutoAssignModalOpen = false;
-  }
-
-  onAutoAssign(): void {
-    this.isAssigning = true;
-
-    this.employeeService.autoAssign().subscribe({
-      next: (result) => {
-        this.notificationService.showToast(result.message || 'Auto-assignment completed', 'success');
-        this.loadEmployees();
-        this.closeAutoAssignModal();
-        this.isAssigning = false;
-      },
-      error: (err) => {
-        console.error('Error in auto-assignment:', err);
-        this.notificationService.showToast('Auto-assignment failed', 'error');
-        this.isAssigning = false;
-      }
-    });
-  }
-
-  // -----------------
   // UI HELPERS
   // -----------------
 
@@ -256,5 +224,14 @@ export class EmployeesComponent implements OnInit {
   formatDate(iso?: string): string {
     if (!iso) return 'N/A';
     return new Date(iso).toLocaleString();
+  }
+
+  goToDashboard(): void {
+    const path = this.authService.isAdmin()
+      ? '/admin/dashboard'
+      : this.authService.isUser()
+      ? '/user/dashboard'
+      : '/landing';
+    this.router.navigate([path]);
   }
 }
