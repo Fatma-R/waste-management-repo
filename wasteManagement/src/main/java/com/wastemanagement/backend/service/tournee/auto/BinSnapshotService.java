@@ -2,10 +2,11 @@ package com.wastemanagement.backend.service.tournee.auto;
 
 import com.wastemanagement.backend.model.collection.Bin;
 import com.wastemanagement.backend.model.collection.BinReading;
+import com.wastemanagement.backend.model.collection.CollectionPoint;
 import com.wastemanagement.backend.model.collection.TrashType;
 import com.wastemanagement.backend.model.tournee.auto.BinSnapshot;
+import com.wastemanagement.backend.repository.CollectionPointRepository;
 import com.wastemanagement.backend.repository.collection.BinReadingRepository;
-import com.wastemanagement.backend.repository.collection.BinRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,8 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 @Slf4j
 public class BinSnapshotService {
-    private final BinRepository binRepository;
     private final BinReadingRepository binReadingRepository;
+    private final CollectionPointRepository collectionPointRepository;
 
     private final Map<String, BinSnapshot> snapshots = new ConcurrentHashMap<>();
 
@@ -41,33 +42,45 @@ public class BinSnapshotService {
     public void refreshSnapshots() {
         log.info("Refreshing bin snapshots for auto planning...");
 
-        var allBins = binRepository.findByActiveTrue(); // or whatever you have
+        // We now work from collection points and their embedded bins
+        List<CollectionPoint> allCps = collectionPointRepository.findAll();
 
         Map<String, BinSnapshot> newMap = new ConcurrentHashMap<>();
         Instant now = Instant.now();
 
-        for (Bin bin : (List<Bin>) allBins) {
-            BinReading latest = binReadingRepository.findTopByBinIdOrderByTsDesc(bin.getId());
-            if (latest == null) {
+        for (CollectionPoint cp : allCps) {
+            if (cp.getBins() == null || cp.getBins().isEmpty()) {
                 continue;
             }
 
-            double fillPct = latest.getFillPct();
-            Instant lastCollectedAt = bin.getLastCollectedAt(); // add this field to Bin
+            for (Bin bin : cp.getBins()) {
+                if (!bin.isActive()) {
+                    continue;
+                }
 
-            EmergencyEval eval = evaluateEmergency(bin.getType(), fillPct, lastCollectedAt, now);
+                BinReading latest = binReadingRepository.findTopByBinIdOrderByTsDesc(bin.getId());
+                if (latest == null) {
+                    continue;
+                }
 
-            BinSnapshot snap = BinSnapshot.builder()
-                    .binId(bin.getId())
-                    .collectionPointId(bin.getCollectionPointId())
-                    .trashType(bin.getType())
-                    .fillPct(fillPct)
-                    .lastCollectedAt(lastCollectedAt)
-                    .emergency(eval.isEmergency)
-                    .emergencyReason(eval.reason)
-                    .build();
+                double fillPct = latest.getFillPct();
+                Instant lastCollectedAt = bin.getLastCollectedAt(); // you already have this field
 
-            newMap.put(bin.getId(), snap);
+                EmergencyEval eval = evaluateEmergency(bin.getType(), fillPct, lastCollectedAt, now);
+
+                BinSnapshot snap = BinSnapshot.builder()
+                        .binId(bin.getId())
+                        // we *can* trust bin.getCollectionPointId(), but cp.getId() is always correct:
+                        .collectionPointId(cp.getId())
+                        .trashType(bin.getType())
+                        .fillPct(fillPct)
+                        .lastCollectedAt(lastCollectedAt)
+                        .emergency(eval.isEmergency)
+                        .emergencyReason(eval.reason)
+                        .build();
+
+                newMap.put(bin.getId(), snap);
+            }
         }
 
         snapshots.clear();

@@ -14,7 +14,6 @@ import com.wastemanagement.backend.model.user.EmployeeStatus;
 import com.wastemanagement.backend.model.vehicle.Vehicle;
 import com.wastemanagement.backend.model.vehicle.VehicleStatus;
 import com.wastemanagement.backend.repository.collection.BinReadingRepository;
-import com.wastemanagement.backend.repository.collection.BinRepository;
 import com.wastemanagement.backend.repository.CollectionPointRepository;
 import com.wastemanagement.backend.repository.tournee.TourneeAssignmentRepository;
 import com.wastemanagement.backend.repository.tournee.TourneeRepository;
@@ -51,7 +50,6 @@ public class TourneeServiceImpl implements TourneeService {
 
     private final TourneeRepository tourneeRepository;
     private final CollectionPointRepository collectionPointRepository;
-    private final BinRepository binRepository;
     private final BinReadingRepository binReadingRepository;
     private final VehicleRepository vehicleRepository;
     private final DepotService depotService;
@@ -386,56 +384,79 @@ public class TourneeServiceImpl implements TourneeService {
     // Helpers
     // --------------------------------------------------------------------
     private double computeMaxFillPctForType(TrashType type) {
-        List<Bin> bins = binRepository.findByActiveTrueAndType(type);
+        // We no longer query BinRepository; we walk over embedded bins.
+        List<CollectionPoint> cps = collectionPointRepository.findAll();
         double maxFill = 0.0;
 
-        for (Bin bin : bins) {
-            BinReading latest = binReadingRepository.findTopByBinIdOrderByTsDesc(bin.getId());
-            if (latest == null) {
-                continue;
-            }
-            double fill = latest.getFillPct();
-            if (fill > maxFill) {
-                maxFill = fill;
+        for (CollectionPoint cp : cps) {
+            if (cp.getBins() == null) continue;
+
+            for (Bin bin : cp.getBins()) {
+                if (!bin.isActive() || !type.equals(bin.getType())) {
+                    continue;
+                }
+
+                BinReading latest = binReadingRepository.findTopByBinIdOrderByTsDesc(bin.getId());
+                if (latest == null) {
+                    continue;
+                }
+
+                double fill = latest.getFillPct();
+                if (fill > maxFill) {
+                    maxFill = fill;
+                }
             }
         }
 
         return maxFill;
     }
 
+
     private List<CollectionPoint> findCollectionPointsNeedingCollection(TrashType type,
                                                                         double threshold,
                                                                         Map<String, Double> cpIdToVolumeLiters) {
 
         Set<String> cpAlreadyCovered = getCollectionPointIdsAlreadyCoveredForType(type);
-        List<Bin> bins = binRepository.findByActiveTrueAndType(type);
-        if (bins.isEmpty()) {
+
+        List<CollectionPoint> allCps = collectionPointRepository.findAll();
+        if (allCps.isEmpty()) {
             return List.of();
         }
 
         Map<String, Double> cpTotalVolume = new HashMap<>();
 
-        for (Bin bin : bins) {
-            String cpId = bin.getCollectionPointId();
+        for (CollectionPoint cp : allCps) {
+            String cpId = cp.getId();
             if (cpId == null) {
                 continue;
             }
             if (cpAlreadyCovered.contains(cpId)) {
+                // This CP already has a PLANNED / IN_PROGRESS tour for this type
                 continue;
             }
 
-            BinReading latest = binReadingRepository.findTopByBinIdOrderByTsDesc(bin.getId());
-            if (latest == null) {
+            if (cp.getBins() == null) {
                 continue;
             }
 
-            double fillPct = latest.getFillPct();
-            if (fillPct < threshold) {
-                continue;
-            }
+            for (Bin bin : cp.getBins()) {
+                if (!bin.isActive() || !type.equals(bin.getType())) {
+                    continue;
+                }
 
-            double volumeL = (fillPct / 100.0) * BIN_CAPACITY_L;
-            cpTotalVolume.merge(cpId, volumeL, Double::sum);
+                BinReading latest = binReadingRepository.findTopByBinIdOrderByTsDesc(bin.getId());
+                if (latest == null) {
+                    continue;
+                }
+
+                double fillPct = latest.getFillPct();
+                if (fillPct < threshold) {
+                    continue;
+                }
+
+                double volumeL = (fillPct / 100.0) * BIN_CAPACITY_L;
+                cpTotalVolume.merge(cpId, volumeL, Double::sum);
+            }
         }
 
         cpIdToVolumeLiters.clear();
@@ -453,6 +474,7 @@ public class TourneeServiceImpl implements TourneeService {
                 .collect(Collectors.toList());
     }
 
+
     private List<CollectionPoint> findCollectionPointsForIdsAndType(TrashType type,
                                                                     Set<String> cpIdsFilter,
                                                                     Map<String, Double> cpIdToVolumeLiters) {
@@ -469,27 +491,39 @@ public class TourneeServiceImpl implements TourneeService {
             return List.of();
         }
 
-        List<Bin> bins = binRepository.findByActiveTrueAndType(type);
-        if (bins.isEmpty()) {
+        // Only load the CPs in the filter
+        List<CollectionPoint> filteredCps =
+                collectionPointRepository.findAllById(effectiveFilter);
+
+        if (filteredCps.isEmpty()) {
             return List.of();
         }
 
         Map<String, Double> cpTotalVolume = new HashMap<>();
 
-        for (Bin bin : bins) {
-            String cpId = bin.getCollectionPointId();
-            if (cpId == null || !effectiveFilter.contains(cpId)) {
+        for (CollectionPoint cp : filteredCps) {
+            String cpId = cp.getId();
+            if (cpId == null) {
+                continue;
+            }
+            if (cp.getBins() == null) {
                 continue;
             }
 
-            BinReading latest = binReadingRepository.findTopByBinIdOrderByTsDesc(bin.getId());
-            if (latest == null) {
-                continue;
-            }
+            for (Bin bin : cp.getBins()) {
+                if (!bin.isActive() || !type.equals(bin.getType())) {
+                    continue;
+                }
 
-            double fillPct = latest.getFillPct();
-            double volumeL = (fillPct / 100.0) * BIN_CAPACITY_L;
-            cpTotalVolume.merge(cpId, volumeL, Double::sum);
+                BinReading latest = binReadingRepository.findTopByBinIdOrderByTsDesc(bin.getId());
+                if (latest == null) {
+                    continue;
+                }
+
+                double fillPct = latest.getFillPct();
+                double volumeL = (fillPct / 100.0) * BIN_CAPACITY_L;
+                cpTotalVolume.merge(cpId, volumeL, Double::sum);
+            }
         }
 
         cpIdToVolumeLiters.clear();
@@ -511,6 +545,7 @@ public class TourneeServiceImpl implements TourneeService {
                 .filter(CollectionPoint::isActive)
                 .collect(Collectors.toList());
     }
+
 
     private VroomRequest buildVroomRequestForPointsWithVehicles(double[] depotCoords,
                                                                 List<CollectionPoint> points,

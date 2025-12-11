@@ -1,18 +1,10 @@
 package com.wastemanagement.backend.config;
 
-import com.wastemanagement.backend.model.GeoJSONPoint;
-import com.wastemanagement.backend.model.collection.Bin;
-import com.wastemanagement.backend.model.collection.BinReading;
-import com.wastemanagement.backend.model.collection.CollectionPoint;
-import com.wastemanagement.backend.model.collection.TrashType;
 import com.wastemanagement.backend.model.user.Admin;
 import com.wastemanagement.backend.model.user.ERole;
 import com.wastemanagement.backend.model.user.Role;
-import com.wastemanagement.backend.repository.CollectionPointRepository;
 import com.wastemanagement.backend.repository.RoleRepository;
 import com.wastemanagement.backend.repository.UserRepository;
-import com.wastemanagement.backend.repository.collection.BinReadingRepository;
-import com.wastemanagement.backend.repository.collection.BinRepository;
 import com.wastemanagement.backend.repository.user.AdminRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -21,8 +13,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.wastemanagement.backend.model.user.User;
 
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -34,9 +24,6 @@ public class DatabaseInitializer {
     private final AdminRepository adminRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final CollectionPointRepository collectionPointRepository;
-    private final BinRepository binRepository;
-    private final BinReadingRepository binReadingRepository;
 
     @Bean
     CommandLineRunner initDatabase() {

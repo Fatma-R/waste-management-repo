@@ -12,9 +12,9 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "bins")
+//@Document(collection = "bins")
 public class Bin {
-    @Id
+   // @Id
     private String id;
     private String collectionPointId;
     private boolean active;
