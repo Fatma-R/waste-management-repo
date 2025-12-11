@@ -5,6 +5,7 @@ import com.wastemanagement.backend.model.tournee.Tournee;
 import com.wastemanagement.backend.model.tournee.TourneeAssignment;
 import com.wastemanagement.backend.model.tournee.TourneeStatus;
 import com.wastemanagement.backend.model.user.Employee;
+import com.wastemanagement.backend.model.user.Skill;
 import com.wastemanagement.backend.repository.tournee.TourneeAssignmentRepository;
 import com.wastemanagement.backend.repository.tournee.TourneeRepository;
 import com.wastemanagement.backend.repository.user.EmployeeRepository;
@@ -44,9 +45,9 @@ class TourneeAssignmentServiceImplTest {
 
         when(tourneeRepository.findById("t1")).thenReturn(Optional.of(tournee));
         when(employeeRepository.findAll()).thenReturn(List.of(
-                new Employee("e1", null, null),
-                new Employee("e2", null, null),
-                new Employee("e3", null, null)
+                new Employee("e1", null, Skill.DRIVER),
+                new Employee("e2", null, Skill.AGENT),
+                new Employee("e3", null, Skill.AGENT)
         ));
 
         ArgumentCaptor<List<TourneeAssignment>> captor = ArgumentCaptor.forClass(List.class);
