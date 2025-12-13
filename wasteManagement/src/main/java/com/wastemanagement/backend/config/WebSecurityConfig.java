@@ -101,7 +101,7 @@ public class WebSecurityConfig {
                         .requestMatchers("/api/v1/auth/signin").permitAll()
                         .requestMatchers("/api/v1/auth/signup").hasRole("ADMIN")
                         .requestMatchers("/api/test/all").permitAll()
-                        .requestMatchers("/api/hello").permitAll()
+                        .requestMatchers("/api/v1/hello").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
 
                         // Swagger/API docs

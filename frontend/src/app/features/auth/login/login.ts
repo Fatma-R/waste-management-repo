@@ -26,10 +26,11 @@ export class Login {
         
         // Route based on role
         if (this.authService.isAdmin()) {
-          this.router.navigate(['/admin/dashboard']);
+          window.location.href = '/admin/dashboard';
         } else {
-          this.router.navigate(['/user/dashboard']);
+          window.location.href = '/user/dashboard';
         }
+
       },
       error: (err) => {
         console.error('Login failed:', err);
