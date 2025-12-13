@@ -28,10 +28,13 @@ export class IncidentService {
     return this.api.post<Incident>('/incidents', dto);
   }
 
+  resolveIncident(id: string): Observable<Incident> {
+    return this.api.post<Incident>(`/incidents/${id}/resolve`, {});
+  }
 
-  updateIncident(id: string, dto: CreateIncidentDto) {
-  return this.api.put<Incident>(`/incidents/${id}`, dto);
-}
+  updateIncident(id: string, dto: UpdateIncidentDto): Observable<Incident> {
+    return this.api.put<Incident>(`/incidents/${id}`, dto);
+  }
 
 
   deleteIncident(id: string): Observable<void> {

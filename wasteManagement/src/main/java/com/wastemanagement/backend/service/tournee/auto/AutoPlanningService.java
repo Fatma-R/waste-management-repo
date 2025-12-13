@@ -33,6 +33,7 @@ public class AutoPlanningService {
 
     public void runEmergencyLoopCore(){
 
+        binSnapshotService.refreshSnapshots();
         AutoMode mode = autoModeService.getAutoMode();
         log.info("AutoPlanning emergency loop, mode={}", mode);
 
@@ -87,6 +88,7 @@ public class AutoPlanningService {
      */
 
     public void runScheduledCycleCore() {
+        binSnapshotService.refreshSnapshots();
         log.info("Running FULL scheduled cycle for all trash types");
         List<TrashType> allTypes = List.of(TrashType.PLASTIC, TrashType.ORGANIC,
                 TrashType.GLASS, TrashType.PAPER);

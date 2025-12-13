@@ -138,8 +138,12 @@
     </div>
 
     <div class="modal-actions">
-      <app-button variant="outline" size="sm" (click)="openEditIncidentModal(selectedIncident)">
-        Edit Incident
+      <app-button
+        variant="primary"
+        size="sm"
+        [disabled]="selectedIncident.status === 'RESOLVED' || selectedIncident.status === 'CLOSED'"
+        (click)="resolveIncident(selectedIncident.id)">
+        Resolve Incident
       </app-button>
       <app-button variant="outline" size="sm" (click)="onDeleteIncident(selectedIncident.id)">
         Delete Incident

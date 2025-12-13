@@ -136,9 +136,6 @@ public class TourneeServiceImpl implements TourneeService {
     }
 
 
-    // --------------------------------------------------------------------
-    // Single-type API + "optional" forced CPs
-    // --------------------------------------------------------------------
     @Override
     public List<TourneeResponseDTO> planTourneesWithVroom(TrashType type, double fillThreshold) {
         return planTourneesWithVroom(type, fillThreshold, null);
@@ -250,9 +247,6 @@ public class TourneeServiceImpl implements TourneeService {
                 .toList();
     }
 
-    // --------------------------------------------------------------------
-    // Multi-type planner (shared vehicles pool)
-    // --------------------------------------------------------------------
     @Override
     public List<TourneeResponseDTO> planTourneesWithVroom(List<TrashType> types, double fillThreshold) {
         if (types == null || types.isEmpty()) {
@@ -382,9 +376,7 @@ public class TourneeServiceImpl implements TourneeService {
                 .toList();
     }
 
-    // --------------------------------------------------------------------
     // Helpers
-    // --------------------------------------------------------------------
     private double computeMaxFillPctForType(TrashType type) {
         // We no longer query BinRepository; we walk over embedded bins.
         List<CollectionPoint> cps = collectionPointRepository.findAll();

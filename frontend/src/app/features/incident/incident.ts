@@ -150,7 +150,7 @@ export class IncidentsComponent implements OnInit {
     if (!this.editingIncidentId) return;
 
     this.incidentService.updateIncident(this.editingIncidentId, this.incidentForm).subscribe({
-      next: (updated) => {
+      next: (updated: Incident) => {
         this.incidents = this.incidents.map(i => i.id === this.editingIncidentId ? updated : i);
         this.notificationService.showToast('Incident updated successfully', 'success');
         this.closeIncidentFormModal();
@@ -204,5 +204,19 @@ export class IncidentsComponent implements OnInit {
 
   goToDashboard(): void {
     this.router.navigate(['/admin/dashboard']);
+  }
+
+  resolveIncident(id: string): void {
+    this.incidentService.resolveIncident(id).subscribe({
+      next: (updated: Incident) => {
+        this.incidents = this.incidents.map(i => i.id === id ? updated : i);
+        if (this.selectedIncident?.id === id) this.selectedIncident = updated;
+        this.notificationService.showToast('Incident resolved successfully', 'success');
+      },
+      error: (err) => {
+        console.error('Error resolving incident:', err);
+        this.notificationService.showToast('Failed to resolve incident', 'error');
+      }
+    });
   }
 }

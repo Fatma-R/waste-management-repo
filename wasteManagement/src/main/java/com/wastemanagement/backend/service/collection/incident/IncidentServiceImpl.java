@@ -82,6 +82,9 @@ public class IncidentServiceImpl implements IncidentService {
         if (!incidentRepository.existsById(id)) {
             throw new RuntimeException("Incident not found: " + id);
         }
+        Incident incident = incidentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Incident not found: " + id));
+        reactivateImpactedCollectionPoints(incident);
         incidentRepository.deleteById(id);
     }
 
