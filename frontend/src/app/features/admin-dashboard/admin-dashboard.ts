@@ -22,6 +22,7 @@ import { Incident } from '../../shared/models/incident.model';
 import { AlertService } from '../../core/services/alert';
 import { Alert , AlertType } from '../../shared/models/alert.model';
 import { AutoPlanningService } from '../../core/services/auto-planning';
+import { TourneeService } from '../../core/services/tournee';
 import { AutoMode } from '../../shared/models/AutoMoode.model';
 
 import { TourneeMapComponent } from '../tournee-map/tournee-map';
@@ -170,6 +171,7 @@ export class AdminDashboardComponent implements OnInit {
   openIncidentsCount = 0;
   avgNetworkFillPct = 0;
   totalAlerts = 0;
+  co2Last7Days = 0;
 
   // Modals
   isDeleteEmployeeModalOpen = false;
@@ -194,7 +196,8 @@ export class AdminDashboardComponent implements OnInit {
     private vehicleService: VehicleService,
     private incidentService : IncidentService,
     private alertService : AlertService,
-    private autoPlanningService: AutoPlanningService
+    private autoPlanningService: AutoPlanningService,
+    private tourneeService: TourneeService
   ) {}
 
   ngOnInit(): void {
@@ -340,6 +343,8 @@ export class AdminDashboardComponent implements OnInit {
       }
     });
 
+    this.loadCo2Last7Days();
+
     // Local mock data for other features
     //this.loadMockTournees();
     //this.loadMockVehicles();
@@ -348,6 +353,17 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   
+  private loadCo2Last7Days(): void {
+    this.tourneeService.getCo2Last7Days().subscribe({
+      next: (co2Kg) => {
+        this.co2Last7Days = co2Kg;
+      },
+      error: (err) => {
+        console.error('Error loading CO2 for last 7 days:', err);
+      }
+    });
+  }
+
   private checkLoadingComplete(): void {
     if (this.employeesLoaded && this.binsLoaded && this.collectionPointsLoaded) {
       this.isLoading = false;

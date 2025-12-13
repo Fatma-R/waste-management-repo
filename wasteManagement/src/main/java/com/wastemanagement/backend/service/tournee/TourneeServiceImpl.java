@@ -33,6 +33,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -627,11 +629,21 @@ public class TourneeServiceImpl implements TourneeService {
         tournee.setTourneeType(type);
         tournee.setStatus(TourneeStatus.PLANNED);
         tournee.setPlannedKm(route.getDistance() / 1000.0);
-        tournee.setPlannedCO2(0);
         tournee.setPlannedVehicleId(plannedVehicleId);
         tournee.setStartedAt(null);
         tournee.setFinishedAt(null);
         tournee.setGeometry(route.getGeometry());
+
+        double km = route.getDistance() / 1000.0;
+        if (plannedVehicleId != null) {
+            vehicleRepository.findById(plannedVehicleId).ifPresent(v -> {
+                double factor = getEmissionFactorForVehicle(v); // gCO2 / km
+                double co2 = km * factor;
+                tournee.setPlannedCO2(co2);
+            });
+        } else {
+            tournee.setPlannedCO2(0);
+        }
 
         List<RouteStep> steps = new ArrayList<>();
         int order = 0;
@@ -872,5 +884,32 @@ public class TourneeServiceImpl implements TourneeService {
         employeeRepository.saveAll(employees);
     }
 
+    private double getEmissionFactorForVehicle(Vehicle v) {
+        if (v == null || v.getFuelType() == null) {
+            return 0.0;
+        }
+        return switch (v.getFuelType()) {
+            case DIESEL -> 1200.0;
+            case GASOLINE -> 1000.0;
+            case HYBRID -> 400.0;
+            case ELECTRIC -> 50.0;
+        };
+    }
+
+    @Override
+    public double getTotalCo2ForLastDays(int days) {
+        Instant now = Instant.now();
+        Instant from = now.minus(days, ChronoUnit.DAYS);
+
+        List<Tournee> completedLastDays =
+                tourneeRepository.findByStatusAndFinishedAtBetween(
+                        TourneeStatus.COMPLETED,
+                        from,
+                        now
+                );
+        return completedLastDays.stream()
+                .mapToDouble(Tournee::getPlannedCO2)
+                .sum();
+    }
 
 }

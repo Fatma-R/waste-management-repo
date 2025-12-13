@@ -102,14 +102,10 @@ public class WebSecurityConfig {
                         .requestMatchers("/api/v1/auth/signup").hasRole("ADMIN")
                         .requestMatchers("/api/test/all").permitAll()
                         .requestMatchers("/api/hello").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
 
                         // Swagger/API docs
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-
-                        // Health check
-                        .requestMatchers("/actuator/health").permitAll()
-
-
 
                         // Employee CRUD -> Admin ONLY
                         .requestMatchers(HttpMethod.POST, "/api/v1/employees/**").hasRole("ADMIN")

@@ -31,4 +31,7 @@ public interface TourneeService {
     List<TourneeResponseDTO> findByStatus(TourneeStatus status);
 
     void completeTournee(String tourneeId);
+
+    double getTotalCo2ForLastDays(int days);
+
 }

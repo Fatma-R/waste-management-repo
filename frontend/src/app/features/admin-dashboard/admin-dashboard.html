@@ -57,6 +57,14 @@
         </app-kpi>
 
         <app-kpi
+          label="CO2 (last 7 days)"
+          [value]="(co2Last7Days | number:'1.0-2') || '0'"
+          unit="kg"
+          icon="♻️"
+          color="green">
+        </app-kpi>
+
+        <app-kpi
           label="Open Incidents"
           [value]="openIncidentsCount"
           icon="⚠️"

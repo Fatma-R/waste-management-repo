@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @RestController
@@ -93,4 +94,11 @@ public class TourneeController {
     public List<TourneeResponseDTO> getInProgressTournees() {
         return tourneeService.findByStatus(TourneeStatus.IN_PROGRESS);
     }
+
+    @GetMapping("/7-days-co2")
+    public Double getCo2Last7Days() {
+        double totalCo2Grams = tourneeService.getTotalCo2ForLastDays(7);
+        return totalCo2Grams / 1000.0;
+    }
+
 }

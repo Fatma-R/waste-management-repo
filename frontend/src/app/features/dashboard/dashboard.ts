@@ -10,6 +10,7 @@ import { DashboardStats } from '../../shared/models/dashbaord-stats.model';
 import { Alert } from '../../shared/models/alert.model';
 import { AlertService } from '../../core/services/alert';
 import { Router, RouterModule } from '@angular/router';
+import { TourneeService } from '../../core/services/tournee';
 import { catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 
@@ -38,12 +39,12 @@ throw new Error('Method not implemented.');
     totalBins: 0,
     binsFull: 0,
     activeRoutes: 12,
-    co2Saved: 250
+    co2Saved: 0
   };
-   kpiStats = {
+  kpiStats: { alertsCount: number; activeRoutes: number; co2Last7Days: number } = {
     alertsCount: 0,
     activeRoutes: 12,  // fake
-    co2Saved: 250      // fake
+    co2Last7Days: 0
   };
 
 
@@ -55,12 +56,14 @@ throw new Error('Method not implemented.');
   constructor(
     private binService: BinService,
     private alertService: AlertService,
-    private router: Router
+    private router: Router,
+    private tourneeService: TourneeService
   ) {}
 
   ngOnInit(): void {
     this.loadDashboardData();
     this.loadAlerts();
+    this.loadCo2Last7Days();
   }
 
   loadDashboardData(): void {
@@ -72,6 +75,19 @@ throw new Error('Method not implemented.');
       error: (err) => {
         console.error('Error loading dashboard data:', err);
         this.isLoading = false;
+      }
+    });
+  }
+
+  loadCo2Last7Days(): void {
+    this.tourneeService.getCo2Last7Days().pipe(
+      catchError(err => {
+        console.error('Error loading CO2 KPI:', err);
+        return of(null);
+      })
+    ).subscribe((co2Kg) => {
+      if (co2Kg !== null && co2Kg !== undefined) {
+        this.kpiStats.co2Last7Days = co2Kg;
       }
     });
   }
@@ -129,7 +145,7 @@ throw new Error('Method not implemented.');
     this.router.navigate(['/user/bins']); 
   }
   goToDashboard(): void {
-    this.router.navigate(['/admin/dashboard']);
+    this.router.navigate(['/user/dashboard']);
   }
 
 

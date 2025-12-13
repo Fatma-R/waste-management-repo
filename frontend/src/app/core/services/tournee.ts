@@ -35,4 +35,8 @@ export class TourneeService {
   getInProgressTournees(): Observable<Tournee[]> {
     return this.api.get<Tournee[]>('/tournees/in-progress');
   }
+
+  getCo2Last7Days(): Observable<number> {
+    return this.api.get<number>('/tournees/7-days-co2');
+  }
 }
