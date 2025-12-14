@@ -537,3 +537,19 @@
   font-weight: 600;
   color: var(--color-grey-dark);
 }
+
+:host ::ng-deep app-modal {
+  .modal-overlay,
+  .modal-backdrop,
+  .overlay,
+  .backdrop {
+    z-index: 9999 !important;
+  }
+
+  .modal-container,
+  .modal-dialog,
+  .modal-content {
+    z-index: 10000 !important;
+  }
+}
+

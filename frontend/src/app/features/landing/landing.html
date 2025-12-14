@@ -1,3 +1,12 @@
+<div *ngIf="contactSuccessMessage" class="toast toast-success">
+  <span class="toast-icon">✅</span>
+  <span class="toast-text">{{ contactSuccessMessage }}</span>
+</div>
+
+<div *ngIf="contactErrorMessage" class="toast toast-error">
+  <span class="toast-icon">⚠️</span>
+  <span class="toast-text">{{ contactErrorMessage }}</span>
+</div>
 <main>
   <!-- Hero Section -->
   <section class="hero">
@@ -8,17 +17,18 @@
             Smart Waste Management for Modern Cities
           </h1>
           <p class="hero-description">
-            Revolutionize your waste collection with real-time monitoring, 
-            AI-powered route optimization, and comprehensive analytics. 
-            Reduce costs, improve efficiency, and build a cleaner future.
+            Optimize waste collection with sensor-informed monitoring, 
+            automated route planning, and operational dashboards. 
+            Improve efficiency, cut mileage and emissions, 
+            and make decisions with clear analytics.
           </p>
           <div class="hero-actions">
-            <app-button variant="primary" size="lg">
-              <a routerLink="/signup" class="btn-link">Get Started</a>
-            </app-button>
-            <app-button variant="outline" size="lg">
-              <a routerLink="/login" class="btn-link-outline">Login</a>
-            </app-button>
+            <a href="#contact" class="btn-link" (click)="scrollToContact($event)">
+              <app-button variant="primary" size="lg">Contact us</app-button>
+            </a>
+            <a routerLink="/login" class="btn-link-outline">
+              <app-button variant="outline" size="lg">Login</app-button>
+            </a>
           </div>
         </div>
         <div class="hero-image">
@@ -110,13 +120,42 @@
         <p class="cta-description">
           Join municipalities and organizations already benefiting from smart waste solutions.
         </p>
-        <div class="cta-actions">
-          <app-button variant="white" size="lg">
-            <a routerLink="/signup" class="btn-link-outline">Get Started Today</a>
-          </app-button>
-
-        </div>
       </div>
     </div>
   </section>
+  <!-- Contact Section -->
+  <section class="contact" id="contact">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Contact Us</h2>
+        <p class="section-description">
+          Are you interested in learning more? Send us a message!
+        </p>
+      </div>
+
+      <form class="contact-form" (ngSubmit)="submitContact()" #f="ngForm">
+        <div class="field">
+          <label for="name">Name</label>
+          <input id="name" name="name" type="text" [(ngModel)]="contact.name" required />
+        </div>
+
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" [(ngModel)]="contact.email" required />
+        </div>
+
+        <div class="field">
+          <label for="message">Message</label>
+          <textarea id="message" name="message" rows="5" [(ngModel)]="contact.message" required></textarea>
+        </div>
+
+        <div class="contact-actions">
+          <app-button variant="primary" size="lg" [disabled]="!!f.invalid" type="submit">
+            Send message
+          </app-button>
+        </div>
+      </form>
+    </div>
+  </section>
+
 </main>

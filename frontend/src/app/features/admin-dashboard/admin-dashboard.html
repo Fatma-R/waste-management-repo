@@ -50,7 +50,7 @@
         </app-kpi>
 
         <app-kpi
-          label="Active Tournées"
+          label="Active Tours"
           [value]="activeTournees"
           icon="🗺️"
           color="amber">
@@ -96,14 +96,11 @@
 
           <div class="card-header">
             <h2 class="card-title">Tournee Map Preview</h2>
+            <a routerLink="/admin/tournee-map" class="card-link">View Full Map →</a>
           </div>
 
           <div class="map-body">
             <img src="assets/map/map-preview.png" alt="Map Preview" class="map-preview-img" />
-          </div>
-
-          <div class="card-footer">
-            <a routerLink="/admin/tournee-map" class="card-link">View Full Map →</a>
           </div>
 
         </app-card>
@@ -177,6 +174,7 @@
                 <span class="status-badge status-active">
                   Active
                 </span>
+                <!---
                 <button
                   class="action-btn"
                   (click)="openAssignEmployeeModal(employee)"
@@ -188,7 +186,7 @@
                   (click)="openDeleteEmployeeModal(employee.id)"
                   aria-label="Delete employee">
                   🗑️
-                </button>
+                </button> -->
               </div>
             </div>
             <!-- AUCUN employee -->
@@ -281,14 +279,14 @@
                 <span class="status-badge" [ngClass]="getVehicleStatusClass(v.status)">
                   {{ v.status }}
                 </span>
-
+                <!--
                 <button
                   class="action-btn action-delete"
                   (click)="openDeleteVehicleModal(v.id)"
                   aria-label="Delete vehicle">
                   🗑️
-                </button>
-
+                </button> 
+                -->
               </div>
             </div>
 
@@ -416,29 +414,15 @@
           </div>
 
           <div class="controls-grid">
-            <button class="control-button" (click)="onRecalculateTournees()">
-              <span class="control-icon" aria-hidden="true">🧮</span>
-              <span class="control-label">Recalculate Tournées</span>
-            </button>
 
-            <button class="control-button" (click)="onRebalanceBins()">
-              <span class="control-icon" aria-hidden="true">⚖️</span>
-              <span class="control-label">Rebalance Collection Points</span>
-            </button>
-
-            <button class="control-button" (click)="onExportKpiReport()">
-              <span class="control-icon" aria-hidden="true">📊</span>
-              <span class="control-label">Export KPI Report</span>
+            <button class="control-button" (click)="onExportCollectionPointsReport()">
+              <span class="control-icon" aria-hidden="true">📑</span>
+              <span class="control-label">Export Collection Points (CSV)</span>
             </button>
 
             <button class="control-button" (click)="onExportIncidentReport()">
               <span class="control-icon" aria-hidden="true">📑</span>
-              <span class="control-label">Export Incidents</span>
-            </button>
-
-            <button class="control-button" (click)="onSyncWithSensors()">
-              <span class="control-icon" aria-hidden="true">📡</span>
-              <span class="control-label">Sync with Sensors</span>
+              <span class="control-label">Export Incidents (CSV)</span>
             </button>
 
             <button class="control-button" (click)="onOpenSystemSettings()">

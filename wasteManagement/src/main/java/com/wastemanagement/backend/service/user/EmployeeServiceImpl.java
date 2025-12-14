@@ -62,6 +62,11 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
         EmployeeMapper.updateEntity(emp, dto);
+
+        // Employee.user is a Mongo @DBRef; saving Employee does not persist User field changes.
+        if (emp.getUser() != null) {
+            userRepo.save(emp.getUser());
+        }
         Employee saved = employeeRepo.save(emp);
         return EmployeeMapper.toResponse(saved);
     }

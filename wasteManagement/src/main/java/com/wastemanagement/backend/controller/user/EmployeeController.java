@@ -18,12 +18,6 @@ public class EmployeeController {
 
     private final EmployeeService employeeService;
 
-    // La création via ce controleur reste désactivée car on force le passage par AuthController.
-    // @PostMapping
-    // public EmployeeResponseDTO create(@RequestBody EmployeeRequestDTO dto) {
-    //     return employeeService.createEmployee(dto);
-    // }
-
     @GetMapping("/{id}")
     public EmployeeResponseDTO getById(@PathVariable String id) {
         return employeeService.getEmployeeById(id);

@@ -300,3 +300,20 @@
   border-radius: 12px;
   font-weight: 700;
 }
+
+/* Make app-modal always on top */
+:host ::ng-deep app-modal {
+  .modal-overlay,
+  .modal-backdrop,
+  .overlay,
+  .backdrop {
+    z-index: 9999 !important;
+  }
+
+  /* if your modal has a separate dialog/container element */
+  .modal-container,
+  .modal-dialog,
+  .modal-content {
+    z-index: 10000 !important;
+  }
+}

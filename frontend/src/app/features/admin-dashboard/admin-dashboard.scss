@@ -510,6 +510,8 @@
 }
 .admin-grid app-card {
   min-height: 260px;
+  min-width: 0;
+  width: 100%;
 }
 
 .management-card { grid-column: span 1; }
@@ -1020,12 +1022,40 @@
 
 /* Recent Alerts + Recent Incidents cards */
 .dashboard-card {
+  /* `app-card` already renders an inner `.card` with its own padding/shadow.
+     Styling the host as a card too creates a "double border" effect. */
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  min-width: 0;
+
+  /* Prevent the tiny/accidental internal scroll region on cards. */
+  max-height: none !important;
+  overflow: visible !important;
+
   scrollbar-width: none !important;   
   -ms-overflow-style: none !important;   
 }
 
+.dashboard-card ::ng-deep .card {
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
 .dashboard-card::-webkit-scrollbar {
   display: none !important;              
+}
+
+/* These dashboard lists are truncated in the template (e.g. `slice(0, 3)`),
+   so internal scrolling only creates a tiny, useless scroll area. */
+.management-list {
+  max-height: none !important;
+  overflow-y: visible !important;
+  padding-right: 0 !important;
 }
 
 /* Map preview card */

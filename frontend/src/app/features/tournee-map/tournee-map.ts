@@ -22,10 +22,7 @@ import { CollectionPointService } from '../../core/services/collection-point';
 import { TourneeAssignmentService } from '../../core/services/tournee-assignment';
 
 import { Tournee, RouteStep } from '../../shared/models/tournee.model';
-import {
-  CollectionPoint,
-  GeoJSONPoint
-} from '../../shared/models/collection-point.model';
+import {CollectionPoint} from '../../shared/models/collection-point.model';
 import { TrashType } from '../../shared/models/bin.model';
 import { TourneeAssignment } from '../../shared/models/tournee-assignment';
 
@@ -45,7 +42,7 @@ import { AuthService } from '../../core/auth/auth.service';
 const binIcon = L.icon({
   iconUrl: 'assets/map/marker-bin.png',
   iconRetinaUrl: 'assets/map/marker-bin.png',
-  iconSize: [32, 32],
+  iconSize: [24, 32],
   iconAnchor: [16, 32],
   popupAnchor: [0, -32]
 });
@@ -53,7 +50,7 @@ const binIcon = L.icon({
 const inactiveBinIcon = L.icon({
   iconUrl: 'assets/map/marker-bin-inactive.png',
   iconRetinaUrl: 'assets/map/marker-bin-inactive.png',
-  iconSize: [32, 32],
+  iconSize: [20, 32],
   iconAnchor: [16, 32],
   popupAnchor: [0, -32]
 });
@@ -136,7 +133,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // Admin-only planning params (trash types are NOT filters for employee)
   trashTypes = Object.values(TrashType);
-  selectedTypes: TrashType[] = [TrashType.PLASTIC];
+  selectedTypes: TrashType[] = [TrashType.PLASTIC, TrashType.ORGANIC, TrashType.PAPER, TrashType.GLASS];
   threshold = 80;
   // Admin view mode: list in-progress vs planning new tours
   adminViewMode: 'IN_PROGRESS' | 'PLANNING' = 'IN_PROGRESS';
@@ -250,7 +247,6 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
       error: (err) => {
         console.error('Error loading initial depot/collection points', err);
         this.isLoading = false;
-        // Page remains usable, but without initial points
       }
     });
   }
@@ -1117,7 +1113,7 @@ export class TourneeMapComponent implements OnInit, AfterViewInit, OnDestroy {
   private getRouteColor(type: TrashType): string {
     switch (type) {
       case TrashType.PLASTIC:
-        return '#EFFF00';
+        return '#fc5f5aff';
       case TrashType.ORGANIC:
         return '#854d0e';
       case TrashType.PAPER:

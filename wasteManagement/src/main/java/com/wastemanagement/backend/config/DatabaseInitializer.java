@@ -1,10 +1,13 @@
 package com.wastemanagement.backend.config;
 
+import com.wastemanagement.backend.model.GeoJSONPoint;
+import com.wastemanagement.backend.model.tournee.Depot;
 import com.wastemanagement.backend.model.user.Admin;
 import com.wastemanagement.backend.model.user.ERole;
 import com.wastemanagement.backend.model.user.Role;
 import com.wastemanagement.backend.repository.RoleRepository;
 import com.wastemanagement.backend.repository.UserRepository;
+import com.wastemanagement.backend.repository.tournee.DepotRepository;
 import com.wastemanagement.backend.repository.user.AdminRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -24,6 +27,8 @@ public class DatabaseInitializer {
     private final AdminRepository adminRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final DepotRepository depotRepository;
+
 
     @Bean
     CommandLineRunner initDatabase() {
@@ -63,6 +68,22 @@ public class DatabaseInitializer {
 
                 adminRepository.save(admin);
                 System.out.println("Initial admin created: admin@example.com / admin123");
+            }
+
+            // --- Initialize main depot ---
+            if (!depotRepository.existsById("MAIN_DEPOT_ID")) {
+                GeoJSONPoint location = new GeoJSONPoint();
+                location.setType("Point");
+                location.setCoordinates(new double[]{10.19, 36.8});
+
+                Depot mainDepot = new Depot();
+                mainDepot.setId("MAIN_DEPOT_ID");
+                mainDepot.setName("Main depot");
+                mainDepot.setAddress("Rue X, Tunis");
+                mainDepot.setLocation(location);
+
+                depotRepository.save(mainDepot);
+                System.out.println("Created MAIN_DEPOT");
             }
     };}
 }

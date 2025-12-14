@@ -2,14 +2,11 @@ package com.wastemanagement.backend.controller.collection;
 
 import com.wastemanagement.backend.dto.collection.BinRequestDTO;
 import com.wastemanagement.backend.dto.collection.BinResponseDTO;
-import com.wastemanagement.backend.mapper.collection.BinMapper;
-import com.wastemanagement.backend.model.collection.Bin;
 import com.wastemanagement.backend.service.collection.BinService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/bins")

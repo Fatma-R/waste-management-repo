@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 @RestController
@@ -53,7 +52,6 @@ public class TourneeController {
      * Planifie des tournées pour un ou plusieurs types de déchet donné(s),
      * en fonction d’un seuil de remplissage (fillPct),
      * crée les Tournees et retourne les TourneeResponseDTOs.
-     *
      * Exemple:
      * POST /api/v1/tournees/plan?type=PLASTIC&threshold=80 or POST api/v1/tournees/plan?types=ORGANIC&types=PLASTIC&threshold=60
      */

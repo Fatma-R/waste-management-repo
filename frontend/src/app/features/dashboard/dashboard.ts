@@ -2,9 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { KpiComponent } from '../../shared/components/kpi/kpi';
 import { CardComponent } from '../../shared/components/card/card';
-import { ButtonComponent } from '../../shared/components/button/button';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner';
-import { ModalComponent } from '../../shared/components/modal/modal';
 import { BinService } from '../../core/services/bin';
 import { DashboardStats } from '../../shared/models/dashbaord-stats.model';
 import { Alert } from '../../shared/models/alert.model';
@@ -22,9 +20,7 @@ import { of } from 'rxjs';
     RouterModule,
     KpiComponent,
     CardComponent,
-    ButtonComponent,
-    LoadingSpinnerComponent,
-    ModalComponent
+    LoadingSpinnerComponent
   ],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.scss']
@@ -63,7 +59,6 @@ throw new Error('Method not implemented.');
   ngOnInit(): void {
     this.loadDashboardData();
     this.loadAlerts();
-    this.loadCo2Last7Days();
   }
 
   loadDashboardData(): void {
@@ -77,10 +72,31 @@ throw new Error('Method not implemented.');
         this.isLoading = false;
       }
     });
-  }
 
-  loadCo2Last7Days(): void {
-    this.tourneeService.getCo2Last7Days().pipe(
+    // Active routes (ONLY this employee)
+    this.tourneeService.getInProgressTournees().pipe(
+      catchError(err => {
+        console.error('Error loading active routes KPI:', err);
+        return of([]);
+      })
+    ).subscribe((tournees: any[]) => {
+      const employeeId = localStorage.getItem('employeeId'); // adjust if you store it differently
+
+      const mine = (tournees ?? []).filter(t =>
+        t.employeeId === employeeId ||
+        t.assignedToId === employeeId ||
+        (Array.isArray(t.employeeIds) && t.employeeIds.includes(employeeId)) ||
+        (Array.isArray(t.assignedEmployeeIds) && t.assignedEmployeeIds.includes(employeeId)) ||
+        (Array.isArray(t.assignedEmployees) && t.assignedEmployees.some((e: any) => e?.id === employeeId)) ||
+        (t.assignment?.employeeId === employeeId) ||
+        (Array.isArray(t.assignment?.employees) && t.assignment.employees.some((e: any) => e?.id === employeeId))
+      );
+
+      this.kpiStats.activeRoutes = mine.length;
+    });
+
+
+      this.tourneeService.getCo2Last7Days().pipe(
       catchError(err => {
         console.error('Error loading CO2 KPI:', err);
         return of(null);
@@ -91,7 +107,6 @@ throw new Error('Method not implemented.');
       }
     });
   }
-
 
   // -------------------------------------------------------
   // ✅ VERSION FINALE : Charger les 3 dernières alertes réelles

@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ButtonComponent } from '../../shared/components/button/button';
 import { CardComponent } from '../../shared/components/card/card';
+import { FormsModule } from '@angular/forms';
+
 
 interface FeatureCard {
   icon: string;
@@ -22,6 +24,7 @@ interface HowItWorksStep {
   imports: [
     CommonModule,
     RouterModule,
+    FormsModule,
     ButtonComponent,
     CardComponent
   ],
@@ -29,6 +32,44 @@ interface HowItWorksStep {
   styleUrls: ['./landing.scss']
 })
 export class Landing {
+  contact = {
+    name: '',
+    email: '',
+    message: ''
+  };
+
+  contactSuccessMessage: string | null = null;
+  contactErrorMessage: string | null = null;
+
+
+  scrollToContact(e?: Event): void {
+    e?.preventDefault();
+    document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  submitContact(): void {
+    try {
+      console.log('[CONTACT MESSAGE]', this.contact);
+
+      // clear fields
+      this.contact = { name: '', email: '', message: '' };
+
+      // toast
+      this.contactSuccessMessage = 'Message sent! We will get back to you soon.';
+      this.contactErrorMessage = null;
+
+      setTimeout(() => (this.contactSuccessMessage = null), 3000);
+    } catch (e) {
+      console.error('Contact form error:', e);
+
+      this.contactErrorMessage = 'Something went wrong. Please try again.';
+      this.contactSuccessMessage = null;
+
+      setTimeout(() => (this.contactErrorMessage = null), 3000);
+    }
+  }
+
+
   features: FeatureCard[] = [
     {
       icon: '🗺️',

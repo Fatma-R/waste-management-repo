@@ -3,10 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { CardComponent } from '../../shared/components/card/card';
-import { ButtonComponent } from '../../shared/components/button/button';
 import { KpiComponent } from '../../shared/components/kpi/kpi';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner';
-import { ModalComponent } from '../../shared/components/modal/modal';
 
 import { EmployeeService } from '../../core/services/employee';
 import { BinService } from '../../core/services/bin';
@@ -20,15 +18,14 @@ import { VehicleService } from '../../core/services/vehicle';
 import { IncidentService } from '../../core/services/incident';
 import { Incident } from '../../shared/models/incident.model';
 import { AlertService } from '../../core/services/alert';
-import { Alert , AlertType } from '../../shared/models/alert.model';
+import { Alert, AlertType } from '../../shared/models/alert.model';
 import { AutoPlanningService } from '../../core/services/auto-planning';
 import { TourneeService } from '../../core/services/tournee';
 import { AutoMode } from '../../shared/models/AutoMoode.model';
 
-import { TourneeMapComponent } from '../tournee-map/tournee-map';
-
 // type alias réutilisable
 type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
 interface ActivityLog {
   id: string;
   timestamp: Date;
@@ -63,12 +60,13 @@ interface TourneeView {
 
 type VehicleStatus = 'AVAILABLE' | 'IN_SERVICE' | 'MAINTENANCE';
 type VehicleFuelType = 'DIESEL' | 'GASOLINE' | 'ELECTRIC' | 'HYBRID';
+
 interface VehicleView {
   id: string;
   plateNumber: string;
   capacityVolumeL: number;
   status: VehicleStatus;
-  fuelType : VehicleFuelType
+  fuelType: VehicleFuelType;
 }
 
 type IncidentType =
@@ -104,7 +102,6 @@ export interface AlertView {
   resolved: boolean;
 }
 
-
 @Component({
   selector: 'app-admin',
   standalone: true,
@@ -112,19 +109,15 @@ export interface AlertView {
     CommonModule,
     FormsModule,
     CardComponent,
-    ButtonComponent,
     KpiComponent,
     LoadingSpinnerComponent,
-    ModalComponent,
-    RouterModule,
-    TourneeMapComponent  
+    RouterModule
   ],
   templateUrl: './admin-dashboard.html',
   styleUrls: ['./admin-dashboard.scss']
 })
 export class AdminDashboardComponent implements OnInit {
   AutoMode = AutoMode;
-
 
   isLoading = true;
 
@@ -136,7 +129,7 @@ export class AdminDashboardComponent implements OnInit {
   vehicles: VehicleView[] = [];
   recentIncidents: IncidentView[] = [];
   activityLogs: ActivityLog[] = [];
-  
+
   incidents: Incident[] = [];
   alerts: AlertView[] = [];
 
@@ -160,8 +153,6 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
-
-
   // KPI values
   totalEmployees = 0;
   totalBins = 0;
@@ -183,9 +174,13 @@ export class AdminDashboardComponent implements OnInit {
   private employeesLoaded = false;
   private binsLoaded = false;
   private collectionPointsLoaded = false;
+
   tournees: any;
   assignSuccessMessage: string | null = null;
   assignErrorMessage: string | null = null;
+
+  selectedVehicleId: string | null = null;
+  isDeleteVehicleModalOpen: boolean = false;
 
   constructor(
     private employeeService: EmployeeService,
@@ -194,8 +189,8 @@ export class AdminDashboardComponent implements OnInit {
     private notificationService: NotificationService,
     private router: Router,
     private vehicleService: VehicleService,
-    private incidentService : IncidentService,
-    private alertService : AlertService,
+    private incidentService: IncidentService,
+    private alertService: AlertService,
     private autoPlanningService: AutoPlanningService,
     private tourneeService: TourneeService
   ) {}
@@ -203,7 +198,6 @@ export class AdminDashboardComponent implements OnInit {
   ngOnInit(): void {
     this.loadDashboardData();
     this.loadAutoMode();
-
   }
 
   loadDashboardData(): void {
@@ -226,26 +220,25 @@ export class AdminDashboardComponent implements OnInit {
         this.checkLoadingComplete();
       }
     });
-    //Vehicle from backend 
+
+    // Vehicle from backend
     this.vehicleService.getVehicles().subscribe({
       next: (vehicles) => {
-        this.vehicles = vehicles.map(v => ({
+        this.vehicles = vehicles.map((v) => ({
           id: v.id,
           plateNumber: v.plateNumber,
           capacityVolumeL: v.capacityVolumeL,
           fuelType: v.fuelType,
           status: v.status
         }));
-      this.totalVehicles = this.vehicles.length;
+        this.totalVehicles = this.vehicles.length;
       },
       error: (err) => {
         console.error(err);
-        this.notificationService.showToast(
-          'Erreur lors du chargement des véhicules',
-          'error'
-        );
+        this.notificationService.showToast('Erreur lors du chargement des véhicules', 'error');
       }
     });
+
     // Incidents from backend
     this.incidentService.getIncidents().subscribe({
       next: (incidents) => {
@@ -259,27 +252,23 @@ export class AdminDashboardComponent implements OnInit {
             description: i.description || 'Aucune description',
             contextLabel: i.location
               ? `Lat: ${i.location.coordinates[1]}, Lng: ${i.location.coordinates[0]}`
-              : 'Localisation inconnue',
+              : 'Localisation inconnue'
             //reportedBy: i.reportedBy || 'Inconnu',
           }))
-          .sort(
-            (a, b) => b.reportedAt.getTime() - a.reportedAt.getTime()
-          )
+          .sort((a, b) => b.reportedAt.getTime() - a.reportedAt.getTime())
           .slice(0, 6); // garder seulement les 6 plus récents
 
-          // KPI : incidents ouverts ou en cours
+        // KPI : incidents ouverts ou en cours
         this.openIncidentsCount = this.recentIncidents.filter(
           (i) => i.status === 'OPEN' || i.status === 'IN_PROGRESS'
         ).length;
       },
       error: (err: any) => {
         console.error('Erreur lors du chargement des incidents', err);
-        this.notificationService.showToast(
-          'Erreur lors du chargement des incidents',
-          'error'
-        );
+        this.notificationService.showToast('Erreur lors du chargement des incidents', 'error');
       }
     });
+
     // 👉 Charge les ALERTS POUR DE VRAI
     this.alertService.getAlerts().subscribe({
       next: (alerts: Alert[]) => {
@@ -291,18 +280,19 @@ export class AdminDashboardComponent implements OnInit {
         this.totalAlerts = alerts.length;
       },
       error: () => {
-        this.notificationService.showToast("Erreur chargement Alertes", "error");
+        this.notificationService.showToast('Erreur chargement Alertes', 'error');
       }
     });
 
-    
-
-
-
-
-
-
-
+    // Active Tournees
+    this.tourneeService.getInProgressTournees().subscribe({
+      next: (tournees) => {
+        this.activeTournees = tournees?.length ?? 0;
+      },
+      error: () => {
+        this.activeTournees = 0; // or keep old value
+      }
+    });
 
     // Bins from service
     this.binService.getBins().subscribe({
@@ -323,7 +313,7 @@ export class AdminDashboardComponent implements OnInit {
     // Collection Points from API
     this.collectionPointService.getCollectionPoints().subscribe({
       next: (collectionPointsData) => {
-        this.collectionPoints = collectionPointsData.map(cp => ({
+        this.collectionPoints = collectionPointsData.map((cp) => ({
           id: cp.id,
           adresse: cp.adresse,
           active: cp.active,
@@ -352,7 +342,6 @@ export class AdminDashboardComponent implements OnInit {
     this.loadActivityLogs();
   }
 
-  
   private loadCo2Last7Days(): void {
     this.tourneeService.getCo2Last7Days().subscribe({
       next: (co2Kg) => {
@@ -373,7 +362,7 @@ export class AdminDashboardComponent implements OnInit {
   // ========= MOCK DATA (pure frontend for now) =========
 
   //private loadMockCollectionPoints(): void {
-    // No longer needed - data loaded from API in loadDashboardData()}
+  // No longer needed - data loaded from API in loadDashboardData()}
 
   private calculateAvgFillForCP(bins: Bin[]): number {
     if (bins.length === 0) return 0;
@@ -387,11 +376,6 @@ export class AdminDashboardComponent implements OnInit {
     const totalFill = this.collectionPoints.reduce((sum, cp) => sum + cp.avgFillPct, 0);
     this.avgNetworkFillPct = Math.round(totalFill / this.collectionPoints.length);
   }
-
- 
-
-  
-
 
   private loadActivityLogs(): void {
     this.activityLogs = [
@@ -433,22 +417,16 @@ export class AdminDashboardComponent implements OnInit {
   private computeAvgFillFromBins(): void {
     // If your Bin model carries a `fillLevel` or similar, you can compute here.
     // For now we only recompute if the model has that field.
-    const withAnyFill = (this.bins as any[])
-      .map((b) => b.fillLevel)
-      .filter((v) => typeof v === 'number');
+    const withAnyFill = (this.bins as any[]).map((b) => b.fillLevel).filter((v) => typeof v === 'number');
 
     if (withAnyFill.length > 0) {
-      const avg =
-        withAnyFill.reduce((sum, v) => sum + v, 0) /
-        (withAnyFill.length || 1);
+      const avg = withAnyFill.reduce((sum, v) => sum + v, 0) / (withAnyFill.length || 1);
       this.avgNetworkFillPct = Math.round(avg);
     }
   }
 
   // ========= EMPLOYEE ACTIONS =========
 
-  selectedVehicleId: string | null = null;
-  isDeleteVehicleModalOpen: boolean = false;
   openDeleteEmployeeModal(employeeId: string): void {
     this.selectedEmployeeId = employeeId;
     this.isDeleteEmployeeModalOpen = true;
@@ -464,23 +442,15 @@ export class AdminDashboardComponent implements OnInit {
 
     this.employeeService.deleteEmployee(this.selectedEmployeeId).subscribe({
       next: () => {
-        this.employees = this.employees.filter(
-          (e) => e.id !== this.selectedEmployeeId
-        );
+        this.employees = this.employees.filter((e) => e.id !== this.selectedEmployeeId);
         this.totalEmployees = this.employees.length;
-        this.notificationService.showToast(
-          'Employee deleted successfully',
-          'success'
-        );
+        this.notificationService.showToast('Employee deleted successfully', 'success');
         this.addActivityLog('delete', 'Employee removed from system');
         this.closeDeleteEmployeeModal();
       },
       error: (err) => {
         console.error('Error deleting employee:', err);
-        this.notificationService.showToast(
-          'Failed to delete employee',
-          'error'
-        );
+        this.notificationService.showToast('Failed to delete employee', 'error');
       }
     });
   }
@@ -512,19 +482,13 @@ export class AdminDashboardComponent implements OnInit {
       next: () => {
         this.bins = this.bins.filter((b) => b.id !== this.selectedBinId);
         this.totalBins = this.bins.length;
-        this.notificationService.showToast(
-          'Bin deleted successfully',
-          'success'
-        );
+        this.notificationService.showToast('Bin deleted successfully', 'success');
         this.addActivityLog('delete', 'Bin removed from system');
         this.closeDeleteBinModal();
       },
       error: (err) => {
         console.error('Error deleting bin:', err);
-        this.notificationService.showToast(
-          'Failed to delete bin',
-          'error'
-        );
+        this.notificationService.showToast('Failed to delete bin', 'error');
       }
     });
   }
@@ -545,28 +509,27 @@ export class AdminDashboardComponent implements OnInit {
 
   openVehicleMaintenanceModal(vehicle: VehicleView): void {
     console.log('Register maintenance for vehicle:', vehicle);
-    this.notificationService.showToast(
-      `Maintenance for vehicle ${vehicle.plateNumber} (UI not implemented yet)`,
-      'info'
-    );
+    this.notificationService.showToast(`Maintenance for vehicle ${vehicle.plateNumber} (UI not implemented yet)`, 'info');
   }
- 
+
   openDeleteVahicleModal(vehicleId: string): void {
     this.selectedVehicleId = vehicleId;
     this.isDeleteVehicleModalOpen = true;
   }
+
   openDeleteVehicleModal(vehicleId: string): void {
     this.selectedVehicleId = vehicleId;
     this.isDeleteVehicleModalOpen = true;
   }
+
   confirmDeleteVehicle(): void {
     if (!this.selectedVehicleId) return;
 
-      // Appel à ton service pour supprimer le véhicule
-      this.vehicleService.deleteVehicle(this.selectedVehicleId).subscribe({
-        next: () => {
+    // Appel à ton service pour supprimer le véhicule
+    this.vehicleService.deleteVehicle(this.selectedVehicleId).subscribe({
+      next: () => {
         // Supprime le véhicule de la liste locale
-        this.vehicles = this.vehicles.filter(v => v.id !== this.selectedVehicleId);
+        this.vehicles = this.vehicles.filter((v) => v.id !== this.selectedVehicleId);
         this.isDeleteVehicleModalOpen = false;
         this.selectedVehicleId = null;
       },
@@ -575,12 +538,6 @@ export class AdminDashboardComponent implements OnInit {
       }
     });
   }
-
-
-
- 
-  
-
 
   // ========= ACTIVITY LOG HELPERS =========
 
@@ -627,7 +584,6 @@ export class AdminDashboardComponent implements OnInit {
     };
     return icons[type];
   }
-  
 
   // ========= BADGE / STATUS HELPERS =========
 
@@ -646,7 +602,6 @@ export class AdminDashboardComponent implements OnInit {
         return '';
     }
   }
-
 
   getVehicleStatusClass(status: VehicleStatus): string {
     switch (status) {
@@ -708,10 +663,11 @@ export class AdminDashboardComponent implements OnInit {
       case 'FIRE_BLOCKAGE':
         return '🔥';
       case 'OTHER':
-    default:
-      return '❓';
+      default:
+        return '❓';
     }
   }
+
   private mapAlertToView(alert: Alert): AlertView {
     return {
       id: alert.id,
@@ -743,12 +699,17 @@ export class AdminDashboardComponent implements OnInit {
 
   private getSeverity(type: AlertType): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' {
     switch (type) {
-      case 'LEVEL_LOW': return 'LOW';
-      case 'BATTERY_LOW': return 'MEDIUM';
-      case 'LEVEL_HIGH': return 'HIGH';
+      case 'LEVEL_LOW':
+        return 'LOW';
+      case 'BATTERY_LOW':
+        return 'MEDIUM';
+      case 'LEVEL_HIGH':
+        return 'HIGH';
       case 'LEVEL_CRITICAL':
-      case 'SENSOR_ANOMALY': return 'CRITICAL';
-      default: return 'MEDIUM';
+      case 'SENSOR_ANOMALY':
+        return 'CRITICAL';
+      default:
+        return 'MEDIUM';
     }
   }
 
@@ -793,7 +754,10 @@ export class AdminDashboardComponent implements OnInit {
       next: () => {
         this.autoMode = mode;
         this.isModeLoading = false;
-        this.notificationService.showToast(`Mode basculé sur ${mode.replace('_', ' ').toLowerCase()}`, 'success');
+        this.notificationService.showToast(
+          `Mode basculé sur ${mode.replace('_', ' ').toLowerCase()}`,
+          'success'
+        );
       },
       error: () => {
         this.isModeLoading = false;
@@ -836,16 +800,11 @@ export class AdminDashboardComponent implements OnInit {
     });
   }
 
-
-
   // ========= CONTROL BUTTON HANDLERS =========
 
   onRecalculateTournees(): void {
     console.log('Recalculate tournées');
-    this.notificationService.showToast(
-      'Recalculate tournées (backend integration pending).',
-      'info'
-    );
+    this.notificationService.showToast('Recalculate tournées (backend integration pending).', 'info');
   }
 
   onRebalanceBins(): void {
@@ -858,44 +817,123 @@ export class AdminDashboardComponent implements OnInit {
 
   onExportKpiReport(): void {
     console.log('Export KPI report');
-    this.notificationService.showToast(
-      'Export KPI report (backend integration pending).',
-      'info'
-    );
+    this.notificationService.showToast('Export KPI report (backend integration pending).', 'info');
   }
 
   onExportIncidentReport(): void {
-    console.log('Export incident report');
-    this.notificationService.showToast(
-      'Export incident log (backend integration pending).',
-      'info'
-    );
+    this.incidentService.getIncidents().subscribe({
+      next: (incidents) => {
+        const headers = ['id', 'type', 'severity', 'status', 'description', 'longitude', 'latitude', 'reportedAt'];
+        const toCell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+
+        const rows = incidents.map((i: any) => [
+          i.id,
+          i.type,
+          i.severity,
+          i.status,
+          i.description,
+          i.location?.coordinates?.[0],
+          i.location?.coordinates?.[1],
+          i.reportedAt ?? i['reportedAt']
+        ]);
+
+        const csv = [headers.join(','), ...rows.map((r) => r.map(toCell).join(','))].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'incidents.csv';
+        link.click();
+        URL.revokeObjectURL(link.href);
+      },
+      error: () => {
+        this.assignErrorMessage = 'Failed to export incidents.';
+      }
+    });
   }
 
   onSyncWithSensors(): void {
     console.log('Sync with sensors');
-    this.notificationService.showToast(
-      'Sync with sensors / IoT (backend integration pending).',
-      'info'
-    );
+    this.notificationService.showToast('Sync with sensors / IoT (backend integration pending).', 'info');
   }
 
   onOpenSystemSettings(): void {
     this.router.navigate(['/admin/admins']);
   }
+
   goToVehicles(): void {
-  this.router.navigate(['/admin/vehicles']);}
-  goToIncidents() {
-  this.router.navigate(['/admin/incidents']);}
+    this.router.navigate(['/admin/vehicles']);
+  }
+
+  goToIncidents(): void {
+    this.router.navigate(['/admin/incidents']);
+  }
+
   goToTourneeMap(): void {
     this.router.navigate(['/admin/tournee-map']);
   }
 
-  goToPlanning() {
-  this.router.navigate(['/admin/tournees']);
-}
+  goToPlanning(): void {
+    this.router.navigate(['/admin/tournees']);
+  }
 
+  onExportCollectionPointsReport(): void {
+    this.collectionPointService.getCollectionPoints().subscribe({
+      next: (points) => {
+        const headers = [
+          'collectionPointId',
+          'address',
+          'cpLongitude',
+          'cpLatitude',
+          'active',
+          'binId',
+          'binType',
+          'binFillPct'
+        ];
 
+        const toCell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
+        const rows: unknown[][] = [];
 
+        (points as any[]).forEach((cp) => {
+          const cpLon = cp.location?.coordinates?.[0];
+          const cpLat = cp.location?.coordinates?.[1];
+
+          const bins = Array.isArray(cp.bins) ? cp.bins : [];
+
+          // if no bins, still export the CP row with empty bin columns
+          if (bins.length === 0) {
+            rows.push([cp.id, cp.adresse ?? cp.address ?? '', cpLon, cpLat, cp.active, '', '', '']);
+            return;
+          }
+
+          // 1 row per bin
+          bins.forEach((b: any) => {
+            rows.push([
+              cp.id,
+              cp.adresse ?? cp.address ?? '',
+              cpLon,
+              cpLat,
+              cp.active,
+              b.id,
+              b.type ?? b.trashType ?? '',
+              b.fillPct ?? b.fillLevelPct ?? b.fillLevel ?? ''
+            ]);
+          });
+        });
+
+        const csv = [headers.join(','), ...rows.map((r) => r.map(toCell).join(','))].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'collection-points-with-bins.csv';
+        link.click();
+        URL.revokeObjectURL(link.href);
+      },
+      error: () => {
+        this.assignErrorMessage = 'Failed to export collection points.';
+      }
+    });
+  }
 }

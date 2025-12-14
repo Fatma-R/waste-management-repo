@@ -8,7 +8,7 @@ import { ButtonComponent } from '../../shared/components/button/button';
 import { ModalComponent } from '../../shared/components/modal/modal';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner';
 import { EmployeeService } from '../../core/services/employee';
-import { AuthService } from '../../core/auth/auth.service'; // <-- add this
+import { AuthService } from '../../core/auth/auth.service';
 import { NotificationService } from '../../core/services/notification';
 import { CreateEmployeeDto, Employee, EmployeeSkill, UpdateEmployeeDto } from '../../shared/models/employee.model';
 

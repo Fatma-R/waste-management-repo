@@ -36,7 +36,6 @@ export class IncidentService {
     return this.api.put<Incident>(`/incidents/${id}`, dto);
   }
 
-
   deleteIncident(id: string): Observable<void> {
     return this.api.delete<void>(`/incidents/${id}`);
   }

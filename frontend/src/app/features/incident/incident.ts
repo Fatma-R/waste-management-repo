@@ -219,4 +219,20 @@ export class IncidentsComponent implements OnInit {
       }
     });
   }
+
+  exportIncidentsCsv(): void {
+    const headers = ['id','type','severity','status','description','longitude','latitude','reportedAt'];
+    const toCell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = this.incidents.map(i => [
+      i.id, i.type, i.severity, i.status, i.description,
+      i.location?.coordinates?.[0], i.location?.coordinates?.[1], i['reportedAt']
+    ]);
+    const csv = [headers.join(','), ...rows.map(r => r.map(toCell).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'incidents.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
 }

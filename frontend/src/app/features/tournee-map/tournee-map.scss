@@ -138,8 +138,8 @@
 
 /* PLASTIC – flashy yellow */
 .filter-checkbox--PLASTIC .filter-checkbox-input:checked + .filter-checkbox-box {
-  background: #efff00;
-  border-color: #efff00;
+  background: #fb4c4c;
+  border-color: #fb4c4c;
 }
 
 .filter-checkbox--PLASTIC .filter-checkbox-input:checked ~ .filter-checkbox-label {
@@ -336,8 +336,8 @@
 
 /* Couleurs par type de tournée */
 .tour-type-pill--PLASTIC {
-  background: rgba(250, 204, 21, 0.16); // jaune
-  color: #854d0e;
+  background: rgba(252, 0, 0, 0.16); // rouge
+  color: #2d0903;
 }
 
 .tour-type-pill--ORGANIC {

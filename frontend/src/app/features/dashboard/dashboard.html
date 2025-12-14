@@ -5,15 +5,13 @@
         <h1 class="dashboard-title">Dashboard</h1>
         <p class="dashboard-subtitle">Monitor your waste management operations</p>
       </div>
-      <div class="dashboard-actions">
-        <app-button variant="primary" >
-          Performance Summary
-        </app-button> 
-        <!--<app-button variant="outline" >
-          Performance Summary
-        </app-button>-->
 
-        
+      <div class="dashboard-actions">
+        <!--
+        <app-button variant="outline">
+          Performance Summary
+        </app-button>
+        -->
       </div>
     </div>
 
@@ -24,157 +22,164 @@
     <div *ngIf="!isLoading">
       <!-- KPI Section -->
       <section class="kpi-section">
-        <!-- <app-kpi
+        <!--
+        <app-kpi
           label="Total Bins"
           [value]="stats.totalBins"
           icon="👥"
           color="sage">
-        </app-kpi>-->
+        </app-kpi>
+        -->
+
         <app-kpi
-  label="Alerts"
-  [value]="kpiStats.alertsCount"
-  icon="🚨"
-  color="red">
-</app-kpi>
+          label="Alerts"
+          [value]="kpiStats.alertsCount"
+          icon="🚨"
+          color="red">
+        </app-kpi>
 
-<app-kpi
-  label="Active Routes"
-  [value]="kpiStats.activeRoutes"
-  icon="🚛"
-  color="green">
-</app-kpi>
+        <app-kpi
+          label="Active Routes"
+          [value]="kpiStats.activeRoutes"
+          icon="🚛"
+          color="green">
+        </app-kpi>
 
-<app-kpi
-  label="CO2 (last 7 days)"
-  [value]="(kpiStats.co2Last7Days | number:'1.0-2') || '0'"
-  unit="kg"
-  icon="♻️"
-  color="green">
-</app-kpi>
-
-        
-      
+        <app-kpi
+          label="CO2 (last 7 days)"
+          [value]="(kpiStats.co2Last7Days | number:'1.0-2') || '0'"
+          unit="kg"
+          icon="♻️"
+          color="green">
+        </app-kpi>
       </section>
 
       <!-- Main Content Grid -->
       <div class="dashboard-grid">
         <!-- Map Preview Card -->
-        
         <app-card padding="lg" class="map-preview-card">
-
           <div class="card-header">
-            <h2 class="card-title">Tournee Map Preview</h2>
-          </div>
-
-          <div class="map-body">
-            <img src="assets/map/map-preview.png" alt="Map Preview" class="map-preview-img" />
-          </div>
-
-          <div class="card-footer">
+            <h2 class="card-title">Tournee Map View</h2>
             <a routerLink="/user/tournee-map" class="card-link">View Full Map →</a>
           </div>
 
+          <div class="map-body">
+            <img
+              src="assets/map/map-preview.png"
+              alt="Map Preview"
+              class="map-preview-img"
+            />
+          </div>
         </app-card>
 
         <!-- Notifications Card -->
-       <app-card padding="lg" class="management-card">
-  <div class="card-header">
-    <h2 class="card-title">Recent Alerts</h2>
-    <a routerLink="/user/employee-alerts" class="card-link">View All →</a>
-  </div>
+        <app-card padding="lg" class="management-card">
+          <div class="card-header">
+            <h2 class="card-title">Recent Alerts</h2>
+            <a routerLink="/user/employee-alerts" class="card-link">View All →</a>
+          </div>
 
-  <div class="management-list">
-    <div *ngFor="let alert of alerts" class="management-item">
+          <div class="management-list">
+            <div *ngFor="let alert of alerts" class="management-item">
+              <!-- INFO SECTION -->
+              <div class="item-info">
+                <span class="item-icon" aria-hidden="true">🚨</span>
 
-      <!-- INFO SECTION -->
-      <div class="item-info">
-        <span class="item-icon" aria-hidden="true">🚨</span>
-        <div class="item-details">
-          <span class="item-name">{{ alert.message }}</span>
-          <span class="item-meta">{{ formatAlertDate(alert.createdAt) }}</span>
+                <div class="item-details">
+                  <span class="item-name">{{ alert.message }}</span>
+                  <span class="item-meta">{{ formatAlertDate(alert.createdAt) }}</span>
+                </div>
+              </div>
 
-        </div>
-      </div>
+              <!-- ACTIONS SECTION -->
+              <div class="item-actions">
+                <span
+                  class="status-badge"
+                  [ngClass]="{
+                    'status-low': alert.severity === 'LOW',
+                    'status-medium': alert.severity === 'MEDIUM',
+                    'status-high': alert.severity === 'HIGH',
+                    'status-critical': alert.severity === 'CRITICAL'
+                  }">
+                  {{ alert.severity }}
+                </span>
 
-      <!-- ACTIONS SECTION -->
-      <div class="item-actions">
-        <span class="status-badge" [ngClass]="{
-          'status-low': alert.severity === 'LOW',
-          'status-medium': alert.severity === 'MEDIUM',
-          'status-high': alert.severity === 'HIGH',
-          'status-critical': alert.severity === 'CRITICAL'
-        }">{{ alert.severity }}</span>
+                <span
+                  class="status-badge"
+                  [ngClass]="alert.resolved ? 'status-resolved' : 'status-open'">
+                  {{ alert.resolved ? 'Resolved' : 'Open' }}
+                </span>
+              </div>
+            </div>
 
-        <span class="status-badge" [ngClass]="alert.resolved ? 'status-resolved' : 'status-open'">
-          {{ alert.resolved ? 'Resolved' : 'Open' }}
-        </span>
-      </div>
-
-    </div>
-
-    <div *ngIf="alerts.length === 0" class="no-activity">
-      <p>No recent alerts</p>
-    </div>
-  </div>
-</app-card>
-
-
-       
-        
+            <div *ngIf="alerts.length === 0" class="no-activity">
+              <p>No recent alerts</p>
+            </div>
+          </div>
+        </app-card>
 
         <!-- Quick Actions Card -->
+        <!--
         <app-card padding="lg" class="quick-actions-card">
           <div class="card-header">
             <h2 class="card-title">Quick Actions</h2>
           </div>
+
           <div class="quick-actions">
             <button class="action-button" (click)="openAddBinModal()">
               <span class="action-icon" aria-hidden="true">🚛</span>
               <span class="action-label">Active Routes</span>
             </button>
+
             <a routerLink="/employees" class="action-button">
               <span class="action-icon" aria-hidden="true">🗺️</span>
               <span class="action-label">View Full Map</span>
             </a>
+
             <a routerLink="/map" class="action-button">
               <span class="action-icon" aria-hidden="true">📊</span>
               <span class="action-label">View Reports</span>
             </a>
-            
+
             <a routerLink="/user/employee-alerts" class="action-button">
               <span class="action-icon" aria-hidden="true">🚨</span>
               <span class="action-label">View Alerts</span>
             </a>
-
           </div>
         </app-card>
+        -->
 
         <!-- Stats Summary Card -->
+        <!--
         <app-card padding="lg" class="stats-card">
           <div class="card-header">
             <h2 class="card-title">Performance Summary</h2>
           </div>
+
           <div class="stats-list">
             <div class="stat-row">
               <span class="stat-label">Collection Efficiency</span>
               <span class="stat-value stat-positive">+15%</span>
             </div>
+
             <div class="stat-row">
               <span class="stat-label">Fuel Savings</span>
               <span class="stat-value stat-positive">-28%</span>
             </div>
+
             <div class="stat-row">
               <span class="stat-label">Response Time</span>
               <span class="stat-value">2.4 hrs</span>
             </div>
+
             <div class="stat-row">
               <span class="stat-label">Bins Serviced Today</span>
               <span class="stat-value">18</span>
             </div>
           </div>
         </app-card>
+        -->
       </div>
     </div>
   </div>
 </main>
-

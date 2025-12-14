@@ -114,7 +114,7 @@ public class AuthController {
             rawPassword = generateRandomPassword();
 
             // DEV OVERRIDE: comment when pushing to production
-            rawPassword = "123";  // ⚠️ DEV ONLY — static password to simplify tests
+            //rawPassword = "123";  // ⚠️ DEV ONLY — static password to simplify tests
 
             System.out.println("Generated password for " + signupRequest.getEmail() + ": " + rawPassword);
         } else {

@@ -102,7 +102,7 @@
 <!-- Reading Details Modal -->
 <app-modal
   [isOpen]="selectedReading !== null"
-  [title]="selectedReading ? 'Reading Details - ' + selectedReading.binId : ''"
+  [title]="selectedReading ? 'Reading Details ' : ''"
   size="md"
   (close)="deselectReading()">
 

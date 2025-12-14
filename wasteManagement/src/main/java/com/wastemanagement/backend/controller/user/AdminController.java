@@ -15,12 +15,6 @@ public class AdminController {
 
     private final AdminService adminService;
 
-    // Création désactivée (passage par AuthController).
-    // @PostMapping
-    // public AdminResponseDTO create(@RequestBody AdminRequestDTO dto) {
-    //     return adminService.createAdmin(dto);
-    // }
-
     @GetMapping("/{id}")
     public AdminResponseDTO getById(@PathVariable String id) {
         return adminService.getAdminById(id);
