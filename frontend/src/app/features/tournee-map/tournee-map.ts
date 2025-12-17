@@ -42,7 +42,7 @@ import { AuthService } from '../../core/auth/auth.service';
 const binIcon = L.icon({
   iconUrl: 'assets/map/marker-bin.png',
   iconRetinaUrl: 'assets/map/marker-bin.png',
-  iconSize: [24, 32],
+  iconSize: [21, 32],
   iconAnchor: [16, 32],
   popupAnchor: [0, -32]
 });
@@ -50,7 +50,7 @@ const binIcon = L.icon({
 const inactiveBinIcon = L.icon({
   iconUrl: 'assets/map/marker-bin-inactive.png',
   iconRetinaUrl: 'assets/map/marker-bin-inactive.png',
-  iconSize: [20, 32],
+  iconSize: [21, 32],
   iconAnchor: [16, 32],
   popupAnchor: [0, -32]
 });
@@ -58,7 +58,7 @@ const inactiveBinIcon = L.icon({
 const depotIcon = L.icon({
   iconUrl: 'assets/map/marker-depot.png',
   iconRetinaUrl: 'assets/map/marker-depot.png',
-  iconSize: [36, 36],
+  iconSize: [30, 30],
   iconAnchor: [18, 36],
   popupAnchor: [0, -36]
 });
