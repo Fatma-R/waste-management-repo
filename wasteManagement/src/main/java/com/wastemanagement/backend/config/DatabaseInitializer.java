@@ -77,7 +77,7 @@ public class DatabaseInitializer {
                 location.setCoordinates(new double[]{10.19, 36.8});
 
                 Depot mainDepot = new Depot();
-                mainDepot.setId("MAIN_DEPOT_ID");
+                mainDepot.setId("MAIN_DEPOT");
                 mainDepot.setName("Main depot");
                 mainDepot.setAddress("Rue X, Tunis");
                 mainDepot.setLocation(location);
