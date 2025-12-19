@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"binId":{"$numberInt":"1"},"ts":{"$numberInt":"-1"}},"name":"bin_ts_desc_idx"}],"uuid":"aed3e3e408a043b9be9c4f8dc3e2bc4c","collectionName":"binReadings","type":"collection"}

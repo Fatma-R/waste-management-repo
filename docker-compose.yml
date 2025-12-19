@@ -3,7 +3,7 @@ services:
     image: osrm/osrm-backend:v5.27.1
     volumes:
       - ./osrm-data:/data
-    command: ["osrm-routed", "--algorithm", "mld", "/data/map.osrm"]
+    command: ["osrm-routed", "--algorithm", "mld", "/data/tunisia-25-11-25.osrm"]
     ports:
       - "5000:5000"
     restart: unless-stopped
@@ -13,24 +13,24 @@ services:
     profiles: ["tools"]
     volumes:
       - ./osrm-data:/data
-    command: ["osrm-extract", "-p", "/opt/car.lua", "/data/map.osm.pbf"]
+    command: ["osrm-extract", "-p", "/opt/car.lua", "/data/tunisia-25-11-25.osm.pbf"]
 
   osrm-partition:
     image: osrm/osrm-backend:v5.27.1
     profiles: ["tools"]
     volumes:
       - ./osrm-data:/data
-    command: ["osrm-partition", "/data/map.osrm"]
+    command: ["osrm-partition", "/data/tunisia-25-11-25.osrm"]
 
   osrm-customize:
     image: osrm/osrm-backend:v5.27.1
     profiles: ["tools"]
     volumes:
       - ./osrm-data:/data
-    command: ["osrm-customize", "/data/map.osrm"]
+    command: ["osrm-customize", "/data/tunisia-25-11-25.osrm"]
 
   vroom:
-    image: vroomvrp/vroom-docker:latest
+    image: vroomvrp/vroom-docker:v1.13.0
     depends_on:
       - osrm
     environment:

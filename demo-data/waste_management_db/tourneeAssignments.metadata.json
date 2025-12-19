@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"500ade1158b446f291aa67bff196d8a9","collectionName":"tourneeAssignments","type":"collection"}
